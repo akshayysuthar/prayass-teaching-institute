@@ -1,0 +1,362 @@
+[
+  {
+    "class": 10,
+    "board": "GSEB",
+    "medium": "Gujarati",
+    "subject": "Science",
+    "categories": [
+      {
+        "name": "Chemistry",
+        "chapters": [
+          { "id": 1, "name": "Chemical Reactions and Equations" },
+          { "id": 2, "name": "Acids, Bases and Salts" },
+          { "id": 3, "name": "Metals and Non-metals" },
+          { "id": 4, "name": "Carbon and Its Compounds" },
+          { "id": 5, "name": "Periodic Classification of Elements" }
+        ]
+      },
+      {
+        "name": "Biology",
+        "chapters": [
+          { "id": 6, "name": "Life Processes" },
+          { "id": 7, "name": "Control and Coordination" },
+          { "id": 8, "name": "How do Organisms Reproduce?" },
+          { "id": 9, "name": "Heredity and Evolution" },
+          { "id": 14, "name": "Sources of Energy" },
+          { "id": 15, "name": "Our Environment" },
+          { "id": 16, "name": "Management of Natural Resources" }
+        ]
+      },
+      {
+        "name": "Physics",
+        "chapters": [
+          { "id": 10, "name": "Light Reflection and Refraction" },
+          { "id": 11, "name": "Human Eye and Colourful World" },
+          { "id": 12, "name": "Electricity" },
+          { "id": 13, "name": "Magnetic Effects of Electric Current" }
+        ]
+      }
+    ]
+  },
+  {
+    "class": 10,
+    "board": "GSEB",
+    "subjects": [
+      {
+        "name": "Social Science",
+        "chapters": [
+          {
+            "id": 1,
+            "english_name": "Heritage of India",
+            "gujarati_name": "ભારતનો વારસો"
+          },
+          {
+            "id": 2,
+            "english_name": "Cultural Heritage of India: Traditional Handicraft and Fine Arts",
+            "gujarati_name": "ભારતનો સાંસ્કૃતિક વારસો : પરંપરાઓ : હસ્ત અને લલિતકલા"
+          },
+          {
+            "id": 3,
+            "english_name": "Cultural Heritage of India: Sculpture and Architecture",
+            "gujarati_name": "ભારતનો સાંસ્કૃતિક વારસો : શિલ્પ અને સ્થાપત્ય"
+          },
+          {
+            "id": 4,
+            "english_name": "Literary Heritage of India",
+            "gujarati_name": "ભારતનો સાહિત્યિક વારસો"
+          },
+          {
+            "id": 5,
+            "english_name": "India’s Heritage of Science and Technology",
+            "gujarati_name": "ભારતનો વિજ્ઞાન અને ટેક્નોલૉજીનો વારસો"
+          },
+          {
+            "id": 6,
+            "english_name": "Places of Indian Cultural Heritage",
+            "gujarati_name": "ભારતના સાંસ્કૃતિક વારસાનાં સ્થળો"
+          },
+          {
+            "id": 7,
+            "english_name": "Preservation of Our Heritage",
+            "gujarati_name": "અપણા વારસાનું જતન"
+          },
+          {
+            "id": 8,
+            "english_name": "Natural Resources",
+            "gujarati_name": "કુદરતી સંસાધનો"
+          },
+          {
+            "id": 9,
+            "english_name": "Forests and Wildlife Resources",
+            "gujarati_name": "વન અને વન્યજીવ સંસાધન"
+          },
+          {
+            "id": 10,
+            "english_name": "India: Agriculture",
+            "gujarati_name": "ભારત: કૃષિ"
+          },
+          {
+            "id": 11,
+            "english_name": "India: Water Resources",
+            "gujarati_name": "ભારત : જળ સંસાધન"
+          },
+          {
+            "id": 12,
+            "english_name": "India: Minerals and Energy Resources",
+            "gujarati_name": "ભારત : ખનિજ અને શક્તિનાં સંસાધનો"
+          },
+          {
+            "id": 13,
+            "english_name": "Manufacturing Industries",
+            "gujarati_name": "ઉત્પાદન ઉદ્યોગો"
+          },
+          {
+            "id": 14,
+            "english_name": "Transportation, Communication and Trade",
+            "gujarati_name": "પરિવહન, સંદેશાવ્યવહાર અને વ્યાપાર"
+          },
+          {
+            "id": 15,
+            "english_name": "Economic Development",
+            "gujarati_name": "આર્થિક વિકાસ"
+          },
+          {
+            "id": 16,
+            "english_name": "Economic Liberalization and Globalization",
+            "gujarati_name": "આર્થિક ઉદારીકરણ અને વૈશ્વિકીકરણ"
+          },
+          {
+            "id": 17,
+            "english_name": "Economic Problems and Challenges: Poverty and Unemployment",
+            "gujarati_name": "આર્થિક સમસ્યાઓ અને પડકારો : ગરીબી અને બેરોજગારી"
+          },
+          {
+            "id": 18,
+            "english_name": "Price Rise and Consumer Awareness",
+            "gujarati_name": "ભાવવધારો અને ગ્રાહક જાગૃતિ"
+          },
+          {
+            "id": 19,
+            "english_name": "Human Development",
+            "gujarati_name": "માનવ વિકાસ"
+          },
+          {
+            "id": 20,
+            "english_name": "Social Problems of India and Challenges",
+            "gujarati_name": "ભારતની સામાજિક સમસ્યાઓ અને પડકારો"
+          },
+          {
+            "id": 21,
+            "english_name": "Social Change",
+            "gujarati_name": "સામાજિક પરિવર્તન"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "class": 10,
+    "board": "GSEB",
+    "subjects": [
+      {
+        "name": "Mathematics",
+        "mediums": [
+          {
+            "language": "English",
+            "chapters": [
+              {
+                "id": 1,
+                "name": "Real Numbers",
+                "exercises": ["Ex 1.1", "Ex 1.2", "Ex 1.3", "Ex 1.4"]
+              },
+              {
+                "id": 2,
+                "name": "Polynomials",
+                "exercises": ["Ex 2.1", "Ex 2.2", "Ex 2.3", "Ex 2.4"]
+              },
+              {
+                "id": 3,
+                "name": "Pair of Linear Equations in Two Variables",
+                "exercises": [
+                  "Ex 3.1",
+                  "Ex 3.2",
+                  "Ex 3.3",
+                  "Ex 3.4",
+                  "Ex 3.5",
+                  "Ex 3.6",
+                  "Ex 3.7"
+                ]
+              },
+              {
+                "id": 4,
+                "name": "Quadratic Equations",
+                "exercises": ["Ex 4.1", "Ex 4.2", "Ex 4.3", "Ex 4.4"]
+              },
+              {
+                "id": 5,
+                "name": "Arithmetic Progressions",
+                "exercises": ["Ex 5.1", "Ex 5.2", "Ex 5.3", "Ex 5.4"]
+              },
+              {
+                "id": 6,
+                "name": "Triangles",
+                "exercises": [
+                  "Ex 6.1",
+                  "Ex 6.2",
+                  "Ex 6.3",
+                  "Ex 6.4",
+                  "Ex 6.5",
+                  "Ex 6.6"
+                ]
+              },
+              {
+                "id": 7,
+                "name": "Coordinate Geometry",
+                "exercises": ["Ex 7.1", "Ex 7.2", "Ex 7.3", "Ex 7.4"]
+              },
+              {
+                "id": 8,
+                "name": "Introduction to Trigonometry",
+                "exercises": ["Ex 8.1", "Ex 8.2", "Ex 8.3", "Ex 8.4"]
+              },
+              {
+                "id": 9,
+                "name": "Some Applications of Trigonometry",
+                "exercises": ["Ex 9.1"]
+              },
+              {
+                "id": 10,
+                "name": "Circles",
+                "exercises": ["Ex 10.1", "Ex 10.2"]
+              },
+              {
+                "id": 11,
+                "name": "Constructions",
+                "exercises": ["Ex 11.1", "Ex 11.2"]
+              },
+              {
+                "id": 12,
+                "name": "Areas Related to Circles",
+                "exercises": ["Ex 12.1", "Ex 12.2", "Ex 12.3"]
+              },
+              {
+                "id": 13,
+                "name": "Surface Areas and Volumes",
+                "exercises": [
+                  "Ex 13.1",
+                  "Ex 13.2",
+                  "Ex 13.3",
+                  "Ex 13.4",
+                  "Ex 13.5"
+                ]
+              },
+              {
+                "id": 14,
+                "name": "Statistics",
+                "exercises": ["Ex 14.1", "Ex 14.2", "Ex 14.3", "Ex 14.4"]
+              },
+              { "id": 15, "name": "Probability", "exercises": ["Ex 15.1"] }
+            ]
+          },
+          {
+            "language": "Gujarati",
+            "chapters": [
+              {
+                "id": 1,
+                "name": "વાસ્તવિક સંખ્યાઓ",
+                "exercises": ["Ex 1.1", "Ex 1.2", "Ex 1.3", "Ex 1.4"]
+              },
+              {
+                "id": 2,
+                "name": "બહુપદીઓ",
+                "exercises": ["Ex 2.1", "Ex 2.2", "Ex 2.3", "Ex 2.4"]
+              },
+              {
+                "id": 3,
+                "name": "વિશિષ્ટ બે ચલવાળા રેખીય સરવાળા",
+                "exercises": [
+                  "Ex 3.1",
+                  "Ex 3.2",
+                  "Ex 3.3",
+                  "Ex 3.4",
+                  "Ex 3.5",
+                  "Ex 3.6",
+                  "Ex 3.7"
+                ]
+              },
+              {
+                "id": 4,
+                "name": "દ્વિગુણમૂલ્ય સમીકરણો",
+                "exercises": ["Ex 4.1", "Ex 4.2", "Ex 4.3", "Ex 4.4"]
+              },
+              {
+                "id": 5,
+                "name": "અરે થિની શ્રેણીઓ",
+                "exercises": ["Ex 5.1", "Ex 5.2", "Ex 5.3", "Ex 5.4"]
+              },
+              {
+                "id": 6,
+                "name": "ત્રિકોણ",
+                "exercises": [
+                  "Ex 6.1",
+                  "Ex 6.2",
+                  "Ex 6.3",
+                  "Ex 6.4",
+                  "Ex 6.5",
+                  "Ex 6.6"
+                ]
+              },
+              {
+                "id": 7,
+                "name": "સંયોજન જગ્યા શાસ્ત્ર",
+                "exercises": ["Ex 7.1", "Ex 7.2", "Ex 7.3", "Ex 7.4"]
+              },
+              {
+                "id": 8,
+                "name": "ટ્રિગનોમેટ્રીમાં પરિચય",
+                "exercises": ["Ex 8.1", "Ex 8.2", "Ex 8.3", "Ex 8.4"]
+              },
+              {
+                "id": 9,
+                "name": "ટ્રિગનોમેટ્રીના અમુક અનુપ્રયોગ",
+                "exercises": ["Ex 9.1"]
+              },
+              {
+                "id": 10,
+                "name": "વર્તુળો",
+                "exercises": ["Ex 10.1", "Ex 10.2"]
+              },
+              {
+                "id": 11,
+                "name": "રચનાઓ",
+                "exercises": ["Ex 11.1", "Ex 11.2"]
+              },
+              {
+                "id": 12,
+                "name": "વર્તુળોથી જોડાયેલા ક્ષેત્રો",
+                "exercises": ["Ex 12.1", "Ex 12.2", "Ex 12.3"]
+              },
+              {
+                "id": 13,
+                "name": "સહખાતરી ક્ષેત્રો અને ઘન",
+                "exercises": [
+                  "Ex 13.1",
+                  "Ex 13.2",
+                  "Ex 13.3",
+                  "Ex 13.4",
+                  "Ex 13.5"
+                ]
+              },
+              {
+                "id": 14,
+                "name": "આંકડાકીય માહિતી",
+                "exercises": ["Ex 14.1", "Ex 14.2", "Ex 14.3", "Ex 14.4"]
+              },
+              { "id": 15, "name": "સંભાવના", "exercises": ["Ex 15.1"] }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
