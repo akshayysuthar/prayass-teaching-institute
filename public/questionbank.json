@@ -21,7 +21,8 @@
             "ReviewedBy": "admin",
             "lastUpdated": "Today",
             "isHaveImg": "True",
-            "img": "/images.png"
+            "images": "/images.png",
+            "questionImages": ["/images.png"]
           },
           {
             "type": "In-text",

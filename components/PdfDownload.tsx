@@ -147,15 +147,17 @@ export function PdfDownload({
         true
       );
 
-      if (question.isHaveImg === "True" && question.img) {
-        yPos = await addImage(
-          question.img,
-          margin,
-          yPos + 5,
-          pageWidth - 2 * margin,
-          0
-        );
-        yPos += 5;
+      if (question.questionImages && question.questionImages.length > 0) {
+        for (const img of question.questionImages) {
+          yPos = await addImage(
+            img,
+            margin,
+            yPos + 5,
+            pageWidth - 2 * margin,
+            0
+          );
+          yPos += 5;
+        }
       }
 
       if (question.options) {
@@ -216,6 +218,20 @@ export function PdfDownload({
         yPos,
         pageWidth - 2 * margin
       );
+
+      if (question.answerImages && question.answerImages.length > 0) {
+        for (const img of question.answerImages) {
+          yPos = await addImage(
+            img,
+            margin,
+            yPos + 5,
+            pageWidth - 2 * margin,
+            0
+          );
+          yPos += 5;
+        }
+      }
+
       yPos += lineHeight;
     }
 

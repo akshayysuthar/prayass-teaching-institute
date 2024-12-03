@@ -24,18 +24,24 @@ export function ChapterSelector({
     setSelectedChapterId(chapterId);
   }, []);
 
-  const handleQuestionChange = useCallback((question: Question) => {
-    setSelectedQuestions((prev) => {
-      const isSelected = prev.some((q) => q.id === question.id);
-      const updated = isSelected
-        ? prev.filter((q) => q.id !== question.id)
-        : [...prev, question];
-      console.log(
-        `${isSelected ? "Deselected" : "Selected"} question: ${question.id}`
-      );
-      return updated;
-    });
-  }, []);
+  const handleQuestionChange = useCallback(
+    (question: Question, chapter: Chapter) => {
+      setSelectedQuestions((prev) => {
+        const isSelected = prev.some((q) => q.id === question.id);
+        const updated = isSelected
+          ? prev.filter((q) => q.id !== question.id)
+          : [
+              ...prev,
+              { ...question, chapterId: chapter.id, chapterName: chapter.name },
+            ];
+        console.log(
+          `${isSelected ? "Deselected" : "Selected"} question: ${question.id}`
+        );
+        return updated;
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     onSelectQuestions(selectedQuestions);
@@ -88,27 +94,41 @@ export function ChapterSelector({
                                 (q) => q.id === question.id
                               )}
                               onCheckedChange={() =>
-                                handleQuestionChange(question)
+                                handleQuestionChange(question, chapter)
                               }
                             />
                             <Label
                               htmlFor={`question-${question.id}`}
-                              className="flex flex-col space-y-2"
+                              className="grid grid-cols-3 space-y-2"
                             >
-                              <span>{question.question}</span>
-                              {question.isHaveImg === "True" &&
-                                question.img && (
-                                  <Image
-                                    src={question.img}
-                                    alt="Question image"
-                                    width={50}
-                                    height={150}
-                                    className="object-contain"
-                                  />
-                                )}
+                              <span className="col-span-2">
+                                {question.question}
+                              </span>
                               {question.isReviewed && (
-                                <Badge variant="secondary">Reviewed</Badge>
+                                <Badge
+                                  className="col-span-1"
+                                  variant="secondary"
+                                >
+                                  Reviewed
+                                </Badge>
                               )}
+                              {question.questionImages &&
+                                question.questionImages.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 col-span-2">
+                                    {question.questionImages.map(
+                                      (img, index) => (
+                                        <Image
+                                          key={index}
+                                          src={img}
+                                          alt={`Question image ${index + 1}`}
+                                          width={150}
+                                          height={100}
+                                          className="object-contain"
+                                        />
+                                      )
+                                    )}
+                                  </div>
+                                )}
                             </Label>
                           </div>
                         ))}

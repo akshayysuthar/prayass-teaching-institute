@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Image from "next/image";
-import { Question, GeneratedExamProps } from "@/types";
+import { Question, GeneratedExamProps, SelectedChapter } from "@/types";
 
 export function GeneratedExam({
   selectedQuestions,
@@ -55,6 +55,24 @@ export function GeneratedExam({
     setReportType("");
   };
 
+  const renderImages = (images?: string[]) => {
+    if (!images || images.length === 0) return null;
+    return (
+      <div className="flex flex-wrap gap-2 my-2">
+        {images.map((img, index) => (
+          <Image
+            key={index}
+            src={img}
+            alt={`Image ${index + 1}`}
+            width={200}
+            height={200}
+            className="object-contain"
+          />
+        ))}
+      </div>
+    );
+  };
+
   const renderQuestion = (question: Question, index: number) => {
     return (
       <div
@@ -64,19 +82,9 @@ export function GeneratedExam({
         <p className="font-semibold mb-2">{`Q${index + 1}. ${
           question.question
         }`}</p>
-        {question.isHaveImg === "True" && question.img && (
-          <div className="my-2">
-            <Image
-              src={question.img}
-              alt="Question image"
-              width={50}
-              height={100}
-              className="object-contain"
-            />
-          </div>
-        )}
+        {renderImages(question.questionImages)}
         {question.options && (
-          <div className="ml-4 mb-2">
+          <div className="ml-4 mb-2 flex gap-3">
             {Object.entries(question.options).map(([key, value]) => (
               <p key={key} className="mb-1">{`${key}) ${value}`}</p>
             ))}
@@ -98,38 +106,38 @@ export function GeneratedExam({
     );
   };
 
-  const renderAnswer = (answer: Question["answer"]) => {
-    if (typeof answer === "string") {
-      return <p>{answer}</p>;
-    } else if (Array.isArray(answer)) {
-      return (
-        <ul className="list-disc list-inside">
-          {answer.map((item, index) => (
-            <li key={index}>{item}</li>
-          ))}
-        </ul>
-      );
-    } else if (typeof answer === "object") {
-      return (
-        <div>
-          {Object.entries(answer).map(([key, value]) => (
-            <div key={key}>
-              <strong>{key}:</strong>
-              {Array.isArray(value) ? (
-                <ul className="list-disc list-inside ml-4">
-                  {value.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="ml-4">{value}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
+  const renderAnswer = (answer: Question["answer"], images?: string[]) => {
+    return (
+      <div>
+        {typeof answer === "string" && <p>{answer}</p>}
+        {Array.isArray(answer) && (
+          <ul className="list-disc list-inside">
+            {answer.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
+        )}
+        {typeof answer === "object" && !Array.isArray(answer) && (
+          <div>
+            {Object.entries(answer).map(([key, value]) => (
+              <div key={key}>
+                <strong>{key}:</strong>
+                {Array.isArray(value) ? (
+                  <ul className="list-disc list-inside ml-4">
+                    {value.map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="ml-4">{value}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {renderImages(images)}
+      </div>
+    );
   };
 
   return (
@@ -140,7 +148,17 @@ export function GeneratedExam({
           <p className="text-lg">
             Standard: {standard} | Subject: {subject}
           </p>
-          <p className="text-lg">Chapters: {chapters.join(", ")}</p>
+          <p className="text-lg">
+            Chapters:{" "}
+            {[
+              ...new Set(
+                chapters.map((ch) =>
+                  typeof ch === "object" && "name" in ch ? ch.name : ch
+                )
+              ),
+            ].join(", ")}
+          </p>
+
           <p className="text-lg">Student's Name: {studentName}</p>
           <p className="text-lg">Teacher's Name: {teacherName}</p>
           <p className="text-lg">Total Marks: {totalMarks}</p>
@@ -169,7 +187,9 @@ export function GeneratedExam({
                 <p className="font-semibold">{`Q${index + 1}. ${
                   question.question
                 }`}</p>
-                <div className="ml-4 mt-1">{renderAnswer(question.answer)}</div>
+                <div className="ml-4 mt-1">
+                  {renderAnswer(question.answer, question.answerImages)}
+                </div>
               </div>
             ))}
           </div>

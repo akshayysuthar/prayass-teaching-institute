@@ -2,15 +2,17 @@ export interface Question {
   id: string;
   type: string;
   question: string;
+  questionImages?: string[];
   answer: string | string[] | Record<string, string | string[]>;
+  answerImages?: string[];
   options?: Record<string, string>;
   marks: number;
-  image?: string;
   isReviewed?: boolean;
   lastUpdated?: string;
   isHaveImg: string;
-  img?: string;
   ReviewedBy?: string;
+  chapterId: string;
+  chapterName: string;
 }
 
 export interface Section {
@@ -52,8 +54,7 @@ export interface ChapterSelectorProps {
   onSelectQuestions: (questions: Question[]) => void;
 }
 
-export interface GeneratedExamProps {
-  selectedQuestions: Question[];
+export interface ExamMetadata {
   instituteName: string;
   standard: number | null;
   subject: string | null;
@@ -63,13 +64,17 @@ export interface GeneratedExamProps {
   totalMarks: number;
 }
 
-export interface PdfDownloadProps {
+export interface GeneratedExamProps extends ExamMetadata {
   selectedQuestions: Question[];
-  instituteName: string;
-  standard: number | null;
-  subject: string | null;
-  chapters: string[];
-  studentName: string;
-  teacherName: string;
-  totalMarks: number;
+  // chapters: Chapter[];
+}
+
+export interface PdfDownloadProps extends ExamMetadata {
+  selectedQuestions: Question[];
+  chapters: string[]; // Update to match the actual data type
+}
+
+export interface SelectedChapter {
+  id: string;
+  name: string;
 }

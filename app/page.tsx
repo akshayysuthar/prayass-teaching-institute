@@ -9,7 +9,9 @@ import { PdfDownload } from "@/components/PdfDownload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Question, Chapter } from "@/types";
+import { Question, Chapter, SelectedChapter } from "@/types";
+
+// Removed existing Question and Chapter interfaces
 
 export default function ExamPaperGenerator() {
   const [generationType, setGenerationType] = useState<string | null>(null);
@@ -23,6 +25,9 @@ export default function ExamPaperGenerator() {
   const [questionBankData, setQuestionBankData] = useState<Chapter[]>([]);
   const [generatedExam, setGeneratedExam] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>(
+    []
+  );
 
   useEffect(() => {
     console.log("Loading ExamPaperGenerator component");
@@ -91,6 +96,12 @@ export default function ExamPaperGenerator() {
   const handleGenerate = () => {
     console.log("Generating exam paper");
     setGeneratedExam(true);
+    const uniqueChapters = Array.from(
+      new Set(
+        selectedQuestions.map((q) => ({ id: q.chapterId, name: q.chapterName }))
+      )
+    );
+    setSelectedChapters(uniqueChapters);
     console.log({
       generationType,
       selectedClass,
@@ -98,6 +109,7 @@ export default function ExamPaperGenerator() {
       selectedMedium,
       selectedSubject,
       selectedQuestions,
+      selectedChapters: uniqueChapters,
       totalMarks,
     });
   };
@@ -194,7 +206,7 @@ export default function ExamPaperGenerator() {
               instituteName="ABC School"
               standard={selectedClass}
               subject={selectedSubject}
-              chapters={["Life Processes"]}
+              chapters={selectedChapters}
               studentName="John Doe"
               teacherName="Mr. Smith"
               totalMarks={totalMarks}
@@ -206,7 +218,7 @@ export default function ExamPaperGenerator() {
               instituteName="ABC School"
               standard={selectedClass}
               subject={selectedSubject}
-              chapters={["Life Processes"]}
+              chapters={selectedChapters}
               studentName="John Doe"
               teacherName="Mr. Smith"
               totalMarks={totalMarks}
