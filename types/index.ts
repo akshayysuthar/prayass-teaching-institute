@@ -1,18 +1,31 @@
 export interface Question {
   id: string;
+  class: number;
+  subject: string;
+  board: string;
+  Ch: string;
+  name: string;
   type: string;
   question: string;
   questionImages?: string[];
   answer: string | string[] | Record<string, string | string[]>;
   answerImages?: string[];
-  options?: Record<string, string>;
   marks: number;
   isReviewed?: boolean;
   lastUpdated?: string;
   isHaveImg: string;
+  chapterName: string;
   ReviewedBy?: string;
   chapterId: string;
-  chapterName: string;
+  options?: Record<string, string>;
+  selectionCount?: number;
+  images: string;
+  image: string;
+}
+
+export interface Section {
+  type: string;
+  questions: Question[];
 }
 
 export interface Section {
@@ -27,17 +40,7 @@ export interface Chapter {
   class: number;
   board: string;
   subject: string;
-  sections: Section[];
-}
-
-export interface ClassSelectorProps {
-  subjectData: any[];
-  onSelectClass: (classNumber: number) => void;
-  onSelectBoard: (board: string) => void;
-  onSelectMedium: (medium: string) => void;
-  initialClass: number | null;
-  initialBoard: string | null;
-  initialMedium: string | null;
+  questions: Question[];
 }
 
 export interface SubjectSelectorProps {
@@ -63,18 +66,25 @@ export interface ExamMetadata {
   teacherName: string;
   totalMarks: number;
 }
-
 export interface GeneratedExamProps extends ExamMetadata {
   selectedQuestions: Question[];
-  // chapters: Chapter[];
 }
 
 export interface PdfDownloadProps extends ExamMetadata {
   selectedQuestions: Question[];
-  chapters: string[]; // Update to match the actual data type
 }
 
 export interface SelectedChapter {
   id: string;
   name: string;
+}
+
+export interface ClassSelectorProps {
+  subjectData: any[];
+  onSelectClass: (classNumber: number) => void;
+  onSelectBoard: (board: string) => void;
+  onSelectMedium: (medium: string) => void;
+  initialClass: number | null;
+  initialBoard: string | null;
+  initialMedium: string | null;
 }

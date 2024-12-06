@@ -12,12 +12,12 @@ export function PdfDownload({
   teacherName,
   totalMarks,
 }: PdfDownloadProps) {
-  const handleDownload = async () => {
+  const generatePdf = async () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
-    const margin = 20;
-    const lineHeight = 7;
+    const margin = 15;
+    const lineHeight = 6;
     let yPos = margin;
 
     // Helper functions
@@ -31,7 +31,7 @@ export function PdfDownload({
       x: number,
       y: number,
       maxWidth: number,
-      fontSize = 12,
+      fontSize = 11,
       bold = false
     ) => {
       if (bold) doc.setFont("helvetica", "bold");
@@ -57,7 +57,7 @@ export function PdfDownload({
         return y;
       } else if (typeof answer === "object") {
         Object.entries(answer).forEach(([key, value]) => {
-          y = addWrappedText(`${key}:`, x, y, maxWidth, 12, true);
+          y = addWrappedText(`${key}:`, x, y, maxWidth, 11, true);
           if (Array.isArray(value)) {
             value.forEach((item, index) => {
               y = addWrappedText(`- ${item}`, x + 5, y, maxWidth - 5);
@@ -75,15 +75,22 @@ export function PdfDownload({
       imgUrl: string,
       x: number,
       y: number,
-      width: number,
-      height: number
+      maxWidth: number,
+      maxHeight: number
     ) => {
       return new Promise<number>((resolve) => {
         const img = new Image();
         img.crossOrigin = "Anonymous";
         img.onload = () => {
-          const imgHeight = (img.height * width) / img.width;
-          doc.addImage(img, "JPEG", x, y, width, imgHeight);
+          let imgWidth = img.width;
+          let imgHeight = img.height;
+
+          // Scale down if the image exceeds maxWidth or maxHeight
+          const scale = Math.min(maxWidth / imgWidth, maxHeight / imgHeight);
+          imgWidth *= scale;
+          imgHeight *= scale;
+
+          doc.addImage(img, "JPEG", x, y, imgWidth, imgHeight);
           resolve(y + imgHeight);
         };
         img.src = imgUrl;
@@ -96,7 +103,7 @@ export function PdfDownload({
       margin,
       yPos,
       pageWidth - 2 * margin,
-      16,
+      14,
       true
     );
     yPos = addWrappedText(
@@ -106,11 +113,13 @@ export function PdfDownload({
       pageWidth - 2 * margin
     );
     yPos = addWrappedText(
-      `Chapters: ${chapters.join(", ")}`,
+      `Chapters: ${selecte.map((ch) => ch).join(", ")}`,
       margin,
       yPos,
       pageWidth - 2 * margin
     );
+    console.log(chapters);
+
     yPos = addWrappedText(
       `Student's Name: ${studentName}`,
       margin,
@@ -131,32 +140,35 @@ export function PdfDownload({
       yPos,
       pageWidth - 2 * margin
     );
-    yPos += lineHeight * 2;
+    yPos += lineHeight;
 
     // Add questions
     for (let i = 0; i < selectedQuestions.length; i++) {
       const question = selectedQuestions[i];
-      if (yPos > pageHeight - 40) addNewPage();
+      if (yPos > pageHeight - 30) addNewPage();
 
       yPos = addWrappedText(
         `Q${i + 1}. ${question.question}`,
         margin,
         yPos,
         pageWidth - 2 * margin,
-        12,
+        11,
         true
       );
 
+      // question questionImages
       if (question.questionImages && question.questionImages.length > 0) {
-        for (const img of question.questionImages) {
+        for (const img of Array.isArray(question.questionImages)
+          ? question.questionImages
+          : [question.questionImages]) {
           yPos = await addImage(
             img,
             margin,
-            yPos + 5,
+            yPos + 3,
             pageWidth - 2 * margin,
-            0
+            50 // Restrict height to save space
           );
-          yPos += 5;
+          yPos += 3;
         }
       }
 
@@ -182,7 +194,7 @@ export function PdfDownload({
     }
 
     // Add "All the Best!" at the bottom of the last page
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("All the Best!", pageWidth / 2, pageHeight - margin, {
       align: "center",
@@ -195,21 +207,21 @@ export function PdfDownload({
       pageWidth / 2,
       yPos,
       pageWidth - 2 * margin,
-      16,
+      14,
       true
     );
-    yPos += lineHeight * 2;
+    yPos += lineHeight;
 
     for (let i = 0; i < selectedQuestions.length; i++) {
       const question = selectedQuestions[i];
-      if (yPos > pageHeight - 40) addNewPage();
+      if (yPos > pageHeight - 30) addNewPage();
 
       yPos = addWrappedText(
         `Q${i + 1}. ${question.question}`,
         margin,
         yPos,
         pageWidth - 2 * margin,
-        12,
+        11,
         true
       );
       yPos = renderAnswer(
@@ -219,24 +231,43 @@ export function PdfDownload({
         pageWidth - 2 * margin
       );
 
-      if (question.answerImages && question.answerImages.length > 0) {
-        for (const img of question.answerImages) {
+      // answer questionImages
+      if (question.questionImages && question.questionImages.length > 0) {
+        for (const img of Array.isArray(question.questionImages)
+          ? question.questionImages
+          : [question.questionImages]) {
           yPos = await addImage(
             img,
             margin,
-            yPos + 5,
+            yPos + 3,
             pageWidth - 2 * margin,
-            0
+            50 // Restrict height to save space
           );
-          yPos += 5;
+          yPos += 3;
         }
       }
 
       yPos += lineHeight;
     }
 
+    return doc;
+  };
+
+  const handleDownload = async () => {
+    const doc = await generatePdf();
     doc.save("exam_paper_with_answers.pdf");
   };
 
-  return <Button onClick={handleDownload}>Download PDF</Button>;
+  const handleOpenInNewTab = async () => {
+    const doc = await generatePdf();
+    const pdfDataUri = doc.output("datauristring");
+    window.open(pdfDataUri, "_blank");
+  };
+
+  return (
+    <div className="space-x-4">
+      <Button onClick={handleOpenInNewTab}>Open PDF in New Tab</Button>
+      <Button onClick={handleDownload}>Download PDF</Button>
+    </div>
+  );
 }

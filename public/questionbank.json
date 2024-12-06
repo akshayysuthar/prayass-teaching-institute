@@ -1,243 +1,42 @@
 [
   {
-    "id": "ch-1003",
+    "id": "ch-1005",
     "name": "Acids, Bases, and Salts",
+    "medium": "English",
+    "Ch": "Chapter 2",
+    "class": 9,
+    "board": "GSEB",
+    "subject": "Science",
+    "type": "In-text",
+    "question": "Why should curd and sour substances not be kept in brass and copper vessels? - in Text Questions",
+    "answer": "Curd and sour substances contain acids which can react with copper vessels and brass to form toxic compounds.",
+    "marks": 2,
+    "image": "",
+    "isReviewed": "false",
+    "ReviewedBy": "admin",
+    "lastUpdated": "Today",
+    "isHaveImg": "True",
+    "images": "/images.png",
+    "questionImages": ["/images.png"]
+  },
+  {
+    "id": "ch-1004",
+    "name": "Acids, Bases, and Salts",
+    "medium": "English",
     "Ch": "Chapter 2",
     "class": 10,
     "board": "GSEB",
     "subject": "Science",
-    "sections": [
-      {
-        "type": "In-text",
-        "questions": [
-          {
-            "id": "ch2001",
-            "type": "In-text",
-            "question": "Why should curd and sour substances not be kept in brass and copper vessels?",
-            "answer": "Curd and sour substances contain acids which can react with copper vessels and brass to form toxic compounds.",
-            "marks": 2,
-            "image": "",
-            "isReviewed": "false",
-            "ReviewedBy": "admin",
-            "lastUpdated": "Today",
-            "isHaveImg": "True",
-            "images": "/images.png",
-            "questionImages": ["/images.png"]
-          },
-          {
-            "type": "In-text",
-            "question": "You have three test tubes: one with distilled water, another with an acidic solution, and the third with a basic solution. How will you identify each using red litmus paper?",
-            "answer": "Add a few drops from each test tube onto red litmus paper separately. The solution turning red litmus blue is basic. Use the blue litmus to test the remaining solutions. The solution turning blue litmus red is acidic. The solution causing no change in either paper is water."
-          }
-        ]
-      },
-      {
-        "type": "Textbook Questions",
-        "questions": [
-          {
-            "type": "Textbook",
-            "question": "A solution turns red litmus blue, its pH is likely to be:",
-            "options": ["1", "4", "5", "10"],
-            "answer": "10"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "class": 10,
-    "board": "GSEB",
-    "subject": "Social Science",
-    "chapters": [
-      {
-        "id": 1,
-        "name": "Heritage of India",
-        "sections": [
-          {
-            "type": "Detailed Questions",
-            "questions": [
-              {
-                "id": 1,
-                "question": "Give detail of the Aryan and Dravidian Culture.",
-                "answer": {
-                  "Dravidians": [
-                    "They originally belonged to India and were descendants of the Stone Age civilization.",
-                    "Created the Mohenjodaro culture and had their own language and culture.",
-                    "Introduced the worship of nature, animals, and deities, influencing the concept of Parvati and Shiva as mother and father.",
-                    "Developed traditions like using 'dhup', 'deep', and 'aarti' in worship.",
-                    "They excelled in crafts and arts like weaving, spinning, and boat-making.",
-                    "After Aryan dominance, many Dravidians migrated to South India, contributing to languages like Tamil, Telugu, Kannada, and Malayalam."
-                  ],
-                  "Aryans": [
-                    "Nordic-Aryans created the Aryan civilization and were nature lovers who worshipped natural elements.",
-                    "Inhabited the Aryavarta region, also known as 'Sapta Sindhu', extending to Mithila in the east and Vindhyachal in the south.",
-                    "Contributed to practices like performing yagyas, reciting Vedas, and composing hymns.",
-                    "Spread across Bharatbhumi, Bharatkhand, and Bharat Varsha, named after the Arya Bharat or Bharat tribe."
-                  ]
-                }
-              },
-              {
-                "id": 2,
-                "question": "Explain the meaning of culture and give its details.",
-                "answer": "Culture is the sum of habits, values, customs, traditions, and lifestyles of humans. It encompasses behavioral patterns, interactions, traditions, and beliefs passed through generations. Examples include Hindu culture, Gujarati culture, and American culture."
-              }
-            ]
-          },
-          {
-            "type": "Pointwise Questions",
-            "questions": [
-              {
-                "id": 1,
-                "question": "Explain our Constitutional duties for preservation & conservation of heritage.",
-                "answer": [
-                  "Indian heritage reflects cultural amalgamation and artistic richness.",
-                  "It is our moral and primary duty to preserve and conserve our heritage.",
-                  "Citizens should protect ancient memorials and places of historical importance.",
-                  "Article 51 (A) of the Constitution describes duties such as:",
-                  "Understanding and preserving harmonious culture.",
-                  "Maintaining the natural environment and showing compassion towards living creatures.",
-                  "Protecting public property and refraining from violence."
-                ]
-              }
-            ]
-          },
-          {
-            "type": "Short Questions",
-            "questions": [
-              {
-                "id": 1,
-                "question": "What is the other name by which Aryans were called?",
-                "answer": "Aryans were also called Nordic-Aryans and Aiyavrats."
-              },
-              {
-                "id": 2,
-                "question": "Write a short note on Negritoit (Habsi).",
-                "answer": "Negritoit or Negrose were ancient inhabitants of India, migrating from Africa via Baluchistan. They were black, had curly hair, and were 4-5 feet tall."
-              }
-            ]
-          },
-          {
-            "type": "Multiple Choice Questions",
-            "questions": [
-              {
-                "id": 1,
-                "question": "The word ‘Lokmata’ is used for:",
-                "options": ["Bharat", "Nature", "Rivers", "Paniharies"],
-                "answer": "Rivers"
-              },
-              {
-                "id": 2,
-                "question": "Find out the correct match.",
-                "options": [
-                  "Shardapeeth – Somnath",
-                  "Polo Festival – Vadnagar",
-                  "Northern Dance Festival – Modhera",
-                  "Sidi Saiyed Grill – Bhavnagar"
-                ],
-                "answer": "Northern Dance Festival – Modhera"
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "class": 10,
-    "board": "GSEB",
-    "subject": "Mathematics",
-    "chapters": [
-      {
-        "id": 1,
-        "name": "Real Numbers",
-        "sections": [
-          {
-            "type": "Detailed Questions",
-            "questions": [
-              {
-                "id": 1,
-                "question": "Use Euclid’s division algorithm to find the HCF of 135 and 225, 196 and 38220, 867 and 255.",
-                "image": "public/solutions/GSEB-Solutions-Class-10-Maths-Chapter-1-Real-Numbers-Ex-1.1-img-1.png",
-                "answer": [
-                  {
-                    "case": "For 135 and 225:",
-                    "steps": [
-                      "Let a = 225 and b = 135. Since a > b, applying Euclid's division algorithm:",
-                      "225 = 135 × 1 + 90",
-                      "135 = 90 × 1 + 45",
-                      "90 = 45 × 2 + 0",
-                      "Since the remainder is 0, the HCF is 45."
-                    ]
-                  },
-                  {
-                    "case": "For 196 and 38220:",
-                    "steps": [
-                      "Let a = 38220 and b = 196. Applying Euclid's division algorithm:",
-                      "38220 = 196 × 195 + 0",
-                      "Since the remainder is 0, the HCF is 196."
-                    ]
-                  },
-                  {
-                    "case": "For 867 and 255:",
-                    "steps": [
-                      "Let a = 867 and b = 255. Applying Euclid's division algorithm:",
-                      "867 = 255 × 3 + 102",
-                      "255 = 102 × 2 + 51",
-                      "102 = 51 × 2 + 0",
-                      "Since the remainder is 0, the HCF is 51."
-                    ]
-                  }
-                ]
-              },
-              {
-                "id": 2,
-                "question": "Show that any positive odd integer is of the form 6q + 1, or 6q + 3 or 6q + 5 where q is some integer.",
-                "answer": [
-                  "Let a be any positive integer, and let b = 6. By Euclid’s division algorithm, a = 6q + r (where 0 ≤ r < 6).",
-                  "The possible remainders are r = 0, 1, 2, 3, 4, 5.",
-                  "For r = 1, a = 6q + 1 (odd).",
-                  "For r = 3, a = 6q + 3 (odd).",
-                  "For r = 5, a = 6q + 5 (odd).",
-                  "Thus, any positive odd integer is of the form 6q + 1, 6q + 3, or 6q + 5."
-                ]
-              }
-            ]
-          },
-          {
-            "type": "Short Questions",
-            "questions": [
-              {
-                "id": 1,
-                "question": "An army contingent of 616 members is to march behind an army band of 32 members in a parade. The two groups are to march in the same number of columns. What is the maximum number of columns in which they can march?",
-                "answer": [
-                  "To find the maximum number of columns, calculate the HCF of 616 and 32 using Euclid’s algorithm:",
-                  "616 = 32 × 19 + 8",
-                  "32 = 8 × 4 + 0",
-                  "Since the remainder is 0, the HCF is 8.",
-                  "Therefore, the two groups can march in 8 columns."
-                ]
-              }
-            ]
-          },
-          {
-            "type": "Multiple Choice Questions",
-            "questions": [
-              {
-                "id": 1,
-                "question": "What is the HCF of 135 and 225?",
-                "options": ["45", "90", "135", "225"],
-                "answer": "45"
-              },
-              {
-                "id": 2,
-                "question": "Which of the following is a possible form of a positive odd integer?",
-                "options": ["6q", "6q + 2", "6q + 3", "6q + 4"],
-                "answer": "6q + 3"
-              }
-            ]
-          }
-        ]
-      }
-    ]
+    "type": "Text Questions",
+    "question": "Why should curd and sour substances not be kept in brass and copper vessels? - Text Questions ",
+    "answer": "Curd and sour substances contain acids which can react with copper vessels and brass to form toxic compounds.",
+    "marks": 2,
+    "image": "",
+    "isReviewed": "false",
+    "ReviewedBy": "admin",
+    "lastUpdated": "Today",
+    "isHaveImg": "True",
+    "images": "/images.png",
+    "questionImages": ["/images.png"]
   }
 ]

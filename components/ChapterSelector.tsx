@@ -10,38 +10,39 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import { Question, Chapter, ChapterSelectorProps } from "@/types";
+import { Question, ChapterSelectorProps } from "@/types";
+
+interface ChapterSelectorProps {
+  questions: Question[];
+  onSelectQuestions: (questions: Question[]) => void;
+}
 
 export function ChapterSelector({
-  questionBankData,
+  questions,
   onSelectQuestions,
 }: ChapterSelectorProps) {
   const [selectedChapterId, setSelectedChapterId] = useState<string>("");
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
+
+  const chapters = Array.from(new Set(questions.map((q: Question) => q.Ch)));
 
   const handleChapterChange = useCallback((chapterId: string) => {
     console.log(`Selected chapter: ${chapterId}`);
     setSelectedChapterId(chapterId);
   }, []);
 
-  const handleQuestionChange = useCallback(
-    (question: Question, chapter: Chapter) => {
-      setSelectedQuestions((prev) => {
-        const isSelected = prev.some((q) => q.id === question.id);
-        const updated = isSelected
-          ? prev.filter((q) => q.id !== question.id)
-          : [
-              ...prev,
-              { ...question, chapterId: chapter.id, chapterName: chapter.name },
-            ];
-        console.log(
-          `${isSelected ? "Deselected" : "Selected"} question: ${question.id}`
-        );
-        return updated;
-      });
-    },
-    []
-  );
+  const handleQuestionChange = useCallback((question: Question) => {
+    setSelectedQuestions((prev) => {
+      const isSelected = prev.some((q) => q.id === question.id);
+      const updated = isSelected
+        ? prev.filter((q) => q.id !== question.id)
+        : [...prev, question];
+      console.log(
+        `${isSelected ? "Deselected" : "Selected"} question: ${question.id}`
+      );
+      return updated;
+    });
+  }, []);
 
   useEffect(() => {
     onSelectQuestions(selectedQuestions);
@@ -53,6 +54,36 @@ export function ChapterSelector({
     onSelectQuestions([]);
     localStorage.removeItem("selectedQuestions");
   }, [onSelectQuestions]);
+
+  const renderImages = (images?: string | string[]) => {
+    if (!images) return null;
+    const imageArray = Array.isArray(images) ? images : [images];
+    return (
+      <div className="flex flex-wrap gap-2 mt-2">
+        {imageArray.map((img, index) => (
+          <Image
+            key={index}
+            src={img}
+            alt={`Question image ${index + 1}`}
+            width={200}
+            height={200}
+            className="object-contain"
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const groupQuestionsByType = (chapterQuestions: Question[]) => {
+    const groupedQuestions: { [key: string]: Question[] } = {};
+    chapterQuestions.forEach((question) => {
+      if (!groupedQuestions[question.type]) {
+        groupedQuestions[question.type] = [];
+      }
+      groupedQuestions[question.type].push(question);
+    });
+    return groupedQuestions;
+  };
 
   return (
     <div className="space-y-6">
@@ -68,22 +99,29 @@ export function ChapterSelector({
         </div>
       </div>
       <div className="space-y-4">
-        {questionBankData.map((chapter) => (
-          <div key={chapter.id}>
+        {chapters.map((chapter: string) => (
+          <div key={chapter}>
             <button
               className="text-blue-600 hover:underline"
-              onClick={() => handleChapterChange(chapter.id)}
+              onClick={() => handleChapterChange(chapter)}
             >
-              {chapter.Ch} - {chapter.name}
+              {chapter}
             </button>
-            {selectedChapterId === chapter.id && (
-              <Accordion type="single" collapsible className="w-full mt-4">
-                {chapter.sections.map((section) => (
-                  <AccordionItem key={section.type} value={section.type}>
-                    <AccordionTrigger>{section.type}</AccordionTrigger>
+            {selectedChapterId === chapter && (
+              <Accordion type="multiple" className="w-full mt-4">
+                {Object.entries(
+                  groupQuestionsByType(
+                    questions.filter((q) => q.Ch === chapter)
+                  )
+                ).map(([type, typeQuestions]) => (
+                  <AccordionItem
+                    value={`${chapter}-${type}`}
+                    key={`${chapter}-${type}`}
+                  >
+                    <AccordionTrigger>{type}</AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-2">
-                        {section.questions.map((question) => (
+                        {typeQuestions.map((question) => (
                           <div
                             key={`question-${question.id}`}
                             className="flex items-start space-x-3"
@@ -94,41 +132,21 @@ export function ChapterSelector({
                                 (q) => q.id === question.id
                               )}
                               onCheckedChange={() =>
-                                handleQuestionChange(question, chapter)
+                                handleQuestionChange(question)
                               }
                             />
                             <Label
                               htmlFor={`question-${question.id}`}
-                              className="grid grid-cols-3 space-y-2"
+                              className="flex flex-col space-y-2"
                             >
-                              <span className="col-span-2">
-                                {question.question}
-                              </span>
-                              {question.isReviewed && (
-                                <Badge
-                                  className="col-span-1"
-                                  variant="secondary"
-                                >
-                                  Reviewed
-                                </Badge>
+                              <span>{question.question}</span>
+                              {renderImages(question.questionImages)}
+                              {question.isReviewed === true && (
+                                <Badge variant="secondary">Reviewed</Badge>
                               )}
-                              {question.questionImages &&
-                                question.questionImages.length > 0 && (
-                                  <div className="flex flex-wrap gap-2 col-span-2">
-                                    {question.questionImages.map(
-                                      (img, index) => (
-                                        <Image
-                                          key={index}
-                                          src={img}
-                                          alt={`Question image ${index + 1}`}
-                                          width={150}
-                                          height={100}
-                                          className="object-contain"
-                                        />
-                                      )
-                                    )}
-                                  </div>
-                                )}
+                              <span className="text-sm text-gray-500">
+                                Selected {question.selectionCount || 0} times
+                              </span>
                             </Label>
                           </div>
                         ))}
