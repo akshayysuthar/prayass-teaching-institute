@@ -120,12 +120,15 @@ export default function ExamPaperGenerator() {
   const handleGenerate = () => {
     console.log("Generating exam paper");
     setGeneratedExam(true);
-    const uniqueChapters = Array.from(
-      new Set(
-        selectedQuestions.map((q) => ({ id: q.chapterId, name: q.chapterName }))
-      )
+    const chapters = Array.from(
+      new Set(questions.map((q) => ({ id: q.Ch, name: q.name })))
     );
-    setSelectedChapters(uniqueChapters);
+    // const chapters = Array.from(
+    //   new Set(
+    //     questions.map((q) => q.Ch?.trim()).filter((ch) => ch) // Filter out undefined/empty values
+    //   )
+    // );
+    setSelectedChapters(chapters);
     setUserPaperCount((prevCount) => prevCount + 1);
     console.log({
       user,
@@ -135,7 +138,7 @@ export default function ExamPaperGenerator() {
       selectedMedium,
       selectedSubject,
       selectedQuestions,
-      selectedChapters: uniqueChapters,
+      selectedChapters,
       totalMarks,
       userPaperCount: userPaperCount + 1,
     });
@@ -240,6 +243,9 @@ export default function ExamPaperGenerator() {
                 item.subject === selectedSubject
             )}
             onSelectQuestions={handleQuestionSelection}
+            onSelectChapters={function (chapters: SelectedChapter[]): void {
+              // throw new Error("Function not implemented.");
+            }}
           />
         )}
 
@@ -259,7 +265,7 @@ export default function ExamPaperGenerator() {
               instituteName="ABC School"
               standard={selectedClass}
               subject={selectedSubject}
-              chapters={selectedChapters.map((ch) => ch.name)}
+              chapters={selectedChapters.map((ch) => ch.id)}
               studentName={user}
               teacherName="Mr. Smith"
               totalMarks={totalMarks}

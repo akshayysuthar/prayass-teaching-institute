@@ -29,7 +29,7 @@ export function ClassSelector({
 
   useEffect(() => {
     const classes = Array.from(new Set(subjectData.map((item) => item.class)));
-    setAvailableClasses(classes as string[]); // Assuming classes are strings
+    setAvailableClasses(classes as number[]); // Assuming classes are strings
   }, [subjectData]);
 
   useEffect(() => {
@@ -56,8 +56,8 @@ export function ClassSelector({
             .flatMap((item) => {
               if (item.medium) return [item.medium];
               if (item.subjects) {
-                return item.subjects.flatMap((subject) =>
-                  subject.mediums ? subject.mediums.map((m) => m.language) : []
+                return item.subjects.flatMap((subject: { mediums: any[]; }) =>
+                  subject.mediums ? subject.mediums.map((m: { language: any; }) => m.language) : []
                 );
               }
               return [];

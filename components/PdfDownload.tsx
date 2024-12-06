@@ -113,7 +113,7 @@ export function PdfDownload({
       pageWidth - 2 * margin
     );
     yPos = addWrappedText(
-      `Chapters: ${selecte.map((ch) => ch).join(", ")}`,
+      `Chapters: ${chapters.map((ch) => ch).join(", ")}`,
       margin,
       yPos,
       pageWidth - 2 * margin

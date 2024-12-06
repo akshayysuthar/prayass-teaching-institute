@@ -10,25 +10,38 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import { Question, ChapterSelectorProps } from "@/types";
+import { Question, SelectedChapter } from "@/types";
 
 interface ChapterSelectorProps {
   questions: Question[];
   onSelectQuestions: (questions: Question[]) => void;
+  onSelectChapters: (chapters: SelectedChapter[]) => void;
 }
 
 export function ChapterSelector({
   questions,
   onSelectQuestions,
+  onSelectChapters,
 }: ChapterSelectorProps) {
   const [selectedChapterId, setSelectedChapterId] = useState<string>("");
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
+  const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>(
+    []
+  );
 
   const chapters = Array.from(new Set(questions.map((q: Question) => q.Ch)));
 
-  const handleChapterChange = useCallback((chapterId: string) => {
-    console.log(`Selected chapter: ${chapterId}`);
-    setSelectedChapterId(chapterId);
+  const handleChapterChange = useCallback((chapter: string) => {
+    console.log(`Selected chapter: ${chapter}`);
+    setSelectedChapterId(chapter);
+    setSelectedChapters((prev) => {
+      const isAlreadySelected = prev.some((ch) => ch.id === chapter);
+      if (isAlreadySelected) {
+        return prev.filter((ch) => ch.id !== chapter);
+      } else {
+        return [...prev, { id: chapter, name: chapter }];
+      }
+    });
   }, []);
 
   const handleQuestionChange = useCallback((question: Question) => {
@@ -48,12 +61,22 @@ export function ChapterSelector({
     onSelectQuestions(selectedQuestions);
   }, [selectedQuestions, onSelectQuestions]);
 
+  useEffect(() => {
+    const uniqueChapters = Array.from(
+      new Set(selectedQuestions.map((q) => q.Ch))
+    ).map((ch) => ({ id: ch, name: ch }));
+    setSelectedChapters(uniqueChapters);
+    onSelectChapters(uniqueChapters);
+  }, [selectedQuestions, onSelectChapters]);
+
   const handleReset = useCallback(() => {
     console.log("Reset selected questions");
     setSelectedQuestions([]);
     onSelectQuestions([]);
     localStorage.removeItem("selectedQuestions");
-  }, [onSelectQuestions]);
+    setSelectedChapters([]);
+    onSelectChapters([]);
+  }, [onSelectQuestions, onSelectChapters]);
 
   const renderImages = (images?: string | string[]) => {
     if (!images) return null;
@@ -93,6 +116,9 @@ export function ChapterSelector({
           <Badge variant="secondary" className="mr-2">
             Selected Questions: {selectedQuestions.length}
           </Badge>
+          <Badge variant="secondary" className="mr-2">
+            Selected Chapters: {selectedChapters.length}
+          </Badge>
           <Button onClick={handleReset} variant="destructive" size="sm">
             Reset
           </Button>
@@ -102,7 +128,11 @@ export function ChapterSelector({
         {chapters.map((chapter: string) => (
           <div key={chapter}>
             <button
-              className="text-blue-600 hover:underline"
+              className={`text-blue-600 hover:underline ${
+                selectedChapters.some((ch) => ch.id === chapter)
+                  ? "font-bold"
+                  : ""
+              }`}
               onClick={() => handleChapterChange(chapter)}
             >
               {chapter}
