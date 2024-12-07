@@ -125,7 +125,7 @@ export function ChapterSelector({
         </div>
       </div>
       <div className="space-y-4">
-        {chapters.map((chapter: string) => (
+        {chapters.map((chapter) => (
           <div key={chapter}>
             <button
               className={`text-blue-600 hover:underline ${
@@ -135,7 +135,7 @@ export function ChapterSelector({
               }`}
               onClick={() => handleChapterChange(chapter)}
             >
-              {chapter}
+              Chapter {chapter} : {}
             </button>
             {selectedChapterId === chapter && (
               <Accordion type="multiple" className="w-full mt-4">
