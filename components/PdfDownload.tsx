@@ -51,15 +51,15 @@ export function PdfDownload({
       if (typeof answer === "string") {
         return addWrappedText(answer, x, y, maxWidth);
       } else if (Array.isArray(answer)) {
-        answer.forEach((item, index) => {
-          y = addWrappedText(`${index + 1}. ${item}`, x, y, maxWidth);
+        answer.forEach((item) => {
+          y = addWrappedText(`${item}`, x, y, maxWidth);
         });
         return y;
       } else if (typeof answer === "object") {
         Object.entries(answer).forEach(([key, value]) => {
           y = addWrappedText(`${key}:`, x, y, maxWidth, 11, true);
           if (Array.isArray(value)) {
-            value.forEach((item, index) => {
+            value.forEach((item) => {
               y = addWrappedText(`- ${item}`, x + 5, y, maxWidth - 5);
             });
           } else if (typeof value === "string") {
@@ -118,8 +118,6 @@ export function PdfDownload({
       yPos,
       pageWidth - 2 * margin
     );
-    console.log(chapters);
-
     yPos = addWrappedText(
       `Student's Name: ${studentName}`,
       margin,
@@ -156,11 +154,11 @@ export function PdfDownload({
         true
       );
 
-      // question questionImages
-      if (question.questionImages && question.questionImages.length > 0) {
-        for (const img of Array.isArray(question.questionImages)
-          ? question.questionImages
-          : [question.questionImages]) {
+      // question images
+      if (question.images && question.images.length > 0) {
+        for (const img of Array.isArray(question.images)
+          ? question.images
+          : [question.images]) {
           yPos = await addImage(
             img,
             margin,
@@ -231,11 +229,11 @@ export function PdfDownload({
         pageWidth - 2 * margin
       );
 
-      // answer questionImages
-      if (question.questionImages && question.questionImages.length > 0) {
-        for (const img of Array.isArray(question.questionImages)
-          ? question.questionImages
-          : [question.questionImages]) {
+      // answer images
+      if (question.images && question.images.length > 0) {
+        for (const img of Array.isArray(question.images)
+          ? question.images
+          : [question.images]) {
           yPos = await addImage(
             img,
             margin,

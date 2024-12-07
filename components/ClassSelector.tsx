@@ -56,8 +56,10 @@ export function ClassSelector({
             .flatMap((item) => {
               if (item.medium) return [item.medium];
               if (item.subjects) {
-                return item.subjects.flatMap((subject: { mediums: any[]; }) =>
-                  subject.mediums ? subject.mediums.map((m: { language: any; }) => m.language) : []
+                return item.subjects.flatMap((subject: { mediums: any[] }) =>
+                  subject.mediums
+                    ? subject.mediums.map((m: { language: any }) => m.language)
+                    : []
                 );
               }
               return [];

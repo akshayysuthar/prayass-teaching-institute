@@ -113,8 +113,12 @@ export function GeneratedExam({
             Standard: {standard} | Subject: {subject}
           </p>
           <p className="text-lg">Chapters: {chapters.join(", ")}</p>
-          <p className="text-lg">Student's Name: {studentName}</p>
-          <p className="text-lg">Teacher's Name: {teacherName}</p>
+          <p className="text-lg">
+            <strong>Student&apos;s Name:</strong> {studentName}
+          </p>
+          <p className="text-lg">
+            <strong>Teacher&apos;s Name:</strong> {teacherName}
+          </p>
           <p className="text-lg">Total Marks: {totalMarks}</p>
           <p className="text-lg">Time: {Math.ceil(totalMarks * 1.5)} minutes</p>
         </div>

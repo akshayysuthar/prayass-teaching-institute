@@ -23,6 +23,19 @@ export interface Question {
   image: string;
 }
 
+export interface SubjectData {
+  class: number;
+  board: string;
+  medium?: string;
+  subject?: string;
+  subjects?: Array<{
+    name: string;
+    mediums?: Array<{
+      language: string;
+    }>;
+  }>;
+}
+
 export interface Section {
   type: string;
   questions: Question[];
