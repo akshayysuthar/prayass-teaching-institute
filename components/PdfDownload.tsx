@@ -52,17 +52,14 @@ export function PdfDownload({
         return addWrappedText(answer, x, y, maxWidth);
       } else if (Array.isArray(answer)) {
         answer.forEach((item: string) => {
-          // Explicit type for item
           y = addWrappedText(`${item}`, x, y, maxWidth);
         });
         return y;
       } else if (typeof answer === "object") {
-        Object.entries(answer).forEach(([key, value]: [string, any]) => {
-          // Explicit types for key and value
+        Object.entries(answer).forEach(([key, value]: [string, string | string[]]) => {
           y = addWrappedText(`${key}:`, x, y, maxWidth, 11, true);
           if (Array.isArray(value)) {
             value.forEach((item: string) => {
-              // Explicit type for item
               y = addWrappedText(`- ${item}`, x + 5, y, maxWidth - 5);
             });
           } else if (typeof value === "string") {
@@ -88,7 +85,6 @@ export function PdfDownload({
           let imgWidth = img.width;
           let imgHeight = img.height;
 
-          // Scale down if the image exceeds maxWidth or maxHeight
           const scale = Math.min(maxWidth / imgWidth, maxHeight / imgHeight);
           imgWidth *= scale;
           imgHeight *= scale;
@@ -168,7 +164,7 @@ export function PdfDownload({
             margin,
             yPos + 3,
             pageWidth - 2 * margin,
-            50 // Restrict height to save space
+            50
           );
           yPos += 3;
         });
@@ -176,8 +172,7 @@ export function PdfDownload({
 
       if (question.options) {
         Object.entries(question.options).forEach(
-          ([key, value]: [string, any]) => {
-            // Explicit types for key and value
+          ([key, value]: [string, string]) => {
             yPos = addWrappedText(
               `${key}) ${value}`,
               margin + 10,
@@ -198,14 +193,12 @@ export function PdfDownload({
       yPos += lineHeight;
     }
 
-    // Add "All the Best!" at the bottom of the last page
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("All the Best!", pageWidth / 2, pageHeight - margin, {
       align: "center",
     });
 
-    // Add answer key on a new page
     addNewPage();
     yPos = addWrappedText(
       "Answer Key",
@@ -236,7 +229,6 @@ export function PdfDownload({
         pageWidth - 2 * margin
       );
 
-      // answer images
       if (question.images && question.images.length > 0) {
         (Array.isArray(question.images)
           ? question.images
@@ -247,7 +239,7 @@ export function PdfDownload({
             margin,
             yPos + 3,
             pageWidth - 2 * margin,
-            50 // Restrict height to save space
+            50
           );
           yPos += 3;
         });
