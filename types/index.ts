@@ -23,7 +23,10 @@ export interface Question {
   image: string;
 }
 
+
+
 export interface SubjectData {
+  chapters: any;
   class: number;
   board: string;
   medium?: string;

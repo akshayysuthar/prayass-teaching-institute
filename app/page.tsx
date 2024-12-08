@@ -10,7 +10,7 @@ import { DemoLogin } from "@/components/DemoLogin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Question, SelectedChapter } from "@/types";
+import { Question, SelectedChapter, SubjectData } from "@/types";
 
 export default function ExamPaperGenerator() {
   const [user, setUser] = useState<string | null>(null);
@@ -21,7 +21,7 @@ export default function ExamPaperGenerator() {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
   const [totalMarks, setTotalMarks] = useState(80);
-  const [subjectData, setSubjectData] = useState<any[]>([]);
+  const [subjectData, setSubjectData] = useState<SubjectData[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [generatedExam, setGeneratedExam] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,20 +31,24 @@ export default function ExamPaperGenerator() {
   const [userPaperCount, setUserPaperCount] = useState(0);
 
   useEffect(() => {
-    console.log("Loading ExamPaperGenerator component");
+    // console.log("Loading ExamPaperGenerator component");
     const fetchData = async () => {
       try {
         const response = await fetch("/questionbank.json");
-        const data = await response.json();
+        const data: SubjectData[] = await response.json(); // Explicitly specify the type
         setSubjectData(data);
-        setQuestions(data);
+        setQuestions(data.flatMap((item) =>
+          item.chapters.flatMap((chapter: { sections: any[]; }) =>
+            chapter.sections.flatMap((section: { questions: any; }) => section.questions)
+          )
+        ));
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
       }
     };
-
+    
     fetchData();
 
     // Load saved state from localStorage
