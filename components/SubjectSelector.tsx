@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { SubjectData, SubjectSelectorProps } from "@/types";
+import { SubjectSelectorProps } from "@/types";
 
 export function SubjectSelector({
   subjectData,
