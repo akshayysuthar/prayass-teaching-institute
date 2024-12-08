@@ -135,6 +135,19 @@ export default function ExamPaperGenerator() {
       userPaperCount: userPaperCount + 1,
     });
   };
+  const handleReset = () => {
+    // setSelectedClass(null);
+    // setSelectedBoard(null);
+    // setSelectedMedium(null);
+    // setSelectedSubject(null);
+    // setSelectedQuestions([]);
+    setSelectedChapters([]);
+    setTotalMarks(80);
+    // setGenerationType(null);
+    setGeneratedExam(false);
+    // setUserPaperCount(0);
+    localStorage.clear(); // Optionally clear localStorage if you want to reset it completely
+  };
 
   const handleGenerationTypeChange = (type: string) => {
     // console.log(`Generation type changed to: ${type}`);
@@ -168,10 +181,10 @@ export default function ExamPaperGenerator() {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Exam Paper Generator</h1>
-        <div>
+    <div className="container mx-auto lg:px-10 px-3 py-4">
+      <div className="flex justify-between items-center mb-4 shadow-md py-2">
+        <h1 className="text-2xl font-bold">Paper Generator</h1>
+        <div className="flex items-center">
           <span className="mr-4">Welcome, {user}!</span>
           <Button onClick={handleLogout}>Logout</Button>
         </div>
@@ -189,7 +202,7 @@ export default function ExamPaperGenerator() {
         </button>
         <button
           className={`px-4 py-2 rounded ${
-            generationType === "auto" ? "bg-blue-500 text-white" : "bg-gray-200"
+            generationType === "auto" ? "bg-red-500 text-white" : "bg-gray-200"
           }`}
           onClick={() => handleGenerationTypeChange("auto")}
         >
@@ -239,12 +252,22 @@ export default function ExamPaperGenerator() {
           />
         )}
 
-        <Button
-          onClick={handleGenerate}
-          disabled={selectedQuestions.length === 0}
-        >
-          Generate Exam Paper
-        </Button>
+        <div className="grid grid-cols-3 items-center justify-center gap-3">
+          <Button
+            onClick={handleGenerate}
+            disabled={selectedQuestions.length === 0}
+            className="col-span-2"
+          >
+            Generate Exam Paper
+          </Button>
+          <Button
+            onClick={handleReset}
+            className="col-span-1"
+            variant="destructive"
+          >
+            Reset
+          </Button>
+        </div>
       </div>
 
       {generatedExam && (
@@ -255,7 +278,13 @@ export default function ExamPaperGenerator() {
               instituteName="Prayass Teaching Institute"
               standard={selectedClass}
               subject={selectedSubject}
-              chapters={selectedChapters.map((ch) => ch.id)}
+              // To remove duplicates
+              chapters={selectedChapters
+                .filter(
+                  (value, index, self) =>
+                    index === self.findIndex((t) => t.id === value.id)
+                )
+                .map((ch) => ch.id)}
               studentName={""}
               teacherName={user}
               totalMarks={totalMarks}
@@ -267,7 +296,13 @@ export default function ExamPaperGenerator() {
               instituteName="ABC School"
               standard={selectedClass}
               subject={selectedSubject}
-              chapters={selectedChapters.map((ch) => ch.name)}
+              // To remove duplicates
+              chapters={selectedChapters
+                .filter(
+                  (value, index, self) =>
+                    index === self.findIndex((t) => t.id === value.id)
+                )
+                .map((ch) => ch.id)}
               studentName={""}
               teacherName={user}
               totalMarks={totalMarks}

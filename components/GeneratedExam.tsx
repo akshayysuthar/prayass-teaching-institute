@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,6 +20,10 @@ import {
 import Image from "next/image";
 import { Question, GeneratedExamProps } from "@/types";
 
+interface GroupedQuestions {
+  [chapterId: string]: Question[];
+}
+
 export function GeneratedExam({
   selectedQuestions,
   instituteName,
@@ -36,6 +40,17 @@ export function GeneratedExam({
   );
   const [reportType, setReportType] = useState("");
   const [showAnswerKey, setShowAnswerKey] = useState(false);
+
+  const groupedQuestions = useMemo(() => {
+    const grouped: GroupedQuestions = {};
+    selectedQuestions.forEach((question) => {
+      if (!grouped[question.Ch]) {
+        grouped[question.Ch] = [];
+      }
+      grouped[question.Ch].push(question);
+    });
+    return grouped;
+  }, [selectedQuestions]);
 
   const handleShowDetails = (questionId: string) => {
     setSelectedQuestionId(questionId);
@@ -123,9 +138,14 @@ export function GeneratedExam({
           <p className="text-lg">Time: {Math.ceil(totalMarks * 1.5)} minutes</p>
         </div>
 
-        {selectedQuestions.map((question, index) =>
-          renderQuestion(question, index)
-        )}
+        {Object.entries(groupedQuestions).map(([chapterId, questions]) => (
+          <div key={chapterId} className="mb-6">
+            <h3 className="text-xl font-bold mb-4">{chapterId}</h3>
+            {questions.map((question, index) =>
+              renderQuestion(question, index + 1)
+            )}
+          </div>
+        ))}
 
         <div className="text-center mt-8">
           <p className="text-xl font-bold">All the Best!</p>
@@ -140,12 +160,19 @@ export function GeneratedExam({
         {showAnswerKey && (
           <div className="mt-8">
             <h3 className="text-2xl font-bold mb-4">Answer Key</h3>
-            {selectedQuestions.map((question, index) => (
-              <div key={question.id} className="mb-4">
-                <p className="font-semibold">{`Q${index + 1}. ${
-                  question.question
-                }`}</p>
-                <div className="ml-4 mt-1">{renderAnswer(question.answer)}</div>
+            {Object.entries(groupedQuestions).map(([chapterId, questions]) => (
+              <div key={chapterId} className="mb-6">
+                <h4 className="text-lg font-semibold mb-2">{chapterId}</h4>
+                {questions.map((question, index) => (
+                  <div key={question.id} className="mb-4">
+                    <p className="font-semibold">{`Q${index + 1}. ${
+                      question.question
+                    }`}</p>
+                    <div className="ml-4 mt-1">
+                      {renderAnswer(question.answer)}
+                    </div>
+                  </div>
+                ))}
               </div>
             ))}
           </div>

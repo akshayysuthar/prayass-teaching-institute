@@ -73,7 +73,7 @@ export function PdfDownload({
       return y;
     };
 
-    const addImage = async (
+    const addImage = (
       imgUrl: string,
       x: number,
       y: number,
@@ -135,13 +135,13 @@ export function PdfDownload({
     );
     yPos += lineHeight;
 
-    // Add questions
-    for (let i = 0; i < selectedQuestions.length; i++) {
-      const question = selectedQuestions[i];
+    // Add questions directly from selectedQuestions (without grouping by chapter)
+    for (const [index, question] of selectedQuestions.entries()) {
       if (yPos > pageHeight - 30) addNewPage();
 
+      // Add the question text
       yPos = addWrappedText(
-        `Q${i + 1}. ${question.question}`,
+        `Q${index + 1}. ${question.question}`,
         margin,
         yPos,
         pageWidth - 2 * margin,
@@ -149,23 +149,30 @@ export function PdfDownload({
         true
       );
 
-      // question images
+      // Add images asynchronously (optimize size)
       if (question.images && question.images.length > 0) {
-        (Array.isArray(question.images)
+        // Ensure question.images is an array
+        const imagesArray = Array.isArray(question.images)
           ? question.images
-          : [question.images]
-        ).forEach(async (img: string) => {
-          yPos = await addImage(
+          : [question.images];
+
+        // Map each image and add it to the document
+        const imagePromises = imagesArray.map(async (img: string) => {
+          return await addImage(
             img,
             margin,
-            yPos + 3,
-            pageWidth - 2 * margin,
-            50
+            yPos + 3, // Adjust y position for images
+            pageWidth - 2 * margin, // Optimize width for the page
+            40 // Resize image height to a smaller value to save space
           );
-          yPos += 3;
         });
+
+        // Wait for all images to be added and adjust yPos accordingly
+        const imageHeights = await Promise.all(imagePromises);
+        yPos += Math.max(...imageHeights); // Adjust yPos for the largest image
       }
 
+      // Add options if they exist
       if (question.options) {
         Object.entries(question.options).forEach(
           ([key, value]: [string, string]) => {
@@ -179,6 +186,7 @@ export function PdfDownload({
         );
       }
 
+      // Add marks after the question text and options
       yPos = addWrappedText(
         `(${question.marks} marks)`,
         margin,
@@ -186,8 +194,11 @@ export function PdfDownload({
         pageWidth - 2 * margin,
         10
       );
-      yPos += lineHeight;
     }
+
+    // Answer Key page
+
+    // Assuming you already have the helper functions like addWrappedText, renderAnswer, addImage, etc.
 
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
@@ -206,18 +217,20 @@ export function PdfDownload({
     );
     yPos += lineHeight;
 
-    for (let i = 0; i < selectedQuestions.length; i++) {
-      const question = selectedQuestions[i];
+    for (const [index, question] of selectedQuestions.entries()) {
       if (yPos > pageHeight - 30) addNewPage();
 
+      // Add question text
       yPos = addWrappedText(
-        `Q${i + 1}. ${question.question}`,
+        `Q${index + 1}. ${question.question}`,
         margin,
         yPos,
         pageWidth - 2 * margin,
         11,
         true
       );
+
+      // Add answer using renderAnswer
       yPos = renderAnswer(
         question.answer,
         margin,
@@ -225,24 +238,43 @@ export function PdfDownload({
         pageWidth - 2 * margin
       );
 
+      // Add images asynchronously, ensure they're optimized
       if (question.images && question.images.length > 0) {
-        (Array.isArray(question.images)
+        // Ensure question.images is an array
+        const imagesArray = Array.isArray(question.images)
           ? question.images
-          : [question.images]
-        ).forEach(async (img: string) => {
-          yPos = await addImage(
+          : [question.images];
+
+        // Map each image and add it to the document
+        const imagePromises = imagesArray.map(async (img: string) => {
+          return await addImage(
             img,
             margin,
-            yPos + 3,
-            pageWidth - 2 * margin,
-            50
+            yPos + 3, // Adjust y position for images
+            pageWidth - 2 * margin, // Optimize width for the page
+            40 // Resize image height to a smaller value to save space
           );
-          yPos += 3;
         });
+
+        // Wait for all images to be added and adjust yPos accordingly
+        const imageHeights = await Promise.all(imagePromises);
+        yPos += Math.max(...imageHeights); // Adjust yPos for the largest image
       }
 
+      // Add marks after the answer
+      yPos = addWrappedText(
+        `(${question.marks} marks)`,
+        margin,
+        yPos,
+        pageWidth - 2 * margin,
+        10
+      );
+
+      // Ensure proper spacing between questions
       yPos += lineHeight;
     }
+
+    // After the loop, you can optionally add a closing statement like "End of Answer Key" or similar
 
     return doc;
   };

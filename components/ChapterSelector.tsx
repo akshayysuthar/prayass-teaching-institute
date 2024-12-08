@@ -29,10 +29,19 @@ export function ChapterSelector({
     []
   );
 
-  const chapters = Array.from(new Set(questions.map((q: Question) => q.Ch)));
+  // Creating chapters array with both id and name
+  const chapters = Array.from(
+    new Set(
+      questions.map((q: Question) => `${q.Ch} - ${q.name}`) // Combine id and name
+    )
+  ).map((ch) => {
+    const [id, name] = ch.split(" - "); // Split the combined string into id and name
+    return { id, name }; // Return as an object
+  });
+  console.log(chapters);
 
   const handleChapterChange = useCallback((chapter: string) => {
-    console.log(`Selected chapter: ${chapter}`);
+    // console.log(`Selected chapter: ${chapter}`);
     setSelectedChapterId(chapter);
     setSelectedChapters((prev) => {
       const isAlreadySelected = prev.some((ch) => ch.id === chapter);
@@ -66,7 +75,10 @@ export function ChapterSelector({
       new Set(selectedQuestions.map((q) => q.Ch))
     ).map((ch) => ({ id: ch, name: ch }));
     setSelectedChapters(uniqueChapters);
+    // console.log(selectedChapters);
+
     onSelectChapters(uniqueChapters);
+    // console.log(selectedChapters);
   }, [selectedQuestions, onSelectChapters]);
 
   const handleReset = useCallback(() => {
@@ -110,43 +122,55 @@ export function ChapterSelector({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <Label>Select Chapter</Label>
-        <div>
-          <Badge variant="secondary" className="mr-2">
+      <div className="grid grid-cols-4 items-center justify-center">
+        <h2 className="col-span-4 text-xl font-bold text-center">
+          Select Chapter
+        </h2>
+        <div className="col-span-3 mt-2">
+          <Badge variant="secondary" className="mr-1">
             Selected Questions: {selectedQuestions.length}
           </Badge>
-          <Badge variant="secondary" className="mr-2">
+          <Badge variant="secondary" className="mr-1">
             Selected Chapters: {selectedChapters.length}
           </Badge>
-          <Button onClick={handleReset} variant="destructive" size="sm">
+        </div>
+        <div className="col-span-1 flex justify-center items-center">
+          <Button
+            disabled={selectedQuestions.length === 0}
+            onClick={handleReset}
+            variant="destructive"
+            size="sm"
+          >
             Reset
           </Button>
         </div>
       </div>
+
       <div className="space-y-4">
         {chapters.map((chapter) => (
-          <div key={chapter}>
+          <div key={chapter.id}>
             <button
               className={`text-blue-600 hover:underline ${
-                selectedChapters.some((ch) => ch.id === chapter)
+                selectedChapters.some(
+                  (ch) => ch.id === chapter.id && ch.name === chapter.name
+                )
                   ? "font-bold"
                   : ""
               }`}
-              onClick={() => handleChapterChange(chapter)}
+              onClick={() => handleChapterChange(chapter.id)}
             >
-              Chapter {chapter} : {}
+              Chapter {chapter.id} - {chapter.name}
             </button>
-            {selectedChapterId === chapter && (
+            {selectedChapterId === chapter.id && (
               <Accordion type="multiple" className="w-full mt-4">
                 {Object.entries(
                   groupQuestionsByType(
-                    questions.filter((q) => q.Ch === chapter)
+                    questions.filter((q) => q.Ch === chapter.id) // Filter by chapter id
                   )
                 ).map(([type, typeQuestions]) => (
                   <AccordionItem
-                    value={`${chapter}-${type}`}
-                    key={`${chapter}-${type}`}
+                    value={`${chapter.id}-${type}`}
+                    key={`${chapter.id}-${type}`}
                   >
                     <AccordionTrigger>{type}</AccordionTrigger>
                     <AccordionContent>
@@ -171,7 +195,7 @@ export function ChapterSelector({
                             >
                               <span>{question.question}</span>
                               {renderImages(question.questionImages)}
-                              {question.isReviewed === true && (
+                              {question.isReviewed && (
                                 <Badge variant="secondary">Reviewed</Badge>
                               )}
                               <span className="text-sm text-gray-500">
