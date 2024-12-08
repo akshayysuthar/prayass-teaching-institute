@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { SubjectSelectorProps } from "@/types";
+import { SubjectData, SubjectSelectorProps } from "@/types";
 
 export function SubjectSelector({
   subjectData,
@@ -17,33 +17,31 @@ export function SubjectSelector({
   onSelectSubject,
   initialSubject,
 }: SubjectSelectorProps) {
-  const [subjects, setSubjects] = useState<string[]>([]);
+  const [subjects, setSubjects] = useState<string[]>([]); // Changed to string[] to store subject names
   const [selectedSubject, setSelectedSubject] = useState<string | null>(
     initialSubject
   );
 
   useEffect(() => {
-    const filteredSubjects = subjectData
-      .filter((item) => item.class === classNumber && item.board === board)
-      .flatMap((item) => {
-        if (item.subject) return [item.subject];
-        if (item.subjects) {
-          return item.subjects
-            .filter(
-              (subject) =>
-                !subject.mediums ||
-                subject.mediums.some((m) => m.language === medium)
-            )
-            .map((subject) => subject.name);
-        }
-        return [];
-      });
-    setSubjects([...new Set(filteredSubjects)]);
+    const filteredSubjects = subjectData.flatMap((item) => {
+      if (item.subject) return [item.subject];
+      if (item.subjects) {
+        return item.subjects
+          .filter(
+            (subject) =>
+              !subject.mediums ||
+              subject.mediums.some((m) => m.language === medium)
+          )
+          .map((subject) => subject.name);
+      }
+      return [];
+    });
+    setSubjects([...new Set(filteredSubjects)]); // Store subject names as strings
   }, [subjectData, classNumber, board, medium]);
 
   const handleSubjectChange = (value: string) => {
     setSelectedSubject(value);
-    onSelectSubject(value);
+    onSelectSubject(value); // Pass the selected subject name
   };
 
   return (
@@ -57,7 +55,7 @@ export function SubjectSelector({
           <SelectValue placeholder="Select Subject" />
         </SelectTrigger>
         <SelectContent>
-          {subjects.map((subject) => (
+          {subjects.map((subject: string) => (
             <SelectItem key={subject} value={subject}>
               {subject}
             </SelectItem>

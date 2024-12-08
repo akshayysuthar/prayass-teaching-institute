@@ -8,7 +8,7 @@ export interface Question {
   type: string;
   question: string;
   questionImages?: string[];
-  answer: string;
+  answer: string | string[] | { [key: string]: string | string[] };
   answerImages?: string[];
   marks: number;
   isReviewed?: boolean;
@@ -26,20 +26,11 @@ export interface Question {
 export interface SubjectData {
   chapters: any;
   class: number;
+  name: string;
   board: string;
   medium?: string;
   subject?: string;
-  subjects?: Array<{
-    name: string;
-    mediums?: Array<{
-      language: string;
-    }>;
-  }>;
-}
-
-export interface Section {
-  type: string;
-  questions: Question[];
+  subjects?: { name: string; mediums?: { language: string }[] }[];
 }
 
 export interface Section {
@@ -57,8 +48,20 @@ export interface Chapter {
   questions: Question[];
 }
 
+interface Subject {
+  name: string;
+  mediums?: { language: string }[];
+}
+
+export interface SubjectDataItem {
+  class: number;
+  board: string;
+  subject?: string;
+  subjects?: Subject[];
+}
+
 export interface SubjectSelectorProps {
-  subjectData: any[];
+  subjectData: SubjectDataItem[];
   classNumber: number;
   board: string;
   medium: string;

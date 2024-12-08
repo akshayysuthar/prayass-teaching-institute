@@ -19,7 +19,9 @@
     ],
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "target": "es2015", // Set target to es2015 or higher
+    "downlevelIteration": true // Enable downlevel iteration
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
