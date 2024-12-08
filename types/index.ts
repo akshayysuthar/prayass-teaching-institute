@@ -8,7 +8,7 @@ export interface Question {
   type: string;
   question: string;
   questionImages?: string[];
-  answer: string | string[] | { [key: string]: string | string[] };
+  answer: string;
   answerImages?: string[];
   marks: number;
   isReviewed?: boolean;
