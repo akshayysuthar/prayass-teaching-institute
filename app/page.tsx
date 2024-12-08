@@ -31,24 +31,20 @@ export default function ExamPaperGenerator() {
   const [userPaperCount, setUserPaperCount] = useState(0);
 
   useEffect(() => {
-    // console.log("Loading ExamPaperGenerator component");
+    console.log("Loading ExamPaperGenerator component");
     const fetchData = async () => {
       try {
         const response = await fetch("/questionbank.json");
-        const data: SubjectData[] = await response.json(); // Explicitly specify the type
+        const data = await response.json();
         setSubjectData(data);
-        setQuestions(data.flatMap((item) =>
-          item.chapters.flatMap((chapter: { sections: any[]; }) =>
-            chapter.sections.flatMap((section: { questions: any; }) => section.questions)
-          )
-        ));
+        setQuestions(data);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     fetchData();
 
     // Load saved state from localStorage
