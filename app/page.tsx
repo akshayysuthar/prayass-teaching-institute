@@ -31,7 +31,7 @@ export default function ExamPaperGenerator() {
   const [userPaperCount, setUserPaperCount] = useState(0);
 
   useEffect(() => {
-    console.log("Loading ExamPaperGenerator component");
+    // console.log("Loading ExamPaperGenerator component");
     const fetchData = async () => {
       try {
         const response = await fetch("/questionbank.json");
@@ -115,16 +115,11 @@ export default function ExamPaperGenerator() {
   };
 
   const handleGenerate = () => {
-    console.log("Generating exam paper");
+    // console.log("Generating exam paper");
     setGeneratedExam(true);
     const chapters = Array.from(
       new Set(questions.map((q) => ({ id: q.Ch, name: q.name })))
     );
-    // const chapters = Array.from(
-    //   new Set(
-    //     questions.map((q) => q.Ch?.trim()).filter((ch) => ch) // Filter out undefined/empty values
-    //   )
-    // );
     setSelectedChapters(chapters);
     setUserPaperCount((prevCount) => prevCount + 1);
     console.log({
@@ -142,7 +137,7 @@ export default function ExamPaperGenerator() {
   };
 
   const handleGenerationTypeChange = (type: string) => {
-    console.log(`Generation type changed to: ${type}`);
+    // console.log(`Generation type changed to: ${type}`);
     setGenerationType(type);
   };
 
@@ -151,9 +146,9 @@ export default function ExamPaperGenerator() {
     // Update question selection count
     selectedQuestions.forEach((question) => {
       question.selectionCount = (question.selectionCount || 0) + 1;
-      console.log(
-        `Question ${question.id} selected. Total selections: ${question.selectionCount}`
-      );
+      // console.log(
+      //   `Question ${question.id} selected. Total selections: ${question.selectionCount}`
+      // );
     });
   };
 
@@ -257,7 +252,7 @@ export default function ExamPaperGenerator() {
           <div id="examPaperContent">
             <GeneratedExam
               selectedQuestions={selectedQuestions}
-              instituteName="ABC School"
+              instituteName="Prayass Teaching Institute"
               standard={selectedClass}
               subject={selectedSubject}
               chapters={selectedChapters.map((ch) => ch.id)}

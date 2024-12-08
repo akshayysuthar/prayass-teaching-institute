@@ -56,16 +56,18 @@ export function PdfDownload({
         });
         return y;
       } else if (typeof answer === "object") {
-        Object.entries(answer).forEach(([key, value]: [string, string | string[]]) => {
-          y = addWrappedText(`${key}:`, x, y, maxWidth, 11, true);
-          if (Array.isArray(value)) {
-            value.forEach((item: string) => {
-              y = addWrappedText(`- ${item}`, x + 5, y, maxWidth - 5);
-            });
-          } else if (typeof value === "string") {
-            y = addWrappedText(value, x + 5, y, maxWidth - 5);
+        Object.entries(answer).forEach(
+          ([key, value]: [string, string | string[]]) => {
+            y = addWrappedText(`${key}:`, x, y, maxWidth, 11, true);
+            if (Array.isArray(value)) {
+              value.forEach((item: string) => {
+                y = addWrappedText(`- ${item}`, x + 5, y, maxWidth - 5);
+              });
+            } else if (typeof value === "string") {
+              y = addWrappedText(value, x + 5, y, maxWidth - 5);
+            }
           }
-        });
+        );
         return y;
       }
       return y;
@@ -118,13 +120,7 @@ export function PdfDownload({
       pageWidth - 2 * margin
     );
     yPos = addWrappedText(
-      `Student's Name: ${studentName}`,
-      margin,
-      yPos,
-      pageWidth - 2 * margin
-    );
-    yPos = addWrappedText(
-      `Teacher's Name: ${teacherName}`,
+      `Teacher's Name: ${teacherName} | Student's Name: ${studentName} `,
       margin,
       yPos,
       pageWidth - 2 * margin
