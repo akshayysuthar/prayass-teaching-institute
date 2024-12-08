@@ -11,8 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Question, SelectedChapter } from "@/types";
-import { log } from "console";
-import Footer from "@/components/Footer";
 
 export default function ExamPaperGenerator() {
   const [user, setUser] = useState<string | null>(null);
@@ -36,26 +34,18 @@ export default function ExamPaperGenerator() {
     console.log("Loading ExamPaperGenerator component");
     const fetchData = async () => {
       try {
-        const subjectResponse = await fetch("/questionbank.json");
-        const subjectData = await subjectResponse.json();
-        setSubjectData(subjectData);
-
-        const questionsResponse = await fetch("/questionbank.json");
-        const questionsData = await questionsResponse.json();
-        setQuestions(questionsData);
-
-        console.log("Data fetched successfully");
+        const response = await fetch("/questionbank.json");
+        const data = await response.json();
+        setSubjectData(data);
+        setQuestions(data);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
-        console.log("ExamPaperGenerator component loaded");
       }
     };
 
     fetchData();
-    console.log(questions);
-    console.log(subjectData);
 
     // Load saved state from localStorage
     const savedUser = localStorage.getItem("user");
@@ -77,11 +67,18 @@ export default function ExamPaperGenerator() {
     if (savedUserPaperCount) setUserPaperCount(parseInt(savedUserPaperCount));
   }, []);
 
+  const saveToLocalStorage = (key: string, value: string | null) => {
+    if (value) {
+      localStorage.setItem(key, value);
+    } else {
+      localStorage.removeItem(key);
+    }
+  };
+
   useEffect(() => {
     // Save state to localStorage whenever it changes
-    if (user) localStorage.setItem("user", user);
-    if (selectedClass)
-      localStorage.setItem("selectedClass", selectedClass.toString());
+    saveToLocalStorage("user", user);
+    saveToLocalStorage("selectedClass", selectedClass?.toString() || null);
     if (selectedBoard) localStorage.setItem("selectedBoard", selectedBoard);
     if (selectedMedium) localStorage.setItem("selectedMedium", selectedMedium);
     if (selectedSubject)
@@ -243,9 +240,7 @@ export default function ExamPaperGenerator() {
                 item.subject === selectedSubject
             )}
             onSelectQuestions={handleQuestionSelection}
-            onSelectChapters={function (chapters: SelectedChapter[]): void {
-              // throw new Error("Function not implemented.");
-            }}
+            onSelectChapters={() => {}}
           />
         )}
 
@@ -294,8 +289,6 @@ export default function ExamPaperGenerator() {
         </p>
         <p>App Version: 1.0.0-dev</p>
       </footer>
-
-      {/* <Footer user={user} userPaperCount={userPaperCount} /> */}
     </div>
   );
 }

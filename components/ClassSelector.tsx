@@ -9,16 +9,44 @@ import {
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { ClassSelectorProps } from "@/types";
+
+// Add the type definitions here or import them
+type Medium = {
+  language: string;
+};
+
+type Subject = {
+  name: string;
+  mediums?: Medium[];
+};
+
+type SubjectDataItem = {
+  class: number;
+  board: string;
+  medium?: string;
+  subjects?: Subject[];
+};
+
+type SubjectData = SubjectDataItem[];
+
+type ClassSelectorProps = {
+  subjectData: SubjectData;
+  onSelectClass: (selectedClass: number) => void;
+  onSelectBoard: (selectedBoard: string) => void;
+  onSelectMedium: (selectedMedium: string) => void;
+  initialClass?: number | null;
+  initialBoard?: string | null;
+  initialMedium?: string | null;
+};
 
 export function ClassSelector({
   subjectData,
   onSelectClass,
   onSelectBoard,
   onSelectMedium,
-  initialClass,
-  initialBoard,
-  initialMedium,
+  initialClass = null,
+  initialBoard = null,
+  initialMedium = null,
 }: ClassSelectorProps) {
   const [classNumber, setClassNumber] = useState<number | null>(initialClass);
   const [board, setBoard] = useState<string | null>(initialBoard);
@@ -29,7 +57,7 @@ export function ClassSelector({
 
   useEffect(() => {
     const classes = Array.from(new Set(subjectData.map((item) => item.class)));
-    setAvailableClasses(classes as number[]); // Assuming classes are strings
+    setAvailableClasses(classes);
   }, [subjectData]);
 
   useEffect(() => {
@@ -41,7 +69,7 @@ export function ClassSelector({
             .map((item) => item.board)
         )
       );
-      setAvailableBoards(boards as string[]); // Assuming boards are strings
+      setAvailableBoards(boards);
     }
   }, [classNumber, subjectData]);
 
@@ -56,17 +84,15 @@ export function ClassSelector({
             .flatMap((item) => {
               if (item.medium) return [item.medium];
               if (item.subjects) {
-                return item.subjects.flatMap((subject: { mediums: any[] }) =>
-                  subject.mediums
-                    ? subject.mediums.map((m: { language: any }) => m.language)
-                    : []
+                return item.subjects.flatMap((subject) =>
+                  subject.mediums ? subject.mediums.map((m) => m.language) : []
                 );
               }
               return [];
             })
         )
       );
-      setAvailableMediums(mediums as string[]); // Assuming mediums are strings
+      setAvailableMediums(mediums);
     }
   }, [classNumber, board, subjectData]);
 
@@ -102,8 +128,8 @@ export function ClassSelector({
           </SelectTrigger>
           <SelectContent>
             {availableClasses.map((c) => (
-              <SelectItem key={c} value={c.toString()} disabled={c === 9}>
-                {c}th {c === 9 && "(Locked)"}
+              <SelectItem key={c} value={c.toString()} disabled={c === 8}>
+                {c}th {c === 8 && "(Locked)"}
               </SelectItem>
             ))}
           </SelectContent>
