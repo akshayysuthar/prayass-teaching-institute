@@ -8,7 +8,7 @@ export interface Question {
   type: string;
   question: string;
   questionImages?: string[];
-  answer: string | string[] | Record<string, string | string[]>;
+  answer: string;
   answerImages?: string[];
   marks: number;
   isReviewed?: boolean;
@@ -22,8 +22,6 @@ export interface Question {
   images: string;
   image: string;
 }
-
-
 
 export interface SubjectData {
   chapters: any;
