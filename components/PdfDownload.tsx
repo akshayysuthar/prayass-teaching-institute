@@ -51,15 +51,18 @@ export function PdfDownload({
       if (typeof answer === "string") {
         return addWrappedText(answer, x, y, maxWidth);
       } else if (Array.isArray(answer)) {
-        answer.forEach((item) => {
+        answer.forEach((item: string) => {
+          // Explicit type for item
           y = addWrappedText(`${item}`, x, y, maxWidth);
         });
         return y;
       } else if (typeof answer === "object") {
-        Object.entries(answer).forEach(([key, value]) => {
+        Object.entries(answer).forEach(([key, value]: [string, any]) => {
+          // Explicit types for key and value
           y = addWrappedText(`${key}:`, x, y, maxWidth, 11, true);
           if (Array.isArray(value)) {
-            value.forEach((item) => {
+            value.forEach((item: string) => {
+              // Explicit type for item
               y = addWrappedText(`- ${item}`, x + 5, y, maxWidth - 5);
             });
           } else if (typeof value === "string") {
@@ -156,9 +159,10 @@ export function PdfDownload({
 
       // question images
       if (question.images && question.images.length > 0) {
-        for (const img of Array.isArray(question.images)
+        (Array.isArray(question.images)
           ? question.images
-          : [question.images]) {
+          : [question.images]
+        ).forEach(async (img: string) => {
           yPos = await addImage(
             img,
             margin,
@@ -167,18 +171,21 @@ export function PdfDownload({
             50 // Restrict height to save space
           );
           yPos += 3;
-        }
+        });
       }
 
       if (question.options) {
-        Object.entries(question.options).forEach(([key, value]) => {
-          yPos = addWrappedText(
-            `${key}) ${value}`,
-            margin + 10,
-            yPos,
-            pageWidth - 2 * margin - 10
-          );
-        });
+        Object.entries(question.options).forEach(
+          ([key, value]: [string, any]) => {
+            // Explicit types for key and value
+            yPos = addWrappedText(
+              `${key}) ${value}`,
+              margin + 10,
+              yPos,
+              pageWidth - 2 * margin - 10
+            );
+          }
+        );
       }
 
       yPos = addWrappedText(
@@ -231,9 +238,10 @@ export function PdfDownload({
 
       // answer images
       if (question.images && question.images.length > 0) {
-        for (const img of Array.isArray(question.images)
+        (Array.isArray(question.images)
           ? question.images
-          : [question.images]) {
+          : [question.images]
+        ).forEach(async (img: string) => {
           yPos = await addImage(
             img,
             margin,
@@ -242,7 +250,7 @@ export function PdfDownload({
             50 // Restrict height to save space
           );
           yPos += 3;
-        }
+        });
       }
 
       yPos += lineHeight;
