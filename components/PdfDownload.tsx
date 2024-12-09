@@ -56,7 +56,7 @@ export function PdfDownload({
         });
         return y;
       } else if (typeof answer === "object") {
-        Object.entries(answer).forEach(
+        Object.entries(answer as { [key: string]: string | string[] }).forEach(
           ([key, value]: [string, string | string[]]) => {
             y = addWrappedText(`${key}:`, x, y, maxWidth, 11, true);
             if (Array.isArray(value)) {
@@ -150,11 +150,11 @@ export function PdfDownload({
       );
 
       // Add images asynchronously (optimize size)
-      if (question.images && question.images.length > 0) {
+      if (question.questionImages && question.questionImages.length > 0) {
         // Ensure question.images is an array
-        const imagesArray = Array.isArray(question.images)
-          ? question.images
-          : [question.images];
+        const imagesArray = Array.isArray(question.questionImages)
+          ? question.questionImages
+          : [question.questionImages];
 
         // Map each image and add it to the document
         const imagePromises = imagesArray.map(async (img: string) => {
@@ -239,11 +239,11 @@ export function PdfDownload({
       );
 
       // Add images asynchronously, ensure they're optimized
-      if (question.images && question.images.length > 0) {
+      if (question.answerImages && question.answerImages.length > 0) {
         // Ensure question.images is an array
-        const imagesArray = Array.isArray(question.images)
-          ? question.images
-          : [question.images];
+        const imagesArray = Array.isArray(question.answerImages)
+          ? question.answerImages
+          : [question.answerImages];
 
         // Map each image and add it to the document
         const imagePromises = imagesArray.map(async (img: string) => {

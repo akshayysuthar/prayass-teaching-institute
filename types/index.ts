@@ -4,23 +4,20 @@ export interface Question {
   subject: string;
   board: string;
   Ch: string;
+  chapterName: string;
   name: string;
   type: string;
   question: string;
-  questionImages?: string[];
-  answer: string | string[] | { [key: string]: string | string[] };
-  answerImages?: string[];
+  questionImages: string[];
+  answer: string | string[];
+  answerImages: string[];
   marks: number;
-  isReviewed?: boolean;
-  lastUpdated?: string;
-  isHaveImg: string;
-  chapterName: string;
-  ReviewedBy?: string;
-  chapterId: string;
+  isReviewed: string;
+  reviewedBy: string;
+  lastUpdated: string;
   options?: Record<string, string>;
   selectionCount?: number;
-  images: string;
-  image: string;
+  bookName: string;
 }
 
 export interface SubjectData {
