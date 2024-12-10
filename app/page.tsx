@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Question, SelectedChapter, SubjectData } from "@/types";
+import { AddQuestionForm } from "@/components/AddQuestionForm";
+import { supabase } from "@/utils/supabase/client";
 
 export default function ExamPaperGenerator() {
   const [user, setUser] = useState<string | null>(null);
@@ -31,17 +33,29 @@ export default function ExamPaperGenerator() {
   const [userPaperCount, setUserPaperCount] = useState(0);
 
   useEffect(() => {
-    // console.log("Loading ExamPaperGenerator component");
+    console.log("Loading ExamPaperGenerator component");
     const fetchData = async () => {
       try {
-        const response = await fetch("/questionbank.json");
-        const data = await response.json();
-        setSubjectData(data);
-        setQuestions(data);
+
+        // have to fix the subject data and question data according to supabse and fix the api 
+        const subjectResponse = await fetch("/api/subjects");
+        const subjectData = await subjectResponse.json();
+        setSubjectData(subjectData);
+
+        const { data: questionsData, error } = await supabase
+          .from("questions")
+          .select("*");
+
+        if (error) throw error;
+
+        setQuestions(questionsData);
+
+        console.log("Data fetched successfully");
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
+        console.log("ExamPaperGenerator component loaded");
       }
     };
 
@@ -67,18 +81,11 @@ export default function ExamPaperGenerator() {
     if (savedUserPaperCount) setUserPaperCount(parseInt(savedUserPaperCount));
   }, []);
 
-  const saveToLocalStorage = (key: string, value: string | null) => {
-    if (value) {
-      localStorage.setItem(key, value);
-    } else {
-      localStorage.removeItem(key);
-    }
-  };
-
   useEffect(() => {
     // Save state to localStorage whenever it changes
-    saveToLocalStorage("user", user);
-    saveToLocalStorage("selectedClass", selectedClass?.toString() || null);
+    if (user) localStorage.setItem("user", user);
+    if (selectedClass)
+      localStorage.setItem("selectedClass", selectedClass.toString());
     if (selectedBoard) localStorage.setItem("selectedBoard", selectedBoard);
     if (selectedMedium) localStorage.setItem("selectedMedium", selectedMedium);
     if (selectedSubject)
@@ -115,12 +122,8 @@ export default function ExamPaperGenerator() {
   };
 
   const handleGenerate = () => {
-    // console.log("Generating exam paper");
+    console.log("Generating exam paper");
     setGeneratedExam(true);
-    const chapters = Array.from(
-      new Set(questions.map((q) => ({ id: q.Ch, name: q.name })))
-    );
-    setSelectedChapters(chapters);
     setUserPaperCount((prevCount) => prevCount + 1);
     console.log({
       user,
@@ -135,22 +138,9 @@ export default function ExamPaperGenerator() {
       userPaperCount: userPaperCount + 1,
     });
   };
-  const handleReset = () => {
-    // setSelectedClass(null);
-    // setSelectedBoard(null);
-    // setSelectedMedium(null);
-    // setSelectedSubject(null);
-    // setSelectedQuestions([]);
-    setSelectedChapters([]);
-    setTotalMarks(80);
-    // setGenerationType(null);
-    setGeneratedExam(false);
-    // setUserPaperCount(0);
-    localStorage.clear(); // Optionally clear localStorage if you want to reset it completely
-  };
 
   const handleGenerationTypeChange = (type: string) => {
-    // console.log(`Generation type changed to: ${type}`);
+    console.log(`Generation type changed to: ${type}`);
     setGenerationType(type);
   };
 
@@ -159,10 +149,21 @@ export default function ExamPaperGenerator() {
     // Update question selection count
     selectedQuestions.forEach((question) => {
       question.selectionCount = (question.selectionCount || 0) + 1;
-      // console.log(
-      //   `Question ${question.id} selected. Total selections: ${question.selectionCount}`
-      // );
+      console.log(
+        `Question ${question.id} selected. Total selections: ${question.selectionCount}`
+      );
     });
+
+    // Update selected chapters
+    const uniqueChapters = Array.from(
+      new Set(selectedQuestions.map((q) => q.Ch))
+    ).map((ch) => ({ id: ch, name: ch }));
+    setSelectedChapters(uniqueChapters);
+  };
+
+  const handleChapterSelection = (chapters: SelectedChapter[]) => {
+    setSelectedChapters(chapters);
+    console.log("Selected chapters:", chapters);
   };
 
   if (isLoading) {
@@ -181,10 +182,10 @@ export default function ExamPaperGenerator() {
   }
 
   return (
-    <div className="container mx-auto lg:px-10 px-3 py-4">
-      <div className="flex justify-between items-center mb-4 shadow-md py-2">
-        <h1 className="text-2xl font-bold">Paper Generator</h1>
-        <div className="flex items-center">
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Exam Paper Generator</h1>
+        <div>
           <span className="mr-4">Welcome, {user}!</span>
           <Button onClick={handleLogout}>Logout</Button>
         </div>
@@ -202,7 +203,7 @@ export default function ExamPaperGenerator() {
         </button>
         <button
           className={`px-4 py-2 rounded ${
-            generationType === "auto" ? "bg-red-500 text-white" : "bg-gray-200"
+            generationType === "auto" ? "bg-blue-500 text-white" : "bg-gray-200"
           }`}
           onClick={() => handleGenerationTypeChange("auto")}
         >
@@ -248,26 +249,16 @@ export default function ExamPaperGenerator() {
                 item.subject === selectedSubject
             )}
             onSelectQuestions={handleQuestionSelection}
-            onSelectChapters={() => {}}
+            onSelectChapters={handleChapterSelection}
           />
         )}
 
-        <div className="grid grid-cols-3 items-center justify-center gap-3">
-          <Button
-            onClick={handleGenerate}
-            disabled={selectedQuestions.length === 0}
-            className="col-span-2"
-          >
-            Generate Exam Paper
-          </Button>
-          <Button
-            onClick={handleReset}
-            className="col-span-1"
-            variant="destructive"
-          >
-            Reset
-          </Button>
-        </div>
+        <Button
+          onClick={handleGenerate}
+          disabled={selectedQuestions.length === 0}
+        >
+          Generate Exam Paper
+        </Button>
       </div>
 
       {generatedExam && (
@@ -275,18 +266,12 @@ export default function ExamPaperGenerator() {
           <div id="examPaperContent">
             <GeneratedExam
               selectedQuestions={selectedQuestions}
-              instituteName="Prayass Teaching Institute"
+              instituteName="ABC School"
               standard={selectedClass}
               subject={selectedSubject}
-              // To remove duplicates
-              chapters={selectedChapters
-                .filter(
-                  (value, index, self) =>
-                    index === self.findIndex((t) => t.id === value.id)
-                )
-                .map((ch) => ch.id)}
-              studentName={""}
-              teacherName={user}
+              chapters={selectedChapters.map((ch) => ch.name)}
+              studentName={user}
+              teacherName="Mr. Smith"
               totalMarks={totalMarks}
             />
           </div>
@@ -296,27 +281,27 @@ export default function ExamPaperGenerator() {
               instituteName="ABC School"
               standard={selectedClass}
               subject={selectedSubject}
-              // To remove duplicates
-              chapters={selectedChapters
-                .filter(
-                  (value, index, self) =>
-                    index === self.findIndex((t) => t.id === value.id)
-                )
-                .map((ch) => ch.id)}
-              studentName={""}
-              teacherName={user}
+              chapters={selectedChapters.map((ch) => ch.name)}
+              studentName={user}
+              teacherName="Mr. Smith"
               totalMarks={totalMarks}
             />
           </div>
         </div>
       )}
-      <div className="mt-4 text-center"></div>
-
-      <footer className="mt-8 flex justify-between text-sm text-gray-500">
-        <p>Created by Akshay</p>
+      <div className="mt-4 text-center">
         <p>
-          Total papers generated {user}: {userPaperCount}
+          Total papers generated by {user}: {userPaperCount}
         </p>
+      </div>
+      {!generatedExam && (
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold mb-4">Add New Question</h2>
+          <AddQuestionForm />
+        </div>
+      )}
+      <footer className="mt-8 text-center text-sm text-gray-500">
+        <p>Created by Your Name</p>
         <p>App Version: 1.0.0-dev</p>
       </footer>
     </div>

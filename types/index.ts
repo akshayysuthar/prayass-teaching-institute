@@ -2,6 +2,7 @@ export interface Question {
   id: string;
   class: number;
   subject: string;
+  bookName: string;
   board: string;
   Ch: string;
   chapterName: string;
@@ -17,7 +18,6 @@ export interface Question {
   lastUpdated: string;
   options?: Record<string, string>;
   selectionCount?: number;
-  bookName: string;
 }
 
 export interface SubjectData {

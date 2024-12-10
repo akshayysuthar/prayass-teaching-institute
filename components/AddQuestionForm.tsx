@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,11 +15,14 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Question } from "@/types";
 import { supabase } from "@/utils/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export function AddQuestionForm() {
   const [question, setQuestion] = useState<Partial<Question>>({
-    class: 0,
+    id: "",
+    class: 6,
     subject: "",
+    bookName: "",
     board: "",
     Ch: "",
     chapterName: "",
@@ -29,16 +32,24 @@ export function AddQuestionForm() {
     questionImages: [],
     answer: "",
     answerImages: [],
-    marks: 0,
+    marks: 1,
     isReviewed: "false",
     reviewedBy: "",
     lastUpdated: new Date().toISOString(),
     options: {},
-    bookName: "",
+    selectionCount: 0,
   });
-  const [imageType, setImageType] = useState<"question" | "answer">("question");
-  const [optionCount, setOptionCount] = useState(4);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const generateQuestionId = () => {
+    return Math.random().toString().slice(2, 12);
+  };
+
+  useEffect(() => {
+    setQuestion((prev) => ({ ...prev, id: generateQuestionId() }));
+  }, []);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -51,38 +62,49 @@ export function AddQuestionForm() {
     setQuestion((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleOptionChange = (index: number, value: string) => {
+  const handleOptionChange = (option: string, value: string) => {
     setQuestion((prev) => ({
       ...prev,
-      options: { ...prev.options, [`option${index + 1}`]: value },
+      options: { ...prev.options, [option]: value },
     }));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const { data, error } = await supabase.storage
-        .from("question-images")
-        .upload(fileName, file);
+  const handleImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "question" | "answer"
+  ) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const uploadedImages = await Promise.all(
+        Array.from(e.target.files).map(async (file) => {
+          const fileExt = file.name.split(".").pop();
+          const fileName = `${Math.random()}.${fileExt}`;
+          const { data, error } = await supabase.storage
+            .from("question-images")
+            .upload(fileName, file);
 
-      if (error) {
-        console.error("Error uploading image:", error);
-        return;
-      }
+          if (error) {
+            console.error("Error uploading image:", error);
+            return null;
+          }
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("question-images").getPublicUrl(fileName);
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("question-images").getPublicUrl(fileName);
+
+          return publicUrl;
+        })
+      );
+
+      const validImages = uploadedImages.filter(
+        (url): url is string => url !== null
+      );
 
       setQuestion((prev) => ({
         ...prev,
-        [imageType === "question" ? "questionImages" : "answerImages"]: [
-          ...(prev[
-            imageType === "question" ? "questionImages" : "answerImages"
-          ] || []),
-          publicUrl,
+        [type === "question" ? "questionImages" : "answerImages"]: [
+          ...(prev[type === "question" ? "questionImages" : "answerImages"] ||
+            []),
+          ...validImages,
         ],
       }));
     }
@@ -95,8 +117,10 @@ export function AddQuestionForm() {
     try {
       const { data, error } = await supabase.from("questions").insert([
         {
+          id: question.id,
           class: question.class,
           subject: question.subject,
+          book_name: question.bookName,
           board: question.board,
           Ch: question.Ch,
           chapter_name: question.chapterName,
@@ -111,77 +135,194 @@ export function AddQuestionForm() {
           reviewed_by: question.reviewedBy,
           last_updated: question.lastUpdated,
           options: question.options,
-          book_name: question.bookName,
+          selection_count: 0,
         },
       ]);
 
       if (error) throw error;
 
-      alert("Question added successfully!");
-      // Reset the form
-      setQuestion({
-        class: 0,
-        subject: "",
-        board: "",
-        Ch: "",
-        chapterName: "",
-        name: "",
-        type: "",
+      toast({
+        title: "Success",
+        description: "Question added successfully!",
+      });
+
+      // Reset only specific fields
+      setQuestion((prev) => ({
+        ...prev,
+        id: generateQuestionId(),
         question: "",
         questionImages: [],
         answer: "",
         answerImages: [],
-        marks: 0,
-        isReviewed: "false",
-        reviewedBy: "",
-        lastUpdated: new Date().toISOString(),
         options: {},
-        bookName: "",
-      });
-      setOptionCount(4);
+      }));
     } catch (error) {
       console.error("Error adding question:", error);
-      alert("Failed to add question. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to add question. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleReset = () => {
+    setQuestion((prev) => ({
+      ...prev,
+      id: generateQuestionId(),
+      question: "",
+      questionImages: [],
+      answer: "",
+      answerImages: [],
+      options: {},
+    }));
+    toast({
+      title: "Form Reset",
+      description: "The form has been partially reset.",
+    });
+  };
+
+  const classOptions = [6, 7, 8, 9, 10];
+  const boardOptions = ["CBSE", "GSEB"];
+  const subjectOptions = {
+    6: [
+      "Mathematics",
+      "Science",
+      "Social Science",
+      "English",
+      "Hindi",
+      "Gujarati",
+      "Sanskrit",
+    ],
+    7: [
+      "Mathematics",
+      "Science",
+      "Social Science",
+      "English",
+      "Hindi",
+      "Gujarati",
+      "Sanskrit",
+    ],
+    8: [
+      "Mathematics",
+      "Science",
+      "Social Science",
+      "English",
+      "Hindi",
+      "Gujarati",
+      "Sanskrit",
+    ],
+    9: [
+      "Mathematics",
+      "Science",
+      "Social Science",
+      "English",
+      "Hindi",
+      "Gujarati",
+      "Sanskrit",
+    ],
+    10: [
+      "Mathematics",
+      "Science",
+      "Social Science",
+      "English",
+      "Hindi",
+      "Gujarati",
+      "Sanskrit",
+    ],
+  };
+  const questionTypes = [
+    "MCQs",
+    "Short Answer",
+    "Long Answer",
+    "One Line",
+    "One Word",
+    "True or False",
+  ];
+  const marksOptions = [1, 2, 3, 4, 5];
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 grid grid-cols-1 md:grid-cols-4 items-center gap-4"
+    >
       <div>
-        <Label htmlFor="class">Class</Label>
-        <Input
-          id="class"
-          name="class"
-          type="number"
-          value={question.class}
-          onChange={handleInputChange}
-          required
-        />
+        <Label htmlFor="id">Question ID</Label>
+        <Input id="id" name="id" value={question.id} readOnly />
       </div>
       <div>
-        <Label htmlFor="subject">Subject</Label>
-        <Input
-          id="subject"
-          name="subject"
-          value={question.subject}
-          onChange={handleInputChange}
-          required
-        />
+        <Label htmlFor="class">Class</Label>
+        <Select
+          name="class"
+          onValueChange={(value) => handleSelectChange("class", value)}
+          value={question.class?.toString()}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select class" />
+          </SelectTrigger>
+          <SelectContent>
+            {classOptions.map((classNum) => (
+              <SelectItem key={classNum} value={classNum.toString()}>
+                {classNum}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <Label htmlFor="board">Board</Label>
-        <Input
-          id="board"
+        <Select
           name="board"
+          onValueChange={(value) => handleSelectChange("board", value)}
           value={question.board}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select board" />
+          </SelectTrigger>
+          <SelectContent>
+            {boardOptions.map((board) => (
+              <SelectItem key={board} value={board}>
+                {board}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label htmlFor="subject">Subject</Label>
+        <Select
+          name="subject"
+          onValueChange={(value) => handleSelectChange("subject", value)}
+          value={question.subject}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select subject" />
+          </SelectTrigger>
+          <SelectContent>
+            {subjectOptions[question.class as keyof typeof subjectOptions]?.map(
+              (subject) => (
+                <SelectItem key={subject} value={subject}>
+                  {subject}
+                </SelectItem>
+              )
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label htmlFor="bookName">Book Name</Label>
+        <Input
+          id="bookName"
+          name="bookName"
+          value={question.bookName}
           onChange={handleInputChange}
           required
         />
       </div>
       <div>
-        <Label htmlFor="Ch">Chapter ID</Label>
+        <Label htmlFor="Ch">Chapter</Label>
         <Input
           id="Ch"
           name="Ch"
@@ -210,8 +351,8 @@ export function AddQuestionForm() {
           required
         />
       </div>
-      <div>
-        <Label htmlFor="type">Question Type</Label>
+      <div className="col-span-2">
+        <Label htmlFor="type">Section Type</Label>
         <Select
           name="type"
           onValueChange={(value) => handleSelectChange("type", value)}
@@ -221,13 +362,15 @@ export function AddQuestionForm() {
             <SelectValue placeholder="Select question type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
-            <SelectItem value="short-answer">Short Answer</SelectItem>
-            <SelectItem value="long-answer">Long Answer</SelectItem>
+            {questionTypes.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
-      <div>
+      <div className="col-span-2">
         <Label htmlFor="question">Question</Label>
         <Textarea
           id="question"
@@ -237,47 +380,59 @@ export function AddQuestionForm() {
           required
         />
       </div>
-      <div>
+      <div className="col-span-2">
         <Label>Question Images</Label>
-        <RadioGroup
-          value={imageType}
-          onValueChange={(value: string) =>
-            setImageType(value as "question" | "answer")
-          }
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="question" id="question-image" />
-            <Label htmlFor="question-image">Question Image</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="answer" id="answer-image" />
-            <Label htmlFor="answer-image">Answer Image</Label>
-          </div>
-        </RadioGroup>
-        <Input type="file" onChange={handleImageUpload} accept="image/*" />
-      </div>
-      {question.type === "multiple-choice" && (
-        <div>
-          <Label>Options</Label>
-          {Array.from({ length: optionCount }).map((_, index) => (
-            <Input
+        <Input
+          type="file"
+          onChange={(e) => handleImageUpload(e, "question")}
+          accept="image/*"
+          multiple
+        />
+        <div className="mt-2 flex flex-wrap gap-2">
+          {question.questionImages?.map((img, index) => (
+            <img
               key={index}
-              placeholder={`Option ${index + 1}`}
-              value={question.options?.[`option${index + 1}`] || ""}
-              onChange={(e) => handleOptionChange(index, e.target.value)}
+              src={img}
+              alt={`Question image ${index + 1}`}
+              className="w-24 h-24 object-cover"
+            />
+          ))}
+        </div>
+      </div>
+      <div className="col-span-2">
+        <Label>Answer Images</Label>
+        <Input
+          type="file"
+          onChange={(e) => handleImageUpload(e, "answer")}
+          accept="image/*"
+          multiple
+        />
+        <div className="mt-2 flex flex-wrap gap-2">
+          {question.answerImages?.map((img, index) => (
+            <img
+              key={index}
+              src={img}
+              alt={`Answer image ${index + 1}`}
+              className="w-24 h-24 object-cover"
+            />
+          ))}
+        </div>
+      </div>
+      {question.type === "MCQs" && (
+        <div className="col-span-2">
+          <Label>Options</Label>
+          {["A", "B", "C", "D"].map((option) => (
+            <Input
+              key={option}
+              placeholder={`Option ${option}`}
+              value={question.options?.[option] || ""}
+              onChange={(e) => handleOptionChange(option, e.target.value)}
               className="mt-2"
             />
           ))}
-          <Button
-            type="button"
-            onClick={() => setOptionCount((prev) => prev + 1)}
-            className="mt-2"
-          >
-            Add Option
-          </Button>
         </div>
       )}
-      <div>
+      <div className="col-span-2">
         <Label htmlFor="answer">Answer</Label>
         <Textarea
           id="answer"
@@ -288,15 +443,19 @@ export function AddQuestionForm() {
         />
       </div>
       <div>
-        <Label htmlFor="marks">Marks</Label>
-        <Input
-          id="marks"
-          name="marks"
-          type="number"
-          value={question.marks}
-          onChange={handleInputChange}
-          required
-        />
+        <Label>Marks</Label>
+        <RadioGroup
+          onValueChange={(value) => handleSelectChange("marks", value)}
+          value={question.marks?.toString()}
+          className="flex space-x-2"
+        >
+          {marksOptions.map((mark) => (
+            <div key={mark} className="flex items-center space-x-1">
+              <RadioGroupItem value={mark.toString()} id={`mark-${mark}`} />
+              <Label htmlFor={`mark-${mark}`}>{mark}</Label>
+            </div>
+          ))}
+        </RadioGroup>
       </div>
       <div>
         <Label htmlFor="isReviewed">Is Reviewed</Label>
@@ -323,19 +482,14 @@ export function AddQuestionForm() {
           onChange={handleInputChange}
         />
       </div>
-      <div>
-        <Label htmlFor="bookName">Book Name</Label>
-        <Input
-          id="bookName"
-          name="bookName"
-          value={question.bookName}
-          onChange={handleInputChange}
-          required
-        />
+      <div className="col-span-2 mx-5 items-center flex justify-start gap-5">
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Adding Question..." : "Add Question"}
+        </Button>
+        <Button type="button" onClick={handleReset} variant="outline">
+          Reset
+        </Button>
       </div>
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Adding Question..." : "Add Question"}
-      </Button>
     </form>
   );
 }
