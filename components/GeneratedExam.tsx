@@ -93,91 +93,119 @@ export function GeneratedExam({
     return (
       <div
         key={question.id}
-        className="mb-6 pb-4 border-b border-gray-200 last:border-b-0"
+        className="mb-6 pb-4 border-b border-gray-200 last:border-b-0 break-inside-avoid px-5"
       >
-        <p className="font-semibold mb-2">{`Q${index + 1}. ${
-          question.question
-        }`}</p>
-        {renderImages(question.questionImages)}
-        <div className="flex justify-between items-center mt-2">
-          <span className="text-sm text-gray-500">
+        <div className="flex justify-between items-start mb-2">
+          <p className="font-semibold">{`Q${index + 1}. ${
+            question.question
+          }`}</p>
+          <span className="text-sm text-gray-500 ml-2">
             ({question.marks} marks)
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleShowDetails(question.id)}
-          >
-            Details
-          </Button>
         </div>
+        {question.questionImages &&
+          question.questionImages.length > 0 &&
+          renderImages(question.questionImages)}
+        {question.options && (
+          <div className="ml-4 mt-2">
+            {Object.entries(question.options).map(([key, value]) => (
+              <p key={key} className="mb-1">{`${key}) ${value}`}</p>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
 
   const renderAnswer = (answer: Question["answer"]) => {
-    return <div>{typeof answer === "string" && <p>{answer}</p>}</div>;
+    if (typeof answer === "string") {
+      return <p className="ml-4">{answer}</p>;
+    } else if (Array.isArray(answer)) {
+      return (
+        <ul className="list-disc list-inside ml-4">
+          {answer.map((item, index) => (
+            <li key={index}>{item}</li>
+          ))}
+        </ul>
+      );
+    } else if (typeof answer === "object" && answer !== null) {
+      return (
+        <div className="ml-4">
+          {Object.entries(answer).map(([key, value], index) => (
+            <div key={index}>
+              <strong>{key}:</strong>
+              {Array.isArray(value) ? (
+                <ul className="list-disc list-inside ml-4">
+                  {value.map((item, subIndex) => (
+                    <li key={subIndex}>{item}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="ml-4">[value]</p>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
-    <div className="mt-8">
-      <div className="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
-        <div className="mb-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">{instituteName}</h2>
-          <p className="text-lg">
-            Standard: {standard} | Subject: {subject}
-          </p>
-          <p className="text-lg">Chapters: {chapters.join(", ")}</p>
-          <p className="text-lg">
-            <strong>Student&apos;s Name:</strong> {studentName}
-          </p>
-          <p className="text-lg">
-            <strong>Teacher&apos;s Name:</strong> {teacherName}
-          </p>
-          <p className="text-lg">Total Marks: {totalMarks}</p>
-          <p className="text-lg">Time: {Math.ceil(totalMarks * 1.5)} minutes</p>
-        </div>
-
-        {Object.entries(groupedQuestions).map(([chapterId, questions]) => (
-          <div key={chapterId} className="mb-6">
-            <h3 className="text-xl font-bold mb-4">{chapterId}</h3>
-            {questions.map((question, index) =>
-              renderQuestion(question, index + 1)
-            )}
-          </div>
-        ))}
-
-        <div className="text-center mt-8">
-          <p className="text-xl font-bold">All the Best!</p>
-        </div>
-
-        <div className="mt-8">
-          <Button onClick={() => setShowAnswerKey(!showAnswerKey)}>
-            {showAnswerKey ? "Hide Answer Key" : "Show Answer Key"}
-          </Button>
-        </div>
-
-        {showAnswerKey && (
-          <div className="mt-8">
-            <h3 className="text-2xl font-bold mb-4">Answer Key</h3>
-            {Object.entries(groupedQuestions).map(([chapterId, questions]) => (
-              <div key={chapterId} className="mb-6">
-                <h4 className="text-lg font-semibold mb-2">{chapterId}</h4>
-                {questions.map((question, index) => (
-                  <div key={question.id} className="mb-4">
-                    <p className="font-semibold">{`Q${index + 1}. ${
-                      question.question
-                    }`}</p>
-                    <div className="ml-4 mt-1">
-                      {renderAnswer(question.answer)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
+    <div className="a4-page">
+      <div className="mb-8 text-center">
+        <h2 className="text-3xl font-bold mb-4">{instituteName}</h2>
+        <p className="text-lg">
+          Standard: {standard} | Subject: {subject}
+        </p>
+        <p className="text-lg">Chapters: {chapters.join(", ")}</p>
+        <p className="text-lg">
+          <strong>Student&apos;s Name:</strong> {studentName}
+        </p>
+        <p className="text-lg">
+          <strong>Teacher&apos;s Name:</strong> {teacherName}
+        </p>
+        <p className="text-lg">Total Marks: {totalMarks}</p>
+        <p className="text-lg">Time: {Math.ceil(totalMarks * 1.5)} minutes</p>
       </div>
+
+      {Object.entries(groupedQuestions).map(([chapterId, questions]) => (
+        <div key={chapterId} className="mb-6">
+          <h3 className="text-xl font-bold mb-4">{chapterId}</h3>
+          {questions.map((question, index) =>
+            renderQuestion(question, index + 1)
+          )}
+        </div>
+      ))}
+
+      <div className="text-center mt-8">
+        <p className="text-xl font-bold">All the Best!</p>
+      </div>
+
+      {showAnswerKey && (
+        <div className="mt-8 border-t pt-4">
+          <h3 className="text-2xl font-bold mb-4">Answer Key</h3>
+          {Object.entries(groupedQuestions).map(([chapterId, questions]) => (
+            <div key={chapterId} className="mb-6">
+              <h4 className="text-lg font-semibold mb-2">{chapterId}</h4>
+              {questions.map((question, index) => (
+                <div
+                  key={question.id}
+                  className="mb-4 pb-2 border-b last:border-b-0 break-inside-avoid"
+                >
+                  <p className="font-semibold">{`Q${index + 1}. ${
+                    question.question
+                  }`}</p>
+                  <div className="mt-1">{renderAnswer(question.answer)}</div>
+                  {question.answerImages &&
+                    question.answerImages.length > 0 &&
+                    renderImages(question.answerImages)}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
 
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -202,7 +230,8 @@ export function GeneratedExam({
                       <strong>Marks:</strong> {question.marks}
                     </p>
                     <p>
-                      <strong>Reviewed:</strong> {question.isReviewed}
+                      <strong>Reviewed:</strong>{" "}
+                      {question.isReviewed ? "Yes" : "No"}
                     </p>
                     <p>
                       <strong>Last Updated:</strong>{" "}
@@ -210,7 +239,7 @@ export function GeneratedExam({
                     </p>
                     <p>
                       <strong>Reviewed By:</strong>{" "}
-                      {question.ReviewedBy || "N/A"}
+                      {question.reviewedBy || "N/A"}
                     </p>
                   </>
                 ) : null;

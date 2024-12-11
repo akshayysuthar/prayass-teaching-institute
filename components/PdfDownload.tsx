@@ -52,47 +52,56 @@ export function PdfDownload({
         return addWrappedText(answer, x, y, maxWidth);
       } else if (Array.isArray(answer)) {
         answer.forEach((item: string) => {
-          y = addWrappedText(`${item}`, x, y, maxWidth);
+          y = addWrappedText(`- ${item}`, x, y, maxWidth);
         });
         return y;
-      } else if (typeof answer === "object") {
-        Object.entries(answer as { [key: string]: string | string[] }).forEach(
-          ([key, value]: [string, string | string[]]) => {
-            y = addWrappedText(`${key}:`, x, y, maxWidth, 11, true);
-            if (Array.isArray(value)) {
-              value.forEach((item: string) => {
-                y = addWrappedText(`- ${item}`, x + 5, y, maxWidth - 5);
-              });
-            } else if (typeof value === "string") {
-              y = addWrappedText(value, x + 5, y, maxWidth - 5);
-            }
+      } else if (typeof answer === "object" && answer !== null) {
+        Object.entries(answer).forEach(([key, value]) => {
+          y = addWrappedText(`${key}:`, x, y, maxWidth, 11, true);
+          if (Array.isArray(value)) {
+            value.forEach((item: string) => {
+              y = addWrappedText(`- ${item}`, x + 5, y, maxWidth - 5);
+            });
+          } else if (typeof value === "string") {
+            y = addWrappedText(value, x + 5, y, maxWidth - 5);
           }
-        );
+        });
         return y;
       }
       return y;
     };
 
-    const addImage = (
+    const addImage = async (
       imgUrl: string,
       x: number,
       y: number,
       maxWidth: number,
       maxHeight: number
     ) => {
-      return new Promise<number>((resolve) => {
+      return new Promise<number>((resolve, reject) => {
         const img = new Image();
-        img.crossOrigin = "Anonymous";
+        img.crossOrigin = "anonymous";
         img.onload = () => {
-          let imgWidth = img.width;
-          let imgHeight = img.height;
+          const aspectRatio = img.width / img.height;
+          let imgWidth = maxWidth;
+          let imgHeight = imgWidth / aspectRatio;
 
-          const scale = Math.min(maxWidth / imgWidth, maxHeight / imgHeight);
-          imgWidth *= scale;
-          imgHeight *= scale;
+          if (imgHeight > maxHeight) {
+            imgHeight = maxHeight;
+            imgWidth = imgHeight * aspectRatio;
+          }
 
-          doc.addImage(img, "JPEG", x, y, imgWidth, imgHeight);
-          resolve(y + imgHeight);
+          try {
+            doc.addImage(img, "JPEG", x, y, imgWidth, imgHeight);
+            resolve(y + imgHeight);
+          } catch (error) {
+            console.error("Error adding image to PDF:", error);
+            resolve(y); // Resolve with the original y position if there's an error
+          }
+        };
+        img.onerror = () => {
+          console.error("Error loading image:", imgUrl);
+          resolve(y); // Resolve with the original y position if there's an error
         };
         img.src = imgUrl;
       });
@@ -114,7 +123,7 @@ export function PdfDownload({
       pageWidth - 2 * margin
     );
     yPos = addWrappedText(
-      `Chapters: ${chapters.map((ch) => ch).join(", ")}`,
+      `Chapters: ${chapters.join(", ")}`,
       margin,
       yPos,
       pageWidth - 2 * margin
@@ -135,11 +144,10 @@ export function PdfDownload({
     );
     yPos += lineHeight;
 
-    // Add questions directly from selectedQuestions (without grouping by chapter)
+    // Add questions
     for (const [index, question] of selectedQuestions.entries()) {
       if (yPos > pageHeight - 30) addNewPage();
 
-      // Add the question text
       yPos = addWrappedText(
         `Q${index + 1}. ${question.question}`,
         margin,
@@ -149,44 +157,30 @@ export function PdfDownload({
         true
       );
 
-      // Add images asynchronously (optimize size)
       if (question.questionImages && question.questionImages.length > 0) {
-        // Ensure question.images is an array
-        const imagesArray = Array.isArray(question.questionImages)
-          ? question.questionImages
-          : [question.questionImages];
-
-        // Map each image and add it to the document
-        const imagePromises = imagesArray.map(async (img: string) => {
-          return await addImage(
+        for (const img of question.questionImages) {
+          yPos = await addImage(
             img,
             margin,
-            yPos + 3, // Adjust y position for images
-            pageWidth - 2 * margin, // Optimize width for the page
-            40 // Resize image height to a smaller value to save space
+            yPos + 3,
+            pageWidth - 2 * margin,
+            50
+          );
+          yPos += 3;
+        }
+      }
+
+      if (question.options) {
+        Object.entries(question.options).forEach(([key, value]) => {
+          yPos = addWrappedText(
+            `${key}) ${value}`,
+            margin + 10,
+            yPos,
+            pageWidth - 2 * margin - 10
           );
         });
-
-        // Wait for all images to be added and adjust yPos accordingly
-        const imageHeights = await Promise.all(imagePromises);
-        yPos += Math.max(...imageHeights); // Adjust yPos for the largest image
       }
 
-      // Add options if they exist
-      if (question.options) {
-        Object.entries(question.options).forEach(
-          ([key, value]: [string, string]) => {
-            yPos = addWrappedText(
-              `${key}) ${value}`,
-              margin + 10,
-              yPos,
-              pageWidth - 2 * margin - 10
-            );
-          }
-        );
-      }
-
-      // Add marks after the question text and options
       yPos = addWrappedText(
         `(${question.marks} marks)`,
         margin,
@@ -194,18 +188,17 @@ export function PdfDownload({
         pageWidth - 2 * margin,
         10
       );
+      yPos += lineHeight;
     }
 
-    // Answer Key page
-
-    // Assuming you already have the helper functions like addWrappedText, renderAnswer, addImage, etc.
-
+    // Add "All the Best!" at the bottom of the last page
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("All the Best!", pageWidth / 2, pageHeight - margin, {
       align: "center",
     });
 
+    // Add answer key on a new page
     addNewPage();
     yPos = addWrappedText(
       "Answer Key",
@@ -220,7 +213,6 @@ export function PdfDownload({
     for (const [index, question] of selectedQuestions.entries()) {
       if (yPos > pageHeight - 30) addNewPage();
 
-      // Add question text
       yPos = addWrappedText(
         `Q${index + 1}. ${question.question}`,
         margin,
@@ -229,8 +221,6 @@ export function PdfDownload({
         11,
         true
       );
-
-      // Add answer using renderAnswer
       yPos = renderAnswer(
         question.answer,
         margin,
@@ -238,43 +228,21 @@ export function PdfDownload({
         pageWidth - 2 * margin
       );
 
-      // Add images asynchronously, ensure they're optimized
       if (question.answerImages && question.answerImages.length > 0) {
-        // Ensure question.images is an array
-        const imagesArray = Array.isArray(question.answerImages)
-          ? question.answerImages
-          : [question.answerImages];
-
-        // Map each image and add it to the document
-        const imagePromises = imagesArray.map(async (img: string) => {
-          return await addImage(
+        for (const img of question.answerImages) {
+          yPos = await addImage(
             img,
             margin,
-            yPos + 3, // Adjust y position for images
-            pageWidth - 2 * margin, // Optimize width for the page
-            40 // Resize image height to a smaller value to save space
+            yPos + 3,
+            pageWidth - 2 * margin,
+            50
           );
-        });
-
-        // Wait for all images to be added and adjust yPos accordingly
-        const imageHeights = await Promise.all(imagePromises);
-        yPos += Math.max(...imageHeights); // Adjust yPos for the largest image
+          yPos += 3;
+        }
       }
 
-      // Add marks after the answer
-      yPos = addWrappedText(
-        `(${question.marks} marks)`,
-        margin,
-        yPos,
-        pageWidth - 2 * margin,
-        10
-      );
-
-      // Ensure proper spacing between questions
       yPos += lineHeight;
     }
-
-    // After the loop, you can optionally add a closing statement like "End of Answer Key" or similar
 
     return doc;
   };

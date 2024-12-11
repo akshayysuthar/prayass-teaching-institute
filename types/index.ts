@@ -6,7 +6,7 @@ export interface Question {
   board: string;
   Ch: string;
   chapterName: string;
-  name: string;
+  section: string;
   type: string;
   question: string;
   questionImages: string[];
@@ -19,15 +19,17 @@ export interface Question {
   options?: Record<string, string>;
   selectionCount?: number;
 }
-
 export interface SubjectData {
-  chapters: any;
   class: number;
-  name: string;
   board: string;
   medium?: string;
   subject?: string;
-  subjects?: { name: string; mediums?: { language: string }[] }[];
+  subjects?: Array<{
+    name: string;
+    mediums?: Array<{
+      language: string;
+    }>;
+  }>;
 }
 
 export interface Section {
@@ -51,6 +53,7 @@ interface Subject {
 }
 
 export interface SubjectDataItem {
+  medium?: string;
   class: number;
   board: string;
   subject?: string;

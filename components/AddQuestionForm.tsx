@@ -26,7 +26,7 @@ export function AddQuestionForm() {
     board: "",
     Ch: "",
     chapterName: "",
-    name: "",
+    section: "",
     type: "",
     question: "",
     questionImages: [],
@@ -41,6 +41,8 @@ export function AddQuestionForm() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [questionId, setQuestionId] = useState("");
   const { toast } = useToast();
 
   const generateQuestionId = () => {
@@ -48,8 +50,10 @@ export function AddQuestionForm() {
   };
 
   useEffect(() => {
-    setQuestion((prev) => ({ ...prev, id: generateQuestionId() }));
-  }, []);
+    if (!isEditing) {
+      setQuestion((prev) => ({ ...prev, id: generateQuestionId() }));
+    }
+  }, [isEditing]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -115,7 +119,7 @@ export function AddQuestionForm() {
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await supabase.from("questions").insert([
+      const { data, error } = await supabase.from("questions").upsert([
         {
           id: question.id,
           class: question.class,
@@ -123,8 +127,8 @@ export function AddQuestionForm() {
           book_name: question.bookName,
           board: question.board,
           Ch: question.Ch,
-          chapter_name: question.chapterName,
-          name: question.name,
+          chapterName: question.chapterName,
+          section: question.section,
           type: question.type,
           question: question.question,
           question_images: question.questionImages,
@@ -135,7 +139,7 @@ export function AddQuestionForm() {
           reviewed_by: question.reviewedBy,
           last_updated: question.lastUpdated,
           options: question.options,
-          selection_count: 0,
+          selection_count: question.selectionCount,
         },
       ]);
 
@@ -143,24 +147,30 @@ export function AddQuestionForm() {
 
       toast({
         title: "Success",
-        description: "Question added successfully!",
+        description: isEditing
+          ? "Question updated successfully!"
+          : "Question added successfully!",
       });
 
-      // Reset only specific fields
-      setQuestion((prev) => ({
-        ...prev,
-        id: generateQuestionId(),
-        question: "",
-        questionImages: [],
-        answer: "",
-        answerImages: [],
-        options: {},
-      }));
+      if (!isEditing) {
+        // Reset only specific fields
+        setQuestion((prev) => ({
+          ...prev,
+          id: generateQuestionId(),
+          question: "",
+          questionImages: [],
+          answer: "",
+          answerImages: [],
+          options: {},
+        }));
+      }
     } catch (error) {
-      console.error("Error adding question:", error);
+      console.error("Error adding/updating question:", error);
       toast({
         title: "Error",
-        description: "Failed to add question. Please try again.",
+        description: `Failed to ${
+          isEditing ? "update" : "add"
+        } question. Please try again.`,
         variant: "destructive",
       });
     } finally {
@@ -178,10 +188,77 @@ export function AddQuestionForm() {
       answerImages: [],
       options: {},
     }));
+    setIsEditing(false);
+    setQuestionId("");
     toast({
       title: "Form Reset",
       description: "The form has been partially reset.",
     });
+  };
+
+  const handleDelete = async () => {
+    if (!isEditing || !question.id) return;
+
+    try {
+      const { error } = await supabase
+        .from("questions")
+        .delete()
+        .eq("id", question.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Question deleted successfully!",
+      });
+
+      handleReset();
+    } catch (error) {
+      console.error("Error deleting question:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete question. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchQuestion = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("questions")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setQuestion({
+          ...data,
+          isReviewed: data.is_reviewed ? "true" : "false",
+          bookName: data.book_name,
+          chapterName: data.chapter_name,
+          questionImages: data.question_images || [],
+          answerImages: data.answer_images || [],
+          selectionCount: data.selection_count,
+        });
+        setIsEditing(true);
+      } else {
+        toast({
+          title: "Not Found",
+          description: "Question not found.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching question:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch question. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const classOptions = [6, 7, 8, 9, 10];
@@ -246,8 +323,22 @@ export function AddQuestionForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 grid grid-cols-1 md:grid-cols-4 items-center gap-4"
+      className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4"
     >
+      <div className="col-span-2">
+        <Label htmlFor="questionId">Question ID (for editing)</Label>
+        <div className="flex space-x-2">
+          <Input
+            id="questionId"
+            value={questionId}
+            onChange={(e) => setQuestionId(e.target.value)}
+            placeholder="Enter question ID to edit"
+          />
+          <Button type="button" onClick={() => fetchQuestion(questionId)}>
+            Fetch
+          </Button>
+        </div>
+      </div>
       <div>
         <Label htmlFor="id">Question ID</Label>
         <Input id="id" name="id" value={question.id} readOnly />
@@ -346,13 +437,13 @@ export function AddQuestionForm() {
         <Input
           id="name"
           name="name"
-          value={question.name}
+          value={question.section}
           onChange={handleInputChange}
           required
         />
       </div>
       <div className="col-span-2">
-        <Label htmlFor="type">Section Type</Label>
+        <Label htmlFor="type">Question Type</Label>
         <Select
           name="type"
           onValueChange={(value) => handleSelectChange("type", value)}
@@ -482,13 +573,24 @@ export function AddQuestionForm() {
           onChange={handleInputChange}
         />
       </div>
-      <div className="col-span-2 mx-5 items-center flex justify-start gap-5">
+      <div className="col-span-2 flex justify-between">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Adding Question..." : "Add Question"}
+          {isSubmitting
+            ? isEditing
+              ? "Updating..."
+              : "Adding..."
+            : isEditing
+            ? "Update Question"
+            : "Add Question"}
         </Button>
         <Button type="button" onClick={handleReset} variant="outline">
           Reset
         </Button>
+        {isEditing && (
+          <Button type="button" onClick={handleDelete} variant="destructive">
+            Delete Question
+          </Button>
+        )}
       </div>
     </form>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Question, SelectedChapter } from "@/types";
+import { supabase } from "@/utils/supabase/client";
 
 interface ChapterSelectorProps {
   questions: Question[];
@@ -25,46 +26,70 @@ export function ChapterSelector({
 }: ChapterSelectorProps) {
   const [selectedChapterId, setSelectedChapterId] = useState<string>("");
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
-  const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>(
+
+  const chapters = useMemo(() => {
+    const chapterMap = new Map<string, { id: string; name: string }>();
+    questions.forEach((q) => {
+      if (!chapterMap.has(q.Ch)) {
+        chapterMap.set(q.Ch, { id: q.Ch, name: q.chapterName });
+      }
+    });
+    return Array.from(chapterMap.values());
+  }, [questions]);
+
+  const handleChapterChange = useCallback((chapter: string) => {
+    setSelectedChapterId(chapter);
+  }, []);
+
+  const updateQuestionSelectionCount = useCallback(
+    async (questionId: string, increment: boolean) => {
+      try {
+        const { data, error } = await supabase
+          .from("questions")
+          .select("selectionCount")
+          .eq("id", questionId)
+          .single();
+
+        if (error) throw error;
+
+        const currentCount = data?.selectionCount || 0;
+        const newCount = increment
+          ? currentCount + 1
+          : Math.max(0, currentCount - 1);
+
+        const { error: updateError } = await supabase
+          .from("questions")
+          .update({ selectionCount: newCount })
+          .eq("id", questionId);
+
+        if (updateError) throw updateError;
+
+        // Update the local state
+        setSelectedQuestions((prev) =>
+          prev.map((q) =>
+            q.id === questionId ? { ...q, selectionCount: newCount } : q
+          )
+        );
+      } catch (error) {
+        console.error("Error updating question selection count:", error);
+      }
+    },
     []
   );
 
-  // Creating chapters array with both id and name
-  const chapters = Array.from(
-    new Set(
-      questions.map((q: Question) => `${q.Ch} - ${q.name}`) // Combine id and name
-    )
-  ).map((ch) => {
-    const [id, name] = ch.split(" - "); // Split the combined string into id and name
-    return { id, name }; // Return as an object
-  });
-  console.log(chapters);
-
-  const handleChapterChange = useCallback((chapter: string) => {
-    // console.log(`Selected chapter: ${chapter}`);
-    setSelectedChapterId(chapter);
-    setSelectedChapters((prev) => {
-      const isAlreadySelected = prev.some((ch) => ch.id === chapter);
-      if (isAlreadySelected) {
-        return prev.filter((ch) => ch.id !== chapter);
-      } else {
-        return [...prev, { id: chapter, name: chapter }];
-      }
-    });
-  }, []);
-
-  const handleQuestionChange = useCallback((question: Question) => {
-    setSelectedQuestions((prev) => {
-      const isSelected = prev.some((q) => q.id === question.id);
-      const updated = isSelected
-        ? prev.filter((q) => q.id !== question.id)
-        : [...prev, question];
-      console.log(
-        `${isSelected ? "Deselected" : "Selected"} question: ${question.id}`
-      );
-      return updated;
-    });
-  }, []);
+  const handleQuestionChange = useCallback(
+    (question: Question) => {
+      setSelectedQuestions((prev) => {
+        const isSelected = prev.some((q) => q.id === question.id);
+        const updated = isSelected
+          ? prev.filter((q) => q.id !== question.id)
+          : [...prev, question];
+        updateQuestionSelectionCount(question.id, !isSelected);
+        return updated;
+      });
+    },
+    [updateQuestionSelectionCount]
+  );
 
   useEffect(() => {
     onSelectQuestions(selectedQuestions);
@@ -74,23 +99,16 @@ export function ChapterSelector({
     const uniqueChapters = Array.from(
       new Set(selectedQuestions.map((q) => q.Ch))
     ).map((ch) => ({ id: ch, name: ch }));
-    setSelectedChapters(uniqueChapters);
-    // console.log(selectedChapters);
-
     onSelectChapters(uniqueChapters);
-    // console.log(selectedChapters);
   }, [selectedQuestions, onSelectChapters]);
 
   const handleReset = useCallback(() => {
-    console.log("Reset selected questions");
     setSelectedQuestions([]);
     onSelectQuestions([]);
-    localStorage.removeItem("selectedQuestions");
-    setSelectedChapters([]);
     onSelectChapters([]);
   }, [onSelectQuestions, onSelectChapters]);
 
-  const renderImages = (images?: string | string[]) => {
+  const renderImages = useCallback((images?: string | string[]) => {
     if (!images) return null;
     const imageArray = Array.isArray(images) ? images : [images];
     return (
@@ -107,9 +125,9 @@ export function ChapterSelector({
         ))}
       </div>
     );
-  };
+  }, []);
 
-  const groupQuestionsByType = (chapterQuestions: Question[]) => {
+  const groupQuestionsByType = useCallback((chapterQuestions: Question[]) => {
     const groupedQuestions: { [key: string]: Question[] } = {};
     chapterQuestions.forEach((question) => {
       if (!groupedQuestions[question.type]) {
@@ -118,7 +136,7 @@ export function ChapterSelector({
       groupedQuestions[question.type].push(question);
     });
     return groupedQuestions;
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -131,7 +149,8 @@ export function ChapterSelector({
             Selected Questions: {selectedQuestions.length}
           </Badge>
           <Badge variant="secondary" className="mr-1">
-            Selected Chapters: {selectedChapters.length}
+            Selected Chapters:{" "}
+            {Array.from(new Set(selectedQuestions.map((q) => q.Ch))).length}
           </Badge>
         </div>
         <div className="col-span-1 flex justify-center items-center">
@@ -151,9 +170,7 @@ export function ChapterSelector({
           <div key={chapter.id}>
             <button
               className={`text-blue-600 hover:underline ${
-                selectedChapters.some(
-                  (ch) => ch.id === chapter.id && ch.name === chapter.name
-                )
+                selectedQuestions.some((q) => q.Ch === chapter.id)
                   ? "font-bold"
                   : ""
               }`}
@@ -165,7 +182,7 @@ export function ChapterSelector({
               <Accordion type="multiple" className="w-full mt-4">
                 {Object.entries(
                   groupQuestionsByType(
-                    questions.filter((q) => q.Ch === chapter.id) // Filter by chapter id
+                    questions.filter((q) => q.Ch === chapter.id)
                   )
                 ).map(([type, typeQuestions]) => (
                   <AccordionItem
@@ -193,7 +210,9 @@ export function ChapterSelector({
                               htmlFor={`question-${question.id}`}
                               className="flex flex-col space-y-2"
                             >
-                              <span>{question.question}</span>
+                              <span>
+                                {question.question} ({question.marks} marks)
+                              </span>
                               {renderImages(question.questionImages)}
                               {question.isReviewed && (
                                 <Badge variant="secondary">Reviewed</Badge>

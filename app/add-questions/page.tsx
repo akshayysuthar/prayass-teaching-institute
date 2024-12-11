@@ -1,14 +1,18 @@
-import { AddQuestionForm } from '@/components/AddQuestionForm'
-import React from 'react'
+"use client";
 
-type Props = {}
+import { AddQuestionForm } from "@/components/AddQuestionForm";
+import Link from "next/link";
 
-const page = (props: Props) => {
+export default function AddQuestionPage() {
   return (
-    <div className='py-5 px-10'>
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Add New Question</h1>
+        <Link href="/" className="text-blue-600 hover:underline">
+          Back to Exam Generator
+        </Link>
+      </div>
       <AddQuestionForm />
     </div>
-  )
+  );
 }
-
-export default page

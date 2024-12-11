@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { SubjectSelectorProps } from "@/types";
+import { SubjectSelectorProps, SubjectData } from "@/types";
 
 export function SubjectSelector({
   subjectData,
@@ -17,31 +17,38 @@ export function SubjectSelector({
   onSelectSubject,
   initialSubject,
 }: SubjectSelectorProps) {
-  const [subjects, setSubjects] = useState<string[]>([]); // Changed to string[] to store subject names
+  const [subjects, setSubjects] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(
     initialSubject
   );
 
   useEffect(() => {
-    const filteredSubjects = subjectData.flatMap((item) => {
-      if (item.subject) return [item.subject];
-      if (item.subjects) {
-        return item.subjects
-          .filter(
-            (subject) =>
-              !subject.mediums ||
-              subject.mediums.some((m) => m.language === medium)
-          )
-          .map((subject) => subject.name);
-      }
-      return [];
-    });
-    setSubjects([...new Set(filteredSubjects)]); // Store subject names as strings
+    const filteredSubjects = subjectData
+      .filter(
+        (item: SubjectData) =>
+          item.class === classNumber &&
+          item.board === board &&
+          (!item.medium || item.medium === medium)
+      )
+      .flatMap((item: SubjectData) => {
+        if (item.subject) return [item.subject];
+        if (item.subjects) {
+          return item.subjects
+            .filter(
+              (subject) =>
+                !subject.mediums ||
+                subject.mediums.some((m) => m.language === medium)
+            )
+            .map((subject) => subject.name);
+        }
+        return [];
+      });
+    setSubjects([...new Set(filteredSubjects)]);
   }, [subjectData, classNumber, board, medium]);
 
   const handleSubjectChange = (value: string) => {
     setSelectedSubject(value);
-    onSelectSubject(value); // Pass the selected subject name
+    onSelectSubject(value);
   };
 
   return (

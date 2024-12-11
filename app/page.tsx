@@ -1,18 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { ClassSelector } from "@/components/ClassSelector";
 import { SubjectSelector } from "@/components/SubjectSelector";
 import { ChapterSelector } from "@/components/ChapterSelector";
 import { GeneratedExam } from "@/components/GeneratedExam";
 import { PdfDownload } from "@/components/PdfDownload";
 import { DemoLogin } from "@/components/DemoLogin";
+import { Loading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Question, SelectedChapter, SubjectData } from "@/types";
-import { AddQuestionForm } from "@/components/AddQuestionForm";
 import { supabase } from "@/utils/supabase/client";
+import Link from "next/link";
+import { ScreenshotPdf } from "@/components/ScreenshotPdf";
 
 export default function ExamPaperGenerator() {
   const [user, setUser] = useState<string | null>(null);
@@ -27,71 +29,82 @@ export default function ExamPaperGenerator() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [generatedExam, setGeneratedExam] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
   const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>(
     []
   );
   const [userPaperCount, setUserPaperCount] = useState(0);
 
+  // Fetch Subject Data on Mount
   useEffect(() => {
-    console.log("Loading ExamPaperGenerator component");
-    const fetchData = async () => {
+    const fetchSubjects = async () => {
       try {
-
-        // have to fix the subject data and question data according to supabse and fix the api 
-        const subjectResponse = await fetch("/api/subjects");
-        const subjectData = await subjectResponse.json();
-        setSubjectData(subjectData);
-
-        const { data: questionsData, error } = await supabase
-          .from("questions")
-          .select("*");
-
+        const { data, error } = await supabase.from("subjects").select("*");
         if (error) throw error;
-
-        setQuestions(questionsData);
-
-        console.log("Data fetched successfully");
+        setSubjectData(data || []);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching subject data:", error);
       } finally {
         setIsLoading(false);
-        console.log("ExamPaperGenerator component loaded");
       }
     };
 
-    fetchData();
+    fetchSubjects();
+  }, []);
 
-    // Load saved state from localStorage
+  // Fetch Questions When Subject is Selected
+  const fetchQuestions = useCallback(async () => {
+    if (!selectedClass || !selectedBoard || !selectedSubject) return;
+
+    setIsQuestionsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("questions")
+        .select("*, selectionCount")
+        .eq("class", selectedClass)
+        .eq("board", selectedBoard)
+        .eq("subject", selectedSubject);
+
+      if (error) throw error;
+      setQuestions(data || []);
+    } catch (error) {
+      console.error("Error fetching questions:", error);
+    } finally {
+      setIsQuestionsLoading(false);
+    }
+  }, [selectedClass, selectedBoard, selectedSubject]);
+
+  useEffect(() => {
+    fetchQuestions();
+  }, [fetchQuestions]);
+
+  // Load initial localStorage state
+  useEffect(() => {
     const savedUser = localStorage.getItem("user");
-    const savedClass = localStorage.getItem("selectedClass");
-    const savedBoard = localStorage.getItem("selectedBoard");
-    const savedMedium = localStorage.getItem("selectedMedium");
-    const savedSubject = localStorage.getItem("selectedSubject");
-    const savedTotalMarks = localStorage.getItem("totalMarks");
-    const savedGenerationType = localStorage.getItem("generationType");
-    const savedUserPaperCount = localStorage.getItem("userPaperCount");
-
     if (savedUser) setUser(savedUser);
+    const savedClass = localStorage.getItem("selectedClass");
     if (savedClass) setSelectedClass(parseInt(savedClass));
+    const savedBoard = localStorage.getItem("selectedBoard");
     if (savedBoard) setSelectedBoard(savedBoard);
+    const savedMedium = localStorage.getItem("selectedMedium");
     if (savedMedium) setSelectedMedium(savedMedium);
-    if (savedSubject) setSelectedSubject(savedSubject);
+    const savedTotalMarks = localStorage.getItem("totalMarks");
     if (savedTotalMarks) setTotalMarks(parseInt(savedTotalMarks));
+    const savedGenerationType = localStorage.getItem("generationType");
     if (savedGenerationType) setGenerationType(savedGenerationType);
+    const savedUserPaperCount = localStorage.getItem("userPaperCount");
     if (savedUserPaperCount) setUserPaperCount(parseInt(savedUserPaperCount));
   }, []);
 
+  // Save state to localStorage when it changes
   useEffect(() => {
-    // Save state to localStorage whenever it changes
-    if (user) localStorage.setItem("user", user);
-    if (selectedClass)
-      localStorage.setItem("selectedClass", selectedClass.toString());
-    if (selectedBoard) localStorage.setItem("selectedBoard", selectedBoard);
-    if (selectedMedium) localStorage.setItem("selectedMedium", selectedMedium);
-    if (selectedSubject)
-      localStorage.setItem("selectedSubject", selectedSubject);
+    localStorage.setItem("user", user || "");
+    localStorage.setItem("selectedClass", selectedClass?.toString() || "");
+    localStorage.setItem("selectedBoard", selectedBoard || "");
+    localStorage.setItem("selectedMedium", selectedMedium || "");
+    localStorage.setItem("selectedSubject", selectedSubject || "");
     localStorage.setItem("totalMarks", totalMarks.toString());
-    if (generationType) localStorage.setItem("generationType", generationType);
+    localStorage.setItem("generationType", generationType || "");
     localStorage.setItem("userPaperCount", userPaperCount.toString());
   }, [
     user,
@@ -104,70 +117,67 @@ export default function ExamPaperGenerator() {
     userPaperCount,
   ]);
 
-  const handleLogin = (username: string) => {
+  const filteredQuestions = useMemo(() => {
+    return questions.filter(
+      (item) =>
+        item.class === selectedClass &&
+        item.board === selectedBoard &&
+        item.subject === selectedSubject
+    );
+  }, [questions, selectedClass, selectedBoard, selectedSubject]);
+
+  const handleLogin = useCallback((username: string) => {
     setUser(username);
     console.log(`User logged in: ${username}`);
-  };
+  }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     setUser(null);
     localStorage.removeItem("user");
     console.log("User logged out");
-  };
+  }, []);
 
-  const handleTotalMarksChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTotalMarks = parseInt(e.target.value) || 0;
-    console.log(`Total marks changed to: ${newTotalMarks}`);
-    setTotalMarks(newTotalMarks);
-  };
+  const handleTotalMarksChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newTotalMarks = parseInt(e.target.value) || 0;
+      console.log(`Total marks changed to: ${newTotalMarks}`);
+      setTotalMarks(newTotalMarks);
+    },
+    []
+  );
 
-  const handleGenerate = () => {
+  const handleGenerate = useCallback(() => {
     console.log("Generating exam paper");
     setGeneratedExam(true);
     setUserPaperCount((prevCount) => prevCount + 1);
-    console.log({
-      user,
-      generationType,
-      selectedClass,
-      selectedBoard,
-      selectedMedium,
-      selectedSubject,
-      selectedQuestions,
-      selectedChapters,
-      totalMarks,
-      userPaperCount: userPaperCount + 1,
-    });
-  };
+  }, []);
 
-  const handleGenerationTypeChange = (type: string) => {
+  const handleGenerationTypeChange = useCallback((type: string) => {
     console.log(`Generation type changed to: ${type}`);
     setGenerationType(type);
-  };
+  }, []);
 
-  const handleQuestionSelection = (selectedQuestions: Question[]) => {
-    setSelectedQuestions(selectedQuestions);
-    // Update question selection count
-    selectedQuestions.forEach((question) => {
-      question.selectionCount = (question.selectionCount || 0) + 1;
-      console.log(
-        `Question ${question.id} selected. Total selections: ${question.selectionCount}`
-      );
-    });
+  const handleQuestionSelection = useCallback(
+    (selectedQuestions: Question[]) => {
+      setSelectedQuestions(selectedQuestions);
+      // Update selected chapters
+      const uniqueChapters = Array.from(
+        new Set(selectedQuestions.map((q) => q.Ch))
+      ).map((ch) => ({ id: ch, name: ch }));
+      setSelectedChapters(uniqueChapters);
+    },
+    []
+  );
 
-    // Update selected chapters
-    const uniqueChapters = Array.from(
-      new Set(selectedQuestions.map((q) => q.Ch))
-    ).map((ch) => ({ id: ch, name: ch }));
-    setSelectedChapters(uniqueChapters);
-  };
-
-  const handleChapterSelection = (chapters: SelectedChapter[]) => {
+  const handleChapterSelection = useCallback((chapters: SelectedChapter[]) => {
     setSelectedChapters(chapters);
     console.log("Selected chapters:", chapters);
-  };
+  }, []);
+
+  const generatedExamRef = useRef<HTMLDivElement>(null);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <Loading />;
   }
 
   if (!user) {
@@ -185,8 +195,11 @@ export default function ExamPaperGenerator() {
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Exam Paper Generator</h1>
-        <div>
-          <span className="mr-4">Welcome, {user}!</span>
+        <div className="flex items-center space-x-4">
+          <Link href="/add-question" className="text-blue-600 hover:underline">
+            Add Question
+          </Link>
+          <span>Welcome, {user}!</span>
           <Button onClick={handleLogout}>Logout</Button>
         </div>
       </div>
@@ -240,17 +253,16 @@ export default function ExamPaperGenerator() {
             className="w-24"
           />
         </div>
-        {selectedSubject && (
-          <ChapterSelector
-            questions={questions.filter(
-              (item) =>
-                item.class === selectedClass &&
-                item.board === selectedBoard &&
-                item.subject === selectedSubject
-            )}
-            onSelectQuestions={handleQuestionSelection}
-            onSelectChapters={handleChapterSelection}
-          />
+        {isQuestionsLoading ? (
+          <Loading />
+        ) : (
+          selectedSubject && (
+            <ChapterSelector
+              questions={filteredQuestions}
+              onSelectQuestions={handleQuestionSelection}
+              onSelectChapters={handleChapterSelection}
+            />
+          )
         )}
 
         <Button
@@ -263,7 +275,7 @@ export default function ExamPaperGenerator() {
 
       {generatedExam && (
         <div className="mt-8">
-          <div id="examPaperContent">
+          <div id="examPaperContent" ref={generatedExamRef}>
             <GeneratedExam
               selectedQuestions={selectedQuestions}
               instituteName="ABC School"
@@ -286,6 +298,7 @@ export default function ExamPaperGenerator() {
               teacherName="Mr. Smith"
               totalMarks={totalMarks}
             />
+            <ScreenshotPdf targetRef={generatedExamRef} />
           </div>
         </div>
       )}
@@ -294,12 +307,6 @@ export default function ExamPaperGenerator() {
           Total papers generated by {user}: {userPaperCount}
         </p>
       </div>
-      {!generatedExam && (
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-4">Add New Question</h2>
-          <AddQuestionForm />
-        </div>
-      )}
       <footer className="mt-8 text-center text-sm text-gray-500">
         <p>Created by Your Name</p>
         <p>App Version: 1.0.0-dev</p>
