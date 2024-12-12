@@ -139,7 +139,7 @@ export function AddQuestionForm() {
           reviewed_by: question.reviewedBy,
           last_updated: question.lastUpdated,
           options: question.options,
-          selection_count: question.selectionCount,
+          selectionCount: question.selectionCount,
         },
       ]);
 

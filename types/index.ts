@@ -10,13 +10,15 @@ export interface Question {
   type: string;
   question: string;
   questionImages: string[];
-  answer: string | string[];
-  answerImages: string[];
+  question_images?: string[];
+  answer: string | string[] | Record<string, string | string[]>;
+  answer_images?: string[];
+  answerImages?: string[];
+  options?: Record<string, string>;
   marks: number;
   isReviewed: string;
   reviewedBy: string;
   lastUpdated: string;
-  options?: Record<string, string>;
   selectionCount?: number;
 }
 export interface SubjectData {
@@ -105,3 +107,5 @@ export interface ClassSelectorProps {
   initialBoard: string | null;
   initialMedium: string | null;
 }
+
+

@@ -67,7 +67,22 @@ body {
     --chart-5: 340 75% 55%;
   }
 }
+.a4-page {
+  width: 210mm;
+  height: 297mm;
+  padding: 20mm;
+  margin: 10mm auto;
+  background: white;
+  box-shadow: 0 0 0.5cm rgba(0, 0, 0, 0.5);
+  page-break-after: always;
+}
 
+@media print {
+  .a4-page {
+    margin: 0;
+    box-shadow: none;
+  }
+}
 @layer base {
   * {
     @apply border-border;
