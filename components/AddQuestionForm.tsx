@@ -44,6 +44,8 @@ export function AddQuestionForm() {
   const [isEditing, setIsEditing] = useState(false);
   const [questionId, setQuestionId] = useState("");
   const { toast } = useToast();
+  const [jsonInput, setJsonInput] = useState("");
+  const [uploadedQuestions, setUploadedQuestions] = useState<Question[]>([]);
 
   const generateQuestionId = () => {
     return Math.random().toString().slice(2, 12);
@@ -139,7 +141,7 @@ export function AddQuestionForm() {
           reviewed_by: question.reviewedBy,
           last_updated: question.lastUpdated,
           options: question.options,
-          selectionCount: question.selectionCount,
+          // selection_count: question.selectionCount,
         },
       ]);
 
@@ -261,6 +263,58 @@ export function AddQuestionForm() {
     }
   };
 
+  const handleJsonInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setJsonInput(e.target.value);
+  };
+
+  const processJsonInput = () => {
+    try {
+      const parsedQuestions = JSON.parse(jsonInput);
+      if (Array.isArray(parsedQuestions)) {
+        setQuestion(parsedQuestions[0]);
+        setIsEditing(true);
+        toast({
+          title: "Success",
+          description: "JSON data processed successfully!",
+        });
+      } else {
+        throw new Error("Invalid JSON format");
+      }
+    } catch (error) {
+      console.error("Error processing JSON input:", error);
+      toast({
+        title: "Error",
+        description: "Failed to process JSON input. Please check the format.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchUploadedQuestions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("questions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      setUploadedQuestions(data || []);
+    } catch (error) {
+      console.error("Error fetching uploaded questions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch uploaded questions. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchUploadedQuestions();
+  }, []);
+
   const classOptions = [6, 7, 8, 9, 10];
   const boardOptions = ["CBSE", "GSEB"];
   const subjectOptions = {
@@ -321,277 +375,307 @@ export function AddQuestionForm() {
   const marksOptions = [1, 2, 3, 4, 5];
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4"
-    >
-      <div className="col-span-2">
-        <Label htmlFor="questionId">Question ID (for editing)</Label>
-        <div className="flex space-x-2">
-          <Input
-            id="questionId"
-            value={questionId}
-            onChange={(e) => setQuestionId(e.target.value)}
-            placeholder="Enter question ID to edit"
-          />
-          <Button type="button" onClick={() => fetchQuestion(questionId)}>
-            Fetch
-          </Button>
+    <div className="space-y-8">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4"
+      >
+        <div className="col-span-2">
+          <Label htmlFor="questionId">Question ID (for editing)</Label>
+          <div className="flex space-x-2">
+            <Input
+              id="questionId"
+              value={questionId}
+              onChange={(e) => setQuestionId(e.target.value)}
+              placeholder="Enter question ID to edit"
+            />
+            <Button type="button" onClick={() => fetchQuestion(questionId)}>
+              Fetch
+            </Button>
+          </div>
         </div>
-      </div>
-      <div>
-        <Label htmlFor="id">Question ID</Label>
-        <Input id="id" name="id" value={question.id} readOnly />
-      </div>
-      <div>
-        <Label htmlFor="class">Class</Label>
-        <Select
-          name="class"
-          onValueChange={(value) => handleSelectChange("class", value)}
-          value={question.class?.toString()}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select class" />
-          </SelectTrigger>
-          <SelectContent>
-            {classOptions.map((classNum) => (
-              <SelectItem key={classNum} value={classNum.toString()}>
-                {classNum}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <Label htmlFor="board">Board</Label>
-        <Select
-          name="board"
-          onValueChange={(value) => handleSelectChange("board", value)}
-          value={question.board}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select board" />
-          </SelectTrigger>
-          <SelectContent>
-            {boardOptions.map((board) => (
-              <SelectItem key={board} value={board}>
-                {board}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <Label htmlFor="subject">Subject</Label>
-        <Select
-          name="subject"
-          onValueChange={(value) => handleSelectChange("subject", value)}
-          value={question.subject}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select subject" />
-          </SelectTrigger>
-          <SelectContent>
-            {subjectOptions[question.class as keyof typeof subjectOptions]?.map(
-              (subject) => (
+        <div>
+          <Label htmlFor="id">Question ID</Label>
+          <Input id="id" name="id" value={question.id} readOnly />
+        </div>
+        <div>
+          <Label htmlFor="class">Class</Label>
+          <Select
+            name="class"
+            onValueChange={(value) => handleSelectChange("class", value)}
+            value={question.class?.toString()}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select class" />
+            </SelectTrigger>
+            <SelectContent>
+              {classOptions.map((classNum) => (
+                <SelectItem key={classNum} value={classNum.toString()}>
+                  {classNum}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="board">Board</Label>
+          <Select
+            name="board"
+            onValueChange={(value) => handleSelectChange("board", value)}
+            value={question.board}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select board" />
+            </SelectTrigger>
+            <SelectContent>
+              {boardOptions.map((board) => (
+                <SelectItem key={board} value={board}>
+                  {board}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="subject">Subject</Label>
+          <Select
+            name="subject"
+            onValueChange={(value) => handleSelectChange("subject", value)}
+            value={question.subject}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select subject" />
+            </SelectTrigger>
+            <SelectContent>
+              {subjectOptions[
+                question.class as keyof typeof subjectOptions
+              ]?.map((subject) => (
                 <SelectItem key={subject} value={subject}>
                   {subject}
                 </SelectItem>
-              )
-            )}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <Label htmlFor="bookName">Book Name</Label>
-        <Input
-          id="bookName"
-          name="bookName"
-          value={question.bookName}
-          onChange={handleInputChange}
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="Ch">Chapter</Label>
-        <Input
-          id="Ch"
-          name="Ch"
-          value={question.Ch}
-          onChange={handleInputChange}
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="chapterName">Chapter Name</Label>
-        <Input
-          id="chapterName"
-          name="chapterName"
-          value={question.chapterName}
-          onChange={handleInputChange}
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="name">Question Name</Label>
-        <Input
-          id="name"
-          name="name"
-          value={question.section}
-          onChange={handleInputChange}
-          required
-        />
-      </div>
-      <div className="col-span-2">
-        <Label htmlFor="type">Question Type</Label>
-        <Select
-          name="type"
-          onValueChange={(value) => handleSelectChange("type", value)}
-          value={question.type}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select question type" />
-          </SelectTrigger>
-          <SelectContent>
-            {questionTypes.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="col-span-2">
-        <Label htmlFor="question">Question</Label>
-        <Textarea
-          id="question"
-          name="question"
-          value={question.question}
-          onChange={handleInputChange}
-          required
-        />
-      </div>
-      <div className="col-span-2">
-        <Label>Question Images</Label>
-        <Input
-          type="file"
-          onChange={(e) => handleImageUpload(e, "question")}
-          accept="image/*"
-          multiple
-        />
-        <div className="mt-2 flex flex-wrap gap-2">
-          {question.questionImages?.map((img, index) => (
-            <img
-              key={index}
-              src={img}
-              alt={`Question image ${index + 1}`}
-              className="w-24 h-24 object-cover"
-            />
-          ))}
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </div>
-      <div className="col-span-2">
-        <Label>Answer Images</Label>
-        <Input
-          type="file"
-          onChange={(e) => handleImageUpload(e, "answer")}
-          accept="image/*"
-          multiple
-        />
-        <div className="mt-2 flex flex-wrap gap-2">
-          {question.answerImages?.map((img, index) => (
-            <img
-              key={index}
-              src={img}
-              alt={`Answer image ${index + 1}`}
-              className="w-24 h-24 object-cover"
-            />
-          ))}
+        <div>
+          <Label htmlFor="bookName">Book Name</Label>
+          <Input
+            id="bookName"
+            name="bookName"
+            value={question.bookName}
+            onChange={handleInputChange}
+            required
+          />
         </div>
-      </div>
-      {question.type === "MCQs" && (
+        <div>
+          <Label htmlFor="Ch">Chapter</Label>
+          <Input
+            id="Ch"
+            name="Ch"
+            value={question.Ch}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="chapterName">Chapter Name</Label>
+          <Input
+            id="chapterName"
+            name="chapterName"
+            value={question.chapterName}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="name">Question Name</Label>
+          <Input
+            id="name"
+            name="name"
+            value={question.section}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
         <div className="col-span-2">
-          <Label>Options</Label>
-          {["A", "B", "C", "D"].map((option) => (
-            <Input
-              key={option}
-              placeholder={`Option ${option}`}
-              value={question.options?.[option] || ""}
-              onChange={(e) => handleOptionChange(option, e.target.value)}
-              className="mt-2"
-            />
-          ))}
+          <Label htmlFor="type">Question Type</Label>
+          <Select
+            name="type"
+            onValueChange={(value) => handleSelectChange("type", value)}
+            value={question.type}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select question type" />
+            </SelectTrigger>
+            <SelectContent>
+              {questionTypes.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      )}
-      <div className="col-span-2">
-        <Label htmlFor="answer">Answer</Label>
-        <Textarea
-          id="answer"
-          name="answer"
-          value={question.answer as string}
-          onChange={handleInputChange}
-          required
-        />
-      </div>
-      <div>
-        <Label>Marks</Label>
-        <RadioGroup
-          onValueChange={(value) => handleSelectChange("marks", value)}
-          value={question.marks?.toString()}
-          className="flex space-x-2"
-        >
-          {marksOptions.map((mark) => (
-            <div key={mark} className="flex items-center space-x-1">
-              <RadioGroupItem value={mark.toString()} id={`mark-${mark}`} />
-              <Label htmlFor={`mark-${mark}`}>{mark}</Label>
+        <div className="col-span-2">
+          <Label htmlFor="question">Question</Label>
+          <Textarea
+            id="question"
+            name="question"
+            value={question.question}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+        <div className="col-span-2">
+          <Label>Question Images</Label>
+          <Input
+            type="file"
+            onChange={(e) => handleImageUpload(e, "question")}
+            accept="image/*"
+            multiple
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {question.questionImages?.map((img, index) => (
+              <img
+                key={index}
+                src={img}
+                alt={`Question image ${index + 1}`}
+                className="w-24 h-24 object-cover"
+              />
+            ))}
+          </div>
+        </div>
+        <div className="col-span-2">
+          <Label>Answer Images</Label>
+          <Input
+            type="file"
+            onChange={(e) => handleImageUpload(e, "answer")}
+            accept="image/*"
+            multiple
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {question.answerImages?.map((img, index) => (
+              <img
+                key={index}
+                src={img}
+                alt={`Answer image ${index + 1}`}
+                className="w-24 h-24 object-cover"
+              />
+            ))}
+          </div>
+        </div>
+        {question.type === "MCQs" && (
+          <div className="col-span-2">
+            <Label>Options</Label>
+            {["A", "B", "C", "D"].map((option) => (
+              <Input
+                key={option}
+                placeholder={`Option ${option}`}
+                value={question.options?.[option] || ""}
+                onChange={(e) => handleOptionChange(option, e.target.value)}
+                className="mt-2"
+              />
+            ))}
+          </div>
+        )}
+        <div className="col-span-2">
+          <Label htmlFor="answer">Answer</Label>
+          <Textarea
+            id="answer"
+            name="answer"
+            value={question.answer as string}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+        <div>
+          <Label>Marks</Label>
+          <RadioGroup
+            onValueChange={(value) => handleSelectChange("marks", value)}
+            value={question.marks?.toString()}
+            className="flex space-x-2"
+          >
+            {marksOptions.map((mark) => (
+              <div key={mark} className="flex items-center space-x-1">
+                <RadioGroupItem value={mark.toString()} id={`mark-${mark}`} />
+                <Label htmlFor={`mark-${mark}`}>{mark}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+        </div>
+        <div>
+          <Label htmlFor="isReviewed">Is Reviewed</Label>
+          <Select
+            name="isReviewed"
+            onValueChange={(value) => handleSelectChange("isReviewed", value)}
+            value={question.isReviewed}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="true">Yes</SelectItem>
+              <SelectItem value="false">No</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="reviewedBy">Reviewed By</Label>
+          <Input
+            id="reviewedBy"
+            name="reviewedBy"
+            value={question.reviewedBy}
+            onChange={handleInputChange}
+          />
+        </div>
+        <div className="col-span-2">
+          <Label htmlFor="jsonInput">JSON Input</Label>
+          <Textarea
+            id="jsonInput"
+            value={jsonInput}
+            onChange={handleJsonInputChange}
+            placeholder="Paste JSON data here"
+            rows={10}
+          />
+          <Button type="button" onClick={processJsonInput} className="mt-2">
+            Process JSON
+          </Button>
+        </div>
+        <div className="col-span-2 flex justify-between">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting
+              ? isEditing
+                ? "Updating..."
+                : "Adding..."
+              : isEditing
+              ? "Update Question"
+              : "Add Question"}
+          </Button>
+          <Button type="button" onClick={handleReset} variant="outline">
+            Reset
+          </Button>
+          {isEditing && (
+            <Button type="button" onClick={handleDelete} variant="destructive">
+              Delete Question
+            </Button>
+          )}
+        </div>
+      </form>
+
+      {/* <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Recently Uploaded Questions</h2>
+        <div className="space-y-4">
+          {uploadedQuestions.map((q) => (
+            <div key={q.id} className="border p-4 rounded">
+              <h3 className="font-bold">{q.question}</h3>
+              <p>Answer: {q.answer}</p>
+              <p>
+                Class: {q.class}, Subject: {q.subject}, Chapter: {q.Ch}
+              </p>
             </div>
           ))}
-        </RadioGroup>
-      </div>
-      <div>
-        <Label htmlFor="isReviewed">Is Reviewed</Label>
-        <Select
-          name="isReviewed"
-          onValueChange={(value) => handleSelectChange("isReviewed", value)}
-          value={question.isReviewed}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="true">Yes</SelectItem>
-            <SelectItem value="false">No</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <Label htmlFor="reviewedBy">Reviewed By</Label>
-        <Input
-          id="reviewedBy"
-          name="reviewedBy"
-          value={question.reviewedBy}
-          onChange={handleInputChange}
-        />
-      </div>
-      <div className="col-span-2 flex justify-between">
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting
-            ? isEditing
-              ? "Updating..."
-              : "Adding..."
-            : isEditing
-            ? "Update Question"
-            : "Add Question"}
-        </Button>
-        <Button type="button" onClick={handleReset} variant="outline">
-          Reset
-        </Button>
-        {isEditing && (
-          <Button type="button" onClick={handleDelete} variant="destructive">
-            Delete Question
-          </Button>
-        )}
-      </div>
-    </form>
+        </div>
+      </div> */}
+    </div>
   );
 }

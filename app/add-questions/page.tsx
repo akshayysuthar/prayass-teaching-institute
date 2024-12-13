@@ -1,6 +1,7 @@
 "use client";
 
 import { AddQuestionForm } from "@/components/AddQuestionForm";
+import { UploadedQuestions } from "@/components/UploadedQuestions";
 import Link from "next/link";
 
 export default function AddQuestionPage() {
@@ -13,6 +14,7 @@ export default function AddQuestionPage() {
         </Link>
       </div>
       <AddQuestionForm />
+      {/* <UploadedQuestions /> */}
     </div>
   );
 }
