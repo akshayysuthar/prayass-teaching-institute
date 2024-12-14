@@ -68,7 +68,11 @@ export function GeneratedExam({
 
   const renderQuestion = (question: Question, index: number) => {
     return (
-      <div key={question.id} className="mb-4 break-inside-avoid">
+      <div
+        id="examPaperContent"
+        key={question.id}
+        className="mb-4 break-inside-avoid"
+      >
         <p className="font-semibold">
           {`Q${index + 1}. ${question.question}`} ({question.marks} marks)
         </p>

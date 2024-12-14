@@ -81,7 +81,7 @@ export interface ExamMetadata {
   standard: number | null;
   subject: string | null;
   chapters: string[];
-  studentName: string;
+  studentName?: string;
   teacherName: string;
   totalMarks: number;
 }
@@ -91,6 +91,7 @@ export interface GeneratedExamProps extends ExamMetadata {
 
 export interface PdfDownloadProps extends ExamMetadata {
   selectedQuestions: Question[];
+  contentId?: string; // Add this if necessary
 }
 
 export interface SelectedChapter {

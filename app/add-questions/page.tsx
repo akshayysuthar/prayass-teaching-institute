@@ -1,8 +1,12 @@
 "use client";
 
 import { AddQuestionForm } from "@/components/AddQuestionForm";
-import { UploadedQuestions } from "@/components/UploadedQuestions";
 import Link from "next/link";
+
+// Thing to add or change
+
+// the id is unique which is generated and taken fromn json
+// optimize the pdf generator and preview and add sections in paper 
 
 export default function AddQuestionPage() {
   return (
