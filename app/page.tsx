@@ -15,6 +15,7 @@ import { Question, SelectedChapter, SubjectData } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 import Link from "next/link";
 
+
 export default function ExamPaperGenerator() {
   const [user, setUser] = useState<string | null>(null);
   const [generationType, setGenerationType] = useState<string | null>(null);
@@ -191,6 +192,9 @@ export default function ExamPaperGenerator() {
     );
   }
 
+  console.log(selectedQuestions);
+  
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-4">
@@ -275,7 +279,7 @@ export default function ExamPaperGenerator() {
 
       {generatedExam && (
         <div className="mt-8">
-          <div id="examPaperContent">
+          {/* <div id="examPaperContent">
             <GeneratedExam
               selectedQuestions={selectedQuestions}
               instituteName="ABC School"
@@ -286,7 +290,7 @@ export default function ExamPaperGenerator() {
               teacherName="Mr. Smith"
               totalMarks={totalMarks}
             />
-          </div>
+          </div> */}
           <div className="mt-4 flex justify-center space-x-4">
             <PdfDownload
               selectedQuestions={selectedQuestions}
@@ -297,7 +301,6 @@ export default function ExamPaperGenerator() {
               studentName={user}
               teacherName="Mr. Smith"
               totalMarks={totalMarks}
-              contentId="examPaperContent"
             />
           </div>
         </div>
