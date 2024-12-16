@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { ClassSelector } from "@/components/ClassSelector";
 import { SubjectSelector } from "@/components/SubjectSelector";
 import { ChapterSelector } from "@/components/ChapterSelector";
-import { GeneratedExam } from "@/components/GeneratedExam";
 import { PdfDownload } from "@/components/PdfDownload";
 import { DemoLogin } from "@/components/DemoLogin";
 import { Loading } from "@/components/Loading";
@@ -14,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Question, SelectedChapter, SubjectData } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 import Link from "next/link";
-
 
 export default function ExamPaperGenerator() {
   const [user, setUser] = useState<string | null>(null);
@@ -175,8 +173,6 @@ export default function ExamPaperGenerator() {
     // console.log("Selected chapters:", chapters);
   }, []);
 
-  const generatedExamRef = useRef<HTMLDivElement>(null);
-
   if (isLoading) {
     return <Loading />;
   }
@@ -193,7 +189,6 @@ export default function ExamPaperGenerator() {
   }
 
   console.log(selectedQuestions);
-  
 
   return (
     <div className="container mx-auto p-4">
