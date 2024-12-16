@@ -1,3 +1,4 @@
+import Image from "next/image";
 import React from "react";
 
 // Define the data structure
@@ -41,7 +42,9 @@ const DynamicParagraph: React.FC<DynamicParagraphProps> = ({
         const imgIndex = parseInt(match[1], 10) - 1; // Get the image index (1-based to 0-based)
         if (imageUrls[imgIndex]) {
           return (
-            <img
+            <Image
+              width={100}
+              height={100}
               key={index}
               src={imageUrls[imgIndex]}
               alt={`Image ${imgIndex + 1}`}

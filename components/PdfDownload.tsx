@@ -8,9 +8,8 @@ import {
   StyleSheet,
   PDFViewer,
   PDFDownloadLink,
-  Image,
 } from "@react-pdf/renderer";
-import { PdfDownloadProps, Question } from "@/types";
+import { PdfDownloadProps } from "@/types";
 import { DynamicParagraph } from "./DynamicParagraph";
 
 const styles = StyleSheet.create({

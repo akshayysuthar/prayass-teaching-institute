@@ -34,8 +34,6 @@ export function GeneratedExam({
   teacherName,
   totalMarks,
 }: GeneratedExamProps) {
-  const [currentPage, setCurrentPage] = useState(1);
-
   const groupedQuestions = useMemo(() => {
     const grouped: GroupedQuestions = {};
     selectedQuestions.forEach((question) => {

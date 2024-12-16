@@ -78,7 +78,7 @@ export function AddQuestionForm() {
         Array.from(e.target.files).map(async (file) => {
           const fileExt = file.name.split(".").pop();
           const fileName = `${Math.random()}.${fileExt}`;
-          const { data, error } = await supabase.storage
+          const { error } = await supabase.storage
             .from("question-images")
             .upload(fileName, file);
 
@@ -135,7 +135,7 @@ export function AddQuestionForm() {
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await supabase.from("questions").upsert(
+      const { error } = await supabase.from("questions").upsert(
         questions.map((q) => ({
           id: q.id,
           class: q.class,
