@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Question, SelectedChapter, SubjectData } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ExamPaperGenerator() {
   const [user, setUser] = useState<string | null>(null);
@@ -32,6 +33,7 @@ export default function ExamPaperGenerator() {
     []
   );
   const [userPaperCount, setUserPaperCount] = useState(0);
+  const { toast } = useToast();
 
   // Fetch Subject Data on Mount
   useEffect(() => {
@@ -154,6 +156,16 @@ export default function ExamPaperGenerator() {
   const handleGenerationTypeChange = useCallback((type: string) => {
     console.log(`Generation type changed to: ${type}`);
     setGenerationType(type);
+
+    if (type === "auto") {
+      toast({
+        title: "Not Supported For now ",
+        description:
+          "The auto function is not working for now. Please try again after some time.",
+        variant: "destructive",
+      });
+      handleGenerationTypeChange("manual");
+    } 
   }, []);
 
   const handleQuestionSelection = useCallback(
