@@ -101,15 +101,30 @@ export function AddQuestionForm() {
 
       setQuestions((prevQuestions) => {
         const updatedQuestions = [...prevQuestions];
-        updatedQuestions[currentQuestionIndex] = {
-          ...updatedQuestions[currentQuestionIndex],
-          [type === "question" ? "questionImages" : "answerImages"]: [
-            ...(updatedQuestions[currentQuestionIndex][
-              type === "question" ? "questionImages" : "answerImages"
-            ] || []),
-            ...validImages,
-          ],
-        };
+        const currentQuestion = updatedQuestions[currentQuestionIndex];
+        const imageField =
+          type === "question" ? "questionImages" : "answerImages";
+        const textField = type === "question" ? "question" : "answer";
+
+        currentQuestion[imageField] = [
+          ...(currentQuestion[imageField] || []),
+          ...validImages,
+        ];
+
+        // Add image placeholders to the text
+        const newImagePlaceholders = validImages.map(
+          (_, index) =>
+            `[img${
+              (currentQuestion[imageField]?.length || 0) -
+              validImages.length +
+              index +
+              1
+            }]`
+        );
+        currentQuestion[textField] = `${
+          currentQuestion[textField] || ""
+        } ${newImagePlaceholders.join(" ")}`;
+
         return updatedQuestions;
       });
     }
@@ -548,6 +563,16 @@ export function AddQuestionForm() {
             </div>
           </div>
           <div className="col-span-2">
+            <Label htmlFor="answer">Answer</Label>
+            <Textarea
+              id="answer"
+              name="answer"
+              value={(questions[currentQuestionIndex]?.answer as string) || ""}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
+          <div className="col-span-2">
             <Label>Answer Images</Label>
             <Input
               type="file"
@@ -584,16 +609,6 @@ export function AddQuestionForm() {
               ))}
             </div>
           )}
-          <div className="col-span-2">
-            <Label htmlFor="answer">Answer</Label>
-            <Textarea
-              id="answer"
-              name="answer"
-              value={(questions[currentQuestionIndex]?.answer as string) || ""}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
           <div>
             <Label>Marks</Label>
             <RadioGroup

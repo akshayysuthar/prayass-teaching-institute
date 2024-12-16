@@ -11,8 +11,8 @@ import {
   Image,
 } from "@react-pdf/renderer";
 import { PdfDownloadProps, Question } from "@/types";
+import { DynamicParagraph } from "./DynamicParagraph";
 
-// Create styles
 const styles = StyleSheet.create({
   page: {
     flexDirection: "column",
@@ -34,31 +34,38 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   question: {
-    marginBottom: 10,
+    marginBottom: 20,
   },
-  image: {
-    minWidth: "15%",
-    maxWidth: "50%",
-    maxHeight: 200,
-    marginVertical: 10,
+  questionNumber: {
+    fontWeight: "bold",
+    marginBottom: 5,
   },
   answerKey: {
     marginTop: 20,
     borderTop: 1,
     paddingTop: 10,
   },
+  pageNumber: {
+    position: "absolute",
+    fontSize: 12,
+    bottom: 30,
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    color: "grey",
+  },
 });
 
-// Create Document Component
 const MyDocument = ({
   selectedQuestions,
   instituteName,
   standard,
   subject,
+  // date,
   totalMarks,
-}: PdfDownloadProps) => (
+}: // customContent,
+PdfDownloadProps) => (
   <Document>
-    {/* Question Paper */}
     <Page size="A4" style={styles.page}>
       <View style={styles.section}>
         <Text style={styles.header}>{instituteName}</Text>
@@ -71,36 +78,51 @@ const MyDocument = ({
 
         {selectedQuestions.map((question, index) => (
           <View key={question.id} style={styles.question}>
-            <Text>{`${index + 1}. ${question.question} (${
+            <Text style={styles.questionNumber}>{`${index + 1}. (${
               question.marks
             } marks)`}</Text>
-            {question.questionImages &&
-              question.questionImages.map((image, imgIndex) => (
-                <Image key={imgIndex} style={styles.image} src={image} />
-              ))}
+            <DynamicParagraph
+              content={question.question}
+              images={question.questionImages || []}
+            />
           </View>
         ))}
 
         <Text style={styles.subHeader}>All The Best!</Text>
       </View>
+      <Text
+        style={styles.pageNumber}
+        render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
+        fixed
+      />
     </Page>
 
-    {/* Answer Key */}
     <Page size="A4" style={styles.page}>
       <View style={styles.section}>
         <Text style={styles.header}>Answer Key</Text>
 
         {selectedQuestions.map((question, index) => (
           <View key={question.id} style={styles.question}>
-            <Text>{`${index + 1}. ${question.question}`}</Text>
-            <Text>{`Answer: ${question.answer}`}</Text>
-            {question.answer_images &&
-              question.answer_images.map((image, imgIndex) => (
-                <Image key={imgIndex} style={styles.image} src={image} />
-              ))}
+            <Text style={styles.questionNumber}>{`${index + 1}. ${
+              question.question
+            }`}</Text>
+            <Text>Answer:</Text>
+            <DynamicParagraph
+              content={
+                typeof question.answer === "string"
+                  ? question.answer
+                  : JSON.stringify(question.answer)
+              }
+              images={question.answer_images || []}
+            />
           </View>
         ))}
       </View>
+      <Text
+        style={styles.pageNumber}
+        render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
+        fixed
+      />
     </Page>
   </Document>
 );
@@ -108,12 +130,10 @@ const MyDocument = ({
 export function PdfDownload(props: PdfDownloadProps) {
   return (
     <div className="space-y-4">
-      {/* PDF Viewer */}
       <PDFViewer width="100%" height={600}>
         <MyDocument {...props} />
       </PDFViewer>
 
-      {/* Download Button */}
       <div className="flex justify-between">
         <PDFDownloadLink
           document={<MyDocument {...props} />}

@@ -200,7 +200,7 @@ export default function ExamPaperGenerator() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Exam Paper Generator</h1>
         <div className="flex items-center space-x-4">
-          <Link href="/add-question" className="text-blue-600 hover:underline">
+          <Link href="/add-questions" className="text-blue-600 hover:underline">
             Add Question
           </Link>
           <span>Welcome, {user}!</span>
