@@ -14,6 +14,7 @@ import { Question, SelectedChapter, SubjectData } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import { GeneratedExam } from "@/components/GeneratedExam";
 
 export default function ExamPaperGenerator() {
   const [user, setUser] = useState<string | null>(null);
@@ -165,7 +166,7 @@ export default function ExamPaperGenerator() {
         variant: "destructive",
       });
       handleGenerationTypeChange("manual");
-    } 
+    }
   }, []);
 
   const handleQuestionSelection = useCallback(
@@ -286,27 +287,27 @@ export default function ExamPaperGenerator() {
 
       {generatedExam && (
         <div className="mt-8">
-          {/* <div id="examPaperContent">
+          <div id="examPaperContent">
             <GeneratedExam
               selectedQuestions={selectedQuestions}
-              instituteName="ABC School"
-              standard={selectedClass}
-              subject={selectedSubject}
-              chapters={selectedChapters.map((ch) => ch.name)}
-              studentName={user}
-              teacherName="Mr. Smith"
-              totalMarks={totalMarks}
+              // instituteName="ABC School"
+              // standard={selectedClass}
+              // subject={selectedSubject}
+              // chapters={selectedChapters.map((ch) => ch.name)}
+              // studentName={user}
+              // teacherName="Mr. Smith"
+              // totalMarks={totalMarks}
             />
-          </div> */}
+          </div>
           <div className="mt-4 flex justify-center space-x-4">
             <PdfDownload
               selectedQuestions={selectedQuestions}
-              instituteName="ABC School"
+              instituteName="Prayass Teaching Institute"
               standard={selectedClass}
               subject={selectedSubject}
               chapters={selectedChapters.map((ch) => ch.name)}
               studentName={user}
-              teacherName="Mr. Smith"
+              teacherName={user}
               totalMarks={totalMarks}
             />
           </div>

@@ -16,24 +16,22 @@ const styles = StyleSheet.create({
   page: {
     flexDirection: "column",
     backgroundColor: "#FFFFFF",
-    padding: 30,
+    padding: 15,
   },
   section: {
     margin: 10,
     padding: 10,
     flexGrow: 1,
   },
-  header: {
-    fontSize: 18,
-    marginBottom: 20,
-    textAlign: "center",
-  },
   subHeader: {
     fontSize: 14,
     marginBottom: 10,
+    display: "flex",
+    justifyContent: "space-between",
   },
   question: {
-    marginBottom: 20,
+    fontSize: 10,
+    marginBottom: 5,
   },
   questionNumber: {
     fontWeight: "bold",
@@ -46,20 +44,75 @@ const styles = StyleSheet.create({
   },
   pageNumber: {
     position: "absolute",
-    fontSize: 12,
+    fontSize: 8,
     bottom: 30,
     left: 0,
-    right: 0,
-    textAlign: "center",
+    right: 4,
+    textAlign: "right",
     color: "grey",
   },
+  Footer: {
+    textAlign: "center",
+  },
+  headerContainer: {
+    marginBottom: 20,
+    width: "100%",
+  },
+  row: {
+    display: "flex",
+    flexDirection: "row",
+    width: "50%",
+    justifyContent: "space-between", // Places content at both ends
+    alignItems: "center", // Vertically centers items
+    marginBottom: 5,
+  },
+  header: {
+    fontSize: 16,
+    fontWeight: "bold",
+    textDecoration: 'underline'
+  },
+  date: {
+    fontSize: 12, // Smaller font size
+    color: "#555", // Optional: Grey text color for a subtle look
+    textAlign: "right", // Align text to the right
+    width: "25%",
+  },
+  leftColumn: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  rightColumn: {
+    flex: 1,
+    width: "25%",
+    fontSize: 12,
+    textAlign: "right",
+    fontWeight: "bold",
+  },
 });
+
+// Prayass Teaching Institute
+// STD n School:                   Subject:
+// Chapter:                        Students Name:
+// Teacher Name:
+
+const getFormattedDate = () => {
+  if (typeof window !== "undefined") {
+    return new Date().toLocaleDateString();
+  }
+  return ""; // Default fallback for SSR
+};
+
+const formattedDate = getFormattedDate();
 
 const MyDocument = ({
   selectedQuestions,
   instituteName,
   standard,
+  studentName,
   subject,
+  chapters,
+  teacherName,
   // date,
   totalMarks,
 }: // customContent,
@@ -67,28 +120,42 @@ PdfDownloadProps) => (
   <Document>
     <Page size="A4" style={styles.page}>
       <View style={styles.section}>
-        <Text style={styles.header}>{instituteName}</Text>
-        <Text style={styles.subHeader}>
-          Standard: {standard} | Subject: {subject}
-        </Text>
-        <Text style={styles.subHeader}>
-          Date: {} | Total Marks: {totalMarks}
-        </Text>
+        <View style={styles.headerContainer}>
+          <View style={styles.row}>
+            <Text style={styles.header}>{instituteName}</Text>
+            <Text style={styles.date}>{formattedDate}</Text>
+          </View>
+
+          <View style={styles.row}>
+            <Text style={styles.leftColumn}>STD n School: {standard}</Text>
+            <Text style={styles.rightColumn}>Subject: {subject}</Text>
+          </View>
+
+          <View style={styles.row}>
+            <Text style={styles.leftColumn}>Chapter: Ch {chapters}</Text>
+            <Text style={styles.rightColumn}>Student Name: {studentName}</Text>
+          </View>
+
+          <View style={styles.row}>
+            <Text style={styles.leftColumn}>Teacher Name: {teacherName}</Text>
+          </View>
+        </View>
 
         {selectedQuestions.map((question, index) => (
           <View key={question.id} style={styles.question}>
-            <Text style={styles.questionNumber}>{`${index + 1}. (${
-              question.marks
-            } marks)`}</Text>
-            <DynamicParagraph
-              content={question.question}
-              images={question.questionImages || []}
-            />
+            <Text style={styles.questionNumber}>
+              {`${index + 1}.`}
+
+              <DynamicParagraph
+                content={question.question}
+                images={question.questionImages || []}
+              />
+              {`(${question.marks} marks)`}
+            </Text>
           </View>
         ))}
-
-        <Text style={styles.subHeader}>All The Best!</Text>
       </View>
+      <Text style={styles.Footer}>All The Best!</Text>
       <Text
         style={styles.pageNumber}
         render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
