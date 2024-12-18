@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 16,
     fontWeight: "bold",
-    textDecoration: 'underline'
+    textDecoration: "underline",
   },
   date: {
     fontSize: 12, // Smaller font size
@@ -113,9 +113,9 @@ const MyDocument = ({
   subject,
   chapters,
   teacherName,
-  // date,
-  totalMarks,
-}: // customContent,
+}: // date,
+// totalMarks,
+// customContent,
 PdfDownloadProps) => (
   <Document>
     <Page size="A4" style={styles.page}>

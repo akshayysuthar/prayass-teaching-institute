@@ -1,5 +1,13 @@
 "use client";
 
+// TO DO 
+// 1. Manual or auto function define 
+// 2. question preview ui proper fix and user friendly 
+// 3. Pdf format 
+// 4. Section layout function based on marks of questions
+// 5. modile friendly layout
+// 6. clerk setup 
+
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { ClassSelector } from "@/components/ClassSelector";
 import { SubjectSelector } from "@/components/SubjectSelector";

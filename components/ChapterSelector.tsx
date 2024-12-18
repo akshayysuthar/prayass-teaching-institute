@@ -130,10 +130,10 @@ export function ChapterSelector({
   const groupQuestionsByType = useCallback((chapterQuestions: Question[]) => {
     const groupedQuestions: { [key: string]: Question[] } = {};
     chapterQuestions.forEach((question) => {
-      if (!groupedQuestions[question.section]) {
-        groupedQuestions[question.section] = [];
+      if (!groupedQuestions[question.type]) {
+        groupedQuestions[question.type] = [];
       }
-      groupedQuestions[question.section].push(question);
+      groupedQuestions[question.type].push(question);
     });
     return groupedQuestions;
   }, []);

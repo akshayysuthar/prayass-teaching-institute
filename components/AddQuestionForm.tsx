@@ -243,13 +243,13 @@ export function AddQuestionForm() {
           description: `Processed ${processedQuestions.length} questions from JSON input.`,
         });
       } else {
-        throw new Error("Invalid JSON format");
+        throw new Error("Input is not a valid JSON array.");
       }
     } catch (error) {
-      console.error("Error processing JSON input:", error);
+      console.error("Error processing JSON input:", error, jsonInput);
       toast({
         title: "Error",
-        description: "Failed to process JSON input. Please check the format.",
+        description: `Failed to process JSON input: ${error}`,
         variant: "destructive",
       });
     }
@@ -330,7 +330,7 @@ export function AddQuestionForm() {
     ],
   };
   const questionTypes = [
-    "MCQs",
+    "MCQ",
     "Short Answer",
     "Long Answer",
     "One Line",
@@ -375,6 +375,11 @@ export function AddQuestionForm() {
           onSubmit={handleSubmit}
           className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4"
         >
+          <div className="col-span-2 flex justify-between">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Uploading..." : "Upload Questions"}
+            </Button>
+          </div>
           <div className="col-span-2">
             <Label>
               Question {currentQuestionIndex + 1} of {questions.length}
@@ -610,20 +615,17 @@ export function AddQuestionForm() {
             </div>
           )}
           <div>
-            <Label>Marks</Label>
-            <RadioGroup
-              onValueChange={(value) => handleSelectChange("marks", value)}
-              value={questions[currentQuestionIndex]?.marks?.toString()}
-              className="flex space-x-2"
-            >
-              {marksOptions.map((mark) => (
-                <div key={mark} className="flex items-center space-x-1">
-                  <RadioGroupItem value={mark.toString()} id={`mark-${mark}`} />
-                  <Label htmlFor={`mark-${mark}`}>{mark}</Label>
-                </div>
-              ))}
-            </RadioGroup>
+            <Label htmlFor="marks">Marks</Label>
+            <Input
+              id="marks"
+              name="marks"
+              type="number"
+              value={questions[currentQuestionIndex]?.marks || ""}
+              onChange={(e) => handleInputChange(e)}
+              placeholder="Enter marks"
+            />
           </div>
+
           <div>
             <Label htmlFor="isReviewed">Is Reviewed</Label>
             <Select
@@ -649,11 +651,6 @@ export function AddQuestionForm() {
               onChange={handleInputChange}
               readOnly
             />
-          </div>
-          <div className="col-span-2 flex justify-between">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Uploading..." : "Upload Questions"}
-            </Button>
           </div>
         </form>
       )}
