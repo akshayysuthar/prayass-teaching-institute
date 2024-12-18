@@ -89,6 +89,27 @@ const styles = StyleSheet.create({
     textAlign: "right",
     fontWeight: "bold",
   },
+  optionsRow: {
+    flexDirection: "row", // Arrange options in a row
+    flexWrap: "wrap", // Allow wrapping if too many options
+    marginBottom: 10,
+  },
+  option: {
+    marginRight: 10,
+    marginBottom: 5,
+    padding: 5,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+  },
+  optionText: {
+    fontSize: 12,
+  },
+  marksText: {
+    fontSize: 12,
+    fontStyle: "italic",
+    marginTop: 5,
+  },
 });
 
 // Prayass Teaching Institute
@@ -144,14 +165,33 @@ PdfDownloadProps) => (
         {selectedQuestions.map((question, index) => (
           <View key={question.id} style={styles.question}>
             <Text style={styles.questionNumber}>
-              {`${index + 1}.`}
-
+              {`${index + 1}. `}
               <DynamicParagraph
                 content={question.question}
-                images={question.questionImages || []}
+                images={question.question_images || []}
               />
-              {`(${question.marks} marks)`}
+              {` (${question.marks} marks)`}
             </Text>
+
+            {/* If the question is MCQ, render the options in a row */}
+            {question.type === "MCQ" && question.options && (
+              <View style={styles.optionsRow}>
+                {Object.entries(question.options).map(([key, value]) => (
+                  <View key={key} style={styles.option}>
+                    <Text style={styles.optionText}>
+                      {key}) {value}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Render answer for non-MCQ or other types of questions */}
+            {/* {question.answer && (
+              <View style={styles.answer}>
+                <Text style={styles.answerText}>Answer: {question.answer}</Text>
+              </View>
+            )} */}
           </View>
         ))}
       </View>
@@ -172,6 +212,20 @@ PdfDownloadProps) => (
             <Text style={styles.questionNumber}>{`${index + 1}. ${
               question.question
             }`}</Text>
+
+            {/* Render options for MCQ questions
+            {question.type === "MCQ" && question.options && (
+              <View style={styles.optionsRow}>
+                {Object.entries(question.options).map(([key, value]) => (
+                  <View key={key} style={styles.option}>
+                    <Text style={styles.optionText}>
+                      {key}) {value}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )} */}
+
             <Text>Answer:</Text>
             <DynamicParagraph
               content={
@@ -184,6 +238,7 @@ PdfDownloadProps) => (
           </View>
         ))}
       </View>
+
       <Text
         style={styles.pageNumber}
         render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
