@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
 import { Question } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -337,7 +337,7 @@ export function AddQuestionForm() {
     "One Word",
     "True or False",
   ];
-  const marksOptions = [1, 2, 3, 4, 5];
+
 
   return (
     <div className="space-y-8">
