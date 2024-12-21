@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import { Switch } from "@/components/ui/switch";
 import { Question } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -21,204 +21,47 @@ export function AddQuestionForm() {
   const [questions, setQuestions] = useState<Partial<Question>[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [questionId, setQuestionId] = useState("");
   const [jsonInput, setJsonInput] = useState("");
-  const [uploadedQuestions, setUploadedQuestions] = useState<Question[]>([]);
+  const [isJsonMode, setIsJsonMode] = useState(false);
+  const [metadata, setMetadata] = useState({
+    class: "",
+    subject: "",
+    bookName: "",
+    board: "",
+    Ch: "",
+    chapterName: "",
+  });
   const { toast } = useToast();
 
-  const generateQuestionId = () => {
-    return Math.random().toString(36).substr(2, 9);
+  const handleMetadataChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setMetadata((prev) => ({
+      ...prev,
+      [name]: name === "class" ? parseInt(value, 10) : value,
+    }));
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
     setQuestions((prevQuestions) => {
       const updatedQuestions = [...prevQuestions];
       updatedQuestions[currentQuestionIndex] = {
         ...updatedQuestions[currentQuestionIndex],
-        [name]: value,
+        [name]:
+          name === "marks" || name === "class"
+            ? value === ""
+              ? null
+              : parseInt(value, 10)
+            : value,
       };
       return updatedQuestions;
     });
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setQuestions((prevQuestions) => {
-      const updatedQuestions = [...prevQuestions];
-      updatedQuestions[currentQuestionIndex] = {
-        ...updatedQuestions[currentQuestionIndex],
-        [name]: value,
-      };
-      return updatedQuestions;
-    });
-  };
-
-  const handleOptionChange = (option: string, value: string) => {
-    setQuestions((prevQuestions) => {
-      const updatedQuestions = [...prevQuestions];
-      updatedQuestions[currentQuestionIndex] = {
-        ...updatedQuestions[currentQuestionIndex],
-        options: {
-          ...updatedQuestions[currentQuestionIndex].options,
-          [option]: value,
-        },
-      };
-      return updatedQuestions;
-    });
-  };
-
-  const handleImageUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: "question" | "answer"
-  ) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const uploadedImages = await Promise.all(
-        Array.from(e.target.files).map(async (file) => {
-          const fileExt = file.name.split(".").pop();
-          const fileName = `${Math.random()}.${fileExt}`;
-          const { error } = await supabase.storage
-            .from("question-images")
-            .upload(fileName, file);
-
-          if (error) {
-            console.error("Error uploading image:", error);
-            return null;
-          }
-
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("question-images").getPublicUrl(fileName);
-
-          return publicUrl;
-        })
-      );
-
-      const validImages = uploadedImages.filter(
-        (url): url is string => url !== null
-      );
-
-      setQuestions((prevQuestions) => {
-        const updatedQuestions = [...prevQuestions];
-        const currentQuestion = updatedQuestions[currentQuestionIndex];
-        const imageField =
-          type === "question" ? "questionImages" : "answerImages";
-        const textField = type === "question" ? "question" : "answer";
-
-        currentQuestion[imageField] = [
-          ...(currentQuestion[imageField] || []),
-          ...validImages,
-        ];
-
-        // Add image placeholders to the text
-        const newImagePlaceholders = validImages.map(
-          (_, index) =>
-            `[img${
-              (currentQuestion[imageField]?.length || 0) -
-              validImages.length +
-              index +
-              1
-            }]`
-        );
-        currentQuestion[textField] = `${
-          currentQuestion[textField] || ""
-        } ${newImagePlaceholders.join(" ")}`;
-
-        return updatedQuestions;
-      });
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      const { error } = await supabase.from("questions").upsert(
-        questions.map((q) => ({
-          id: q.id,
-          class: q.class,
-          subject: q.subject,
-          book_name: q.bookName,
-          board: q.board,
-          Ch: q.Ch,
-          chapterName: q.chapterName,
-          section: q.section,
-          type: q.type,
-          question: q.question,
-          question_images: q.questionImages,
-          answer: q.answer,
-          answer_images: q.answerImages,
-          marks: q.marks,
-          is_reviewed: q.isReviewed === "true",
-          reviewed_by: q.reviewedBy,
-          last_updated: q.lastUpdated,
-          options: q.options,
-        }))
-      );
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `${questions.length} question(s) uploaded successfully!`,
-      });
-
-      setQuestions([]);
-      setCurrentQuestionIndex(0);
-      setJsonInput("");
-      fetchUploadedQuestions();
-    } catch (error) {
-      console.error("Error adding/updating questions:", error);
-      toast({
-        title: "Error",
-        description: "Failed to upload questions. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const fetchQuestion = async (id: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("questions")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setQuestions([
-          {
-            ...data,
-            isReviewed: data.is_reviewed ? "true" : "false",
-            bookName: data.book_name,
-            chapterName: data.chapter_name,
-            questionImages: data.question_images || [],
-            answerImages: data.answer_images || [],
-            selectionCount: data.selection_count,
-          },
-        ]);
-        setCurrentQuestionIndex(0);
-      } else {
-        toast({
-          title: "Not Found",
-          description: "Question not found.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching question:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch question. Please try again.",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleJsonInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -231,10 +74,14 @@ export function AddQuestionForm() {
       if (Array.isArray(parsedQuestions)) {
         const processedQuestions = parsedQuestions.map((q) => ({
           ...q,
-          id: generateQuestionId(),
-          reviewedBy: q.reviewedBy || "System",
-          selectionCount: q.selectionCount || 0,
-          lastUpdated: q.lastUpdated || new Date().toISOString(),
+          ...metadata,
+          id: Math.random().toString(36).substr(2, 9),
+          isReviewed: false,
+          reviewedBy: "System",
+          lastUpdated: new Date().toISOString(),
+          selectionCount: 0,
+          questionImages: [],
+          answerImages: [],
         }));
         setQuestions(processedQuestions);
         setCurrentQuestionIndex(0);
@@ -243,42 +90,209 @@ export function AddQuestionForm() {
           description: `Processed ${processedQuestions.length} questions from JSON input.`,
         });
       } else {
-        throw new Error("Input is not a valid JSON array.");
+        throw new Error("Invalid JSON format");
       }
     } catch (error) {
-      console.error("Error processing JSON input:", error, jsonInput);
+      console.error("Error processing JSON input:", error);
       toast({
         title: "Error",
-        description: `Failed to process JSON input: ${error}`,
+        description: "Failed to process JSON input. Please check the format.",
         variant: "destructive",
       });
     }
   };
 
-  const fetchUploadedQuestions = async () => {
+  const handleReviewStatusChange = (isReviewed: boolean) => {
+    setQuestions((prevQuestions) => {
+      const updatedQuestions = [...prevQuestions];
+      updatedQuestions[currentQuestionIndex] = {
+        ...updatedQuestions[currentQuestionIndex],
+        isReviewed,
+        reviewedBy: isReviewed ? "Current User" : "System",
+        lastUpdated: new Date().toISOString(),
+      };
+      return updatedQuestions;
+    });
+  };
+
+  const handleImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "question" | "answer"
+  ) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("question-images")
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error("Error uploading image:", uploadError);
+        return;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("question-images").getPublicUrl(fileName);
+
+      setQuestions((prevQuestions) => {
+        const updatedQuestions = [...prevQuestions];
+        const imageField =
+          type === "question" ? "questionImages" : "answerImages";
+        updatedQuestions[currentQuestionIndex] = {
+          ...updatedQuestions[currentQuestionIndex],
+          [imageField]: [
+            ...(updatedQuestions[currentQuestionIndex][imageField] || []),
+            publicUrl,
+          ],
+        };
+        return updatedQuestions;
+      });
+    }
+  };
+
+  const handleUploadQuestion = async () => {
+    const currentQuestion = questions[currentQuestionIndex];
+
+    if (!currentQuestion.isReviewed) {
+      toast({
+        title: "Error",
+        description: "Please review the question before uploading.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      const { data, error } = await supabase
-        .from("questions")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(10);
+      console.log("Submitting question:", currentQuestion);
+
+      const { error } = await supabase.from("questions").upsert({
+        id: currentQuestion.id,
+        class: metadata.class ? parseInt(metadata.class, 10) : null,
+        subject: metadata.subject,
+        book_name: metadata.bookName,
+        board: metadata.board,
+        Ch: metadata.Ch,
+        chapterName: metadata.chapterName,
+        section: currentQuestion.section,
+        type: currentQuestion.type,
+        question: currentQuestion.question,
+        question_images: currentQuestion.questionImages,
+        answer: currentQuestion.answer,
+        answer_images: currentQuestion.answerImages,
+        marks: currentQuestion.marks
+          ? parseInt(currentQuestion.marks.toString(), 10)
+          : null,
+        is_reviewed: currentQuestion.isReviewed,
+        reviewed_by: currentQuestion.reviewedBy,
+        last_updated: currentQuestion.lastUpdated,
+        selectionCount: currentQuestion.selectionCount || 0,
+      });
 
       if (error) throw error;
 
-      setUploadedQuestions(data || []);
+      toast({
+        title: "Success",
+        description: "Question uploaded successfully!",
+      });
+
+      if (currentQuestionIndex < questions.length - 1) {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+      } else {
+        // Clear the form after uploading all questions
+        setQuestions([]);
+        setCurrentQuestionIndex(0);
+      }
     } catch (error) {
-      console.error("Error fetching uploaded questions:", error);
+      console.error("Error uploading question:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch uploaded questions. Please try again.",
+        description: "Failed to upload question. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  const insertImagePlaceholder = (field: "question" | "answer") => {
+    const textarea = document.getElementById(field) as HTMLTextAreaElement;
+    if (textarea) {
+      const cursorPos = textarea.selectionStart;
+      const textBefore = textarea.value.substring(0, cursorPos);
+      const textAfter = textarea.value.substring(cursorPos);
+      const newText = `${textBefore}[img${
+        (questions[currentQuestionIndex][`${field}Images`]?.length || 0) + 1
+      }]${textAfter}`;
+
+      setQuestions((prevQuestions) => {
+        const updatedQuestions = [...prevQuestions];
+        updatedQuestions[currentQuestionIndex] = {
+          ...updatedQuestions[currentQuestionIndex],
+          [field]: newText,
+        };
+        return updatedQuestions;
+      });
+
+      // Set cursor position after the inserted placeholder
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = cursorPos + 5;
+        textarea.focus();
+      }, 0);
+    }
+  };
+
+  const addNewQuestion = () => {
+    setQuestions((prevQuestions) => [
+      ...prevQuestions,
+      {
+        ...metadata,
+        id: Math.random().toString(36).substr(2, 9),
+        isReviewed: false,
+        reviewedBy: "System",
+        lastUpdated: new Date().toISOString(),
+        selectionCount: 0,
+        questionImages: [],
+        answerImages: [],
+        class: parseInt(metadata.class, 10),
+      },
+    ]);
+    setCurrentQuestionIndex(questions.length);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.ctrlKey) {
+      // Ctrl + Enter to review and upload
+      if (e.key === "Enter") {
+        e.preventDefault(); // Prevents form submission
+        handleReviewStatusChange(true);
+        handleUploadQuestion();
+      }
+      // Ctrl + Left Arrow to go to previous question
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setCurrentQuestionIndex((prev) => Math.max(0, prev - 1));
+      }
+      // Ctrl + Right Arrow to go to next question
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setCurrentQuestionIndex((prev) =>
+          Math.min(questions.length - 1, prev + 1)
+        );
+      }
+    }
+  };
+
+  // Add key event listener when component mounts and remove on unmount
   useEffect(() => {
-    fetchUploadedQuestions();
-  }, []);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [questions, currentQuestionIndex]); // Dependencies for when questions or currentQuestionIndex change
 
   const classOptions = [6, 7, 8, 9, 10];
   const boardOptions = ["CBSE", "GSEB"];
@@ -330,7 +344,7 @@ export function AddQuestionForm() {
     ],
   };
   const questionTypes = [
-    "MCQ",
+    "MCQs",
     "Short Answer",
     "Long Answer",
     "One Line",
@@ -338,91 +352,22 @@ export function AddQuestionForm() {
     "True or False",
   ];
 
-
   return (
     <div className="space-y-8">
-      <div className="col-span-2">
-        <Label htmlFor="questionId">Question ID (for editing)</Label>
-        <div className="flex space-x-2">
-          <Input
-            id="questionId"
-            value={questionId}
-            onChange={(e) => setQuestionId(e.target.value)}
-            placeholder="Enter question ID to edit"
-          />
-          <Button type="button" onClick={() => fetchQuestion(questionId)}>
-            Fetch
-          </Button>
-        </div>
-      </div>
-
-      <div className="col-span-2">
-        <Label htmlFor="jsonInput">JSON Input (for bulk data entry)</Label>
-        <Textarea
-          id="jsonInput"
-          value={jsonInput}
-          onChange={handleJsonInputChange}
-          placeholder="Paste JSON data here"
-          rows={10}
-        />
-        <Button type="button" onClick={processJsonInput} className="mt-2">
-          Process JSON
-        </Button>
-      </div>
-
-      {questions.length > 0 && (
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
-          <div className="col-span-2 flex justify-between">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Uploading..." : "Upload Questions"}
-            </Button>
-          </div>
-          <div className="col-span-2">
-            <Label>
-              Question {currentQuestionIndex + 1} of {questions.length}
-            </Label>
-            <div className="flex space-x-2 mt-2">
-              <Button
-                type="button"
-                onClick={() =>
-                  setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))
-                }
-                disabled={currentQuestionIndex === 0}
-              >
-                Previous
-              </Button>
-              <Button
-                type="button"
-                onClick={() =>
-                  setCurrentQuestionIndex((prev) =>
-                    Math.min(questions.length - 1, prev + 1)
-                  )
-                }
-                disabled={currentQuestionIndex === questions.length - 1}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="id">Question ID</Label>
-            <Input
-              id="id"
-              name="id"
-              value={questions[currentQuestionIndex]?.id || ""}
-              readOnly
-            />
-          </div>
+      <div className="space-y-4 border p-4 rounded-md">
+        <h3 className="text-lg font-semibold">
+          Metadata (applies to all questions)
+        </h3>
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="class">Class</Label>
             <Select
               name="class"
-              onValueChange={(value) => handleSelectChange("class", value)}
-              value={questions[currentQuestionIndex]?.class?.toString()}
+              onValueChange={(value) =>
+                handleMetadataChange({
+                  target: { name: "class", value },
+                } as any)
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select class" />
@@ -437,11 +382,48 @@ export function AddQuestionForm() {
             </Select>
           </div>
           <div>
+            <Label htmlFor="subject">Subject</Label>
+            <Select
+              name="subject"
+              onValueChange={(value) =>
+                handleMetadataChange({
+                  target: { name: "subject", value },
+                } as any)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select subject" />
+              </SelectTrigger>
+              <SelectContent>
+                {subjectOptions[
+                  metadata.class as unknown as keyof typeof subjectOptions
+                ]?.map((subject) => (
+                  <SelectItem key={subject} value={subject}>
+                    {subject}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="bookName">Book Name</Label>
+            <Input
+              id="bookName"
+              name="bookName"
+              value={metadata.bookName}
+              onChange={handleMetadataChange}
+              required
+            />
+          </div>
+          <div>
             <Label htmlFor="board">Board</Label>
             <Select
               name="board"
-              onValueChange={(value) => handleSelectChange("board", value)}
-              value={questions[currentQuestionIndex]?.board}
+              onValueChange={(value) =>
+                handleMetadataChange({
+                  target: { name: "board", value },
+                } as any)
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select board" />
@@ -456,44 +438,12 @@ export function AddQuestionForm() {
             </Select>
           </div>
           <div>
-            <Label htmlFor="subject">Subject</Label>
-            <Select
-              name="subject"
-              onValueChange={(value) => handleSelectChange("subject", value)}
-              value={questions[currentQuestionIndex]?.subject}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select subject" />
-              </SelectTrigger>
-              <SelectContent>
-                {subjectOptions[
-                  questions[currentQuestionIndex]
-                    ?.class as keyof typeof subjectOptions
-                ]?.map((subject) => (
-                  <SelectItem key={subject} value={subject}>
-                    {subject}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="bookName">Book Name</Label>
-            <Input
-              id="bookName"
-              name="bookName"
-              value={questions[currentQuestionIndex]?.bookName || ""}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-          <div>
             <Label htmlFor="Ch">Chapter</Label>
             <Input
               id="Ch"
               name="Ch"
-              value={questions[currentQuestionIndex]?.Ch || ""}
-              onChange={handleInputChange}
+              value={metadata.Ch}
+              onChange={handleMetadataChange}
               required
             />
           </div>
@@ -502,178 +452,219 @@ export function AddQuestionForm() {
             <Input
               id="chapterName"
               name="chapterName"
-              value={questions[currentQuestionIndex]?.chapterName || ""}
-              onChange={handleInputChange}
+              value={metadata.chapterName}
+              onChange={handleMetadataChange}
               required
             />
           </div>
-          <div>
-            <Label htmlFor="section">Section</Label>
-            <Input
-              id="section"
-              name="section"
-              value={questions[currentQuestionIndex]?.section || ""}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-          <div className="col-span-2">
-            <Label htmlFor="type">Question Type</Label>
-            <Select
-              name="type"
-              onValueChange={(value) => handleSelectChange("type", value)}
-              value={questions[currentQuestionIndex]?.type}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select question type" />
-              </SelectTrigger>
-              <SelectContent>
-                {questionTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="col-span-2">
-            <Label htmlFor="question">Question</Label>
-            <Textarea
-              id="question"
-              name="question"
-              value={questions[currentQuestionIndex]?.question || ""}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-          <div className="col-span-2">
-            <Label>Question Images</Label>
-            <Input
-              type="file"
-              onChange={(e) => handleImageUpload(e, "question")}
-              accept="image/*"
-              multiple
-            />
-            <div className="mt-2 flex flex-wrap gap-2">
-              {questions[currentQuestionIndex]?.questionImages?.map(
-                (img, index) => (
-                  <img
-                    key={index}
-                    src={img}
-                    alt={`Question image ${index + 1}`}
-                    className="w-24 h-24 object-cover"
-                  />
-                )
-              )}
-            </div>
-          </div>
-          <div className="col-span-2">
-            <Label htmlFor="answer">Answer</Label>
-            <Textarea
-              id="answer"
-              name="answer"
-              value={(questions[currentQuestionIndex]?.answer as string) || ""}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-          <div className="col-span-2">
-            <Label>Answer Images</Label>
-            <Input
-              type="file"
-              onChange={(e) => handleImageUpload(e, "answer")}
-              accept="image/*"
-              multiple
-            />
-            <div className="mt-2 flex flex-wrap gap-2">
-              {questions[currentQuestionIndex]?.answerImages?.map(
-                (img, index) => (
-                  <img
-                    key={index}
-                    src={img}
-                    alt={`Answer image ${index + 1}`}
-                    className="w-24 h-24 object-cover"
-                  />
-                )
-              )}
-            </div>
-          </div>
-          {questions[currentQuestionIndex]?.type === "MCQs" && (
-            <div className="col-span-2">
-              <Label>Options</Label>
-              {["A", "B", "C", "D"].map((option) => (
-                <Input
-                  key={option}
-                  placeholder={`Option ${option}`}
-                  value={
-                    questions[currentQuestionIndex]?.options?.[option] || ""
-                  }
-                  onChange={(e) => handleOptionChange(option, e.target.value)}
-                  className="mt-2"
-                />
-              ))}
-            </div>
-          )}
-          <div>
-            <Label htmlFor="marks">Marks</Label>
-            <Input
-              id="marks"
-              name="marks"
-              type="number"
-              value={questions[currentQuestionIndex]?.marks || ""}
-              onChange={(e) => handleInputChange(e)}
-              placeholder="Enter marks"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="isReviewed">Is Reviewed</Label>
-            <Select
-              name="isReviewed"
-              onValueChange={(value) => handleSelectChange("isReviewed", value)}
-              value={questions[currentQuestionIndex]?.isReviewed}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="true">Yes</SelectItem>
-                <SelectItem value="false">No</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="reviewedBy">Reviewed By</Label>
-            <Input
-              id="reviewedBy"
-              name="reviewedBy"
-              value={questions[currentQuestionIndex]?.reviewedBy || ""}
-              onChange={handleInputChange}
-              readOnly
-            />
-          </div>
-        </form>
-      )}
-
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold mb-4">Recently Uploaded Questions</h2>
-        <div className="space-y-4">
-          {uploadedQuestions.map((q) => (
-            <div key={q.id} className="border p-4 rounded">
-              <h3 className="font-bold">{q.question}</h3>
-              <p>
-                Answer:{" "}
-                {typeof q.answer === "string"
-                  ? q.answer
-                  : JSON.stringify(q.answer)}
-              </p>
-              <p>
-                Class: {q.class}, Subject: {q.subject}, Chapter: {q.Ch}
-              </p>
-            </div>
-          ))}
         </div>
       </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="jsonMode"
+            checked={isJsonMode}
+            onCheckedChange={setIsJsonMode}
+          />
+          <Label htmlFor="jsonMode">Use JSON Input</Label>
+        </div>
+
+        {isJsonMode ? (
+          <>
+            <Label htmlFor="jsonInput">JSON Input (for bulk data entry)</Label>
+            <Textarea
+              id="jsonInput"
+              value={jsonInput}
+              onChange={handleJsonInputChange}
+              placeholder="Paste JSON data here"
+              rows={10}
+            />
+            <Button onClick={processJsonInput}>Process JSON</Button>
+          </>
+        ) : (
+          <Button onClick={addNewQuestion}>Add New Question</Button>
+        )}
+      </div>
+
+      {!isJsonMode && questions.length > 0 && (
+        <div className="space-y-4 border p-4 rounded-md">
+          <h3 className="text-lg font-semibold">
+            Question {currentQuestionIndex + 1} of {questions.length}
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="section">Section</Label>
+              <Input
+                id="section"
+                name="section"
+                value={questions[currentQuestionIndex]?.section || ""}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="type">Question Type</Label>
+              <Select
+                name="type"
+                onValueChange={(value) =>
+                  handleInputChange({ target: { name: "type", value } } as any)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select question type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {questionTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="question">Question</Label>
+              <div className="flex items-center space-x-2">
+                <Textarea
+                  id="question"
+                  name="question"
+                  value={questions[currentQuestionIndex]?.question || ""}
+                  onChange={handleInputChange}
+                  required
+                />
+                <Button
+                  type="button"
+                  onClick={() => insertImagePlaceholder("question")}
+                >
+                  Add Image
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="questionImage">Question Image</Label>
+              <Input
+                id="questionImage"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, "question")}
+              />
+              {questions[currentQuestionIndex]?.questionImages && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {questions[currentQuestionIndex].questionImages.map(
+                    (img, index) => (
+                      <img
+                        key={index}
+                        src={img}
+                        alt={`Question image ${index + 1}`}
+                        className="w-24 h-24 object-cover"
+                      />
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="answer">Answer</Label>
+              <div className="flex items-center space-x-2">
+                <Textarea
+                  id="answer"
+                  name="answer"
+                  value={
+                    (questions[currentQuestionIndex]?.answer as string) || ""
+                  }
+                  onChange={handleInputChange}
+                  required
+                />
+                <Button
+                  type="button"
+                  onClick={() => insertImagePlaceholder("answer")}
+                >
+                  Add Image
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="answerImage">Answer Image</Label>
+              <Input
+                id="answerImage"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, "answer")}
+              />
+              {questions[currentQuestionIndex]?.answerImages && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {questions[currentQuestionIndex].answerImages.map(
+                    (img, index) => (
+                      <img
+                        key={index}
+                        src={img}
+                        alt={`Answer image ${index + 1}`}
+                        className="w-24 h-24 object-cover"
+                      />
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="marks">Marks</Label>
+              <Input
+                id="marks"
+                name="marks"
+                type="number"
+                value={questions[currentQuestionIndex]?.marks ?? ""}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="flex justify-between">
+              <Button
+                onClick={() => {
+                  // Mark the question as reviewed
+                  const updatedQuestion = {
+                    ...questions[currentQuestionIndex],
+                    isReviewed: true,
+                  };
+
+                  // Update the question array (if needed, set this to the state)
+                  setQuestions((prevQuestions) => {
+                    const updatedQuestions = [...prevQuestions];
+                    updatedQuestions[currentQuestionIndex] = updatedQuestion;
+                    return updatedQuestions;
+                  });
+
+                  // Upload the question after marking it as reviewed
+                  handleUploadQuestion();
+                }}
+              >
+                {isSubmitting ? "Uploading..." : "Mark as Reviewed & Upload"}
+              </Button>
+            </div>
+
+            <div className="flex justify-between">
+              <Button
+                onClick={() =>
+                  setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))
+                }
+                disabled={currentQuestionIndex === 0}
+              >
+                Previous
+              </Button>
+              <Button
+                onClick={() =>
+                  setCurrentQuestionIndex((prev) =>
+                    Math.min(questions.length - 1, prev + 1)
+                  )
+                }
+                disabled={currentQuestionIndex === questions.length - 1}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

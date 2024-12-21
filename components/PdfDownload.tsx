@@ -12,6 +12,9 @@ import {
 import { PdfDownloadProps } from "@/types";
 import { DynamicParagraph } from "./DynamicParagraph";
 
+// fix the grid of option if it can fit in one row if not then 2 option in one row and font size need to 10
+// mode like question paper with answer, worksheets in that answer below the question
+
 const styles = StyleSheet.create({
   page: {
     flexDirection: "column",
