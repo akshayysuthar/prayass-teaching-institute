@@ -36,11 +36,11 @@ export function AddQuestionForm() {
   const [currentQuestion, setCurrentQuestion] = useState<Partial<Question>>({
     id: "",
     isReviewed: false,
-    reviewedBy: "Current User",
+    reviewedBy: "System",
     question: "",
-    question_images: [],
+    questionImages: [],
     answer: "",
-    answer_images: [],
+    answerImages: [],
     options: {},
     marks: 0,
   });
