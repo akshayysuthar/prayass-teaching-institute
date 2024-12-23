@@ -396,7 +396,7 @@ export function AddQuestionForm() {
                 onValueChange={(value) =>
                   handleMetadataChange({
                     target: { name: "class", value },
-                  } as any)
+                  } as React.ChangeEvent<HTMLInputElement>)
                 }
               >
                 <SelectTrigger>
@@ -418,7 +418,7 @@ export function AddQuestionForm() {
                 onValueChange={(value) =>
                   handleMetadataChange({
                     target: { name: "subject", value },
-                  } as any)
+                  } as React.ChangeEvent<HTMLInputElement>)
                 }
               >
                 <SelectTrigger>
@@ -452,7 +452,7 @@ export function AddQuestionForm() {
                 onValueChange={(value) =>
                   handleMetadataChange({
                     target: { name: "board", value },
-                  } as any)
+                  } as React.ChangeEvent<HTMLInputElement>)
                 }
               >
                 <SelectTrigger>
