@@ -309,7 +309,7 @@ export function AddQuestionForm() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [currentQuestionIndex, questions]);
+  }, [handleNextQuestion, handlePreviousQuestion, handleSaveQuestion]);
 
   const classOptions = [6, 7, 8, 9, 10];
   const boardOptions = ["CBSE", "GSEB"];
@@ -360,14 +360,6 @@ export function AddQuestionForm() {
       "Sanskrit",
     ],
   };
-  const questionTypes = [
-    "MCQs",
-    "Short Answer",
-    "Long Answer",
-    "One Line",
-    "One Word",
-    "True or False",
-  ];
 
   return (
     <div className="space-y-8 grid grid-cols-1 lg:grid-cols-2  items-baseline gap-3 ">
