@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Question, SelectedChapter, SubjectData } from "@/types";
 import { supabase } from "@/utils/supabase/client";
-import Link from "next/link";
+// Removed 'Link'
 import { useToast } from "@/hooks/use-toast";
 import { GeneratedExam } from "@/components/GeneratedExam";
 
@@ -37,9 +37,7 @@ export default function ExamPaperGenerator() {
   const [generatedExam, setGeneratedExam] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
-  const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>(
-    []
-  );
+  const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>([]);
   const [userPaperCount, setUserPaperCount] = useState(0);
   const { toast } = useToast();
 
@@ -134,17 +132,6 @@ export default function ExamPaperGenerator() {
         item.subject === selectedSubject
     );
   }, [questions, selectedClass, selectedBoard, selectedSubject]);
-
-  const handleLogin = useCallback((username: string) => {
-    setUser(username);
-    console.log(`User logged in: ${username}`);
-  }, []);
-
-  const handleLogout = useCallback(() => {
-    setUser(null);
-    localStorage.removeItem("user");
-    console.log("User logged out");
-  }, []);
 
   const handleTotalMarksChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

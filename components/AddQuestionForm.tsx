@@ -454,7 +454,7 @@ export function AddQuestionForm() {
               handleAddOption={handleAddOption}
               handleOptionChange={handleOptionChange}
               handleReviewStatusChange={handleReviewStatusChange}
-              isSubmitting={isSubmitting}
+              // isSubmitting={isSubmitting}
               questionType={metadata.type}
             />
             <div className="flex justify-between items-center">
