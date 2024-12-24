@@ -9,11 +9,12 @@ export interface Question {
   subject: string; // The subject of the question (e.g., Math, Science).
   bookName: string; // Name of the textbook associated with the question.
   board: string; // Educational board (e.g., CBSE, GSEB).
-  Ch: string; // Chapter number.
+  chapterNo: string; // Chapter number.
   chapterName: string; // Full name of the chapter.
   section: string; // Section within the chapter (if applicable).
   type: string; // Type of question (e.g., 'MCQ', 'Short Answer').
-  alert: string;
+  
+  imageUploadPending: boolean;
 
   // client side
   question: string;
