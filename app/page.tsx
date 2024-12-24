@@ -1,19 +1,18 @@
 "use client";
 
-// TO DO 
-// 1. Manual or auto function define 
-// 2. question preview ui proper fix and user friendly 
-// 3. Pdf format 
+// TO DO
+// 1. Manual or auto function define
+// 2. question preview ui proper fix and user friendly
+// 3. Pdf format
 // 4. Section layout function based on marks of questions
 // 5. modile friendly layout
-// 6. clerk setup 
+// 6. clerk setup
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { ClassSelector } from "@/components/ClassSelector";
 import { SubjectSelector } from "@/components/SubjectSelector";
 import { ChapterSelector } from "@/components/ChapterSelector";
 import { PdfDownload } from "@/components/PdfDownload";
-import { DemoLogin } from "@/components/DemoLogin";
 import { Loading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -182,7 +181,7 @@ export default function ExamPaperGenerator() {
       setSelectedQuestions(selectedQuestions);
       // Update selected chapters
       const uniqueChapters = Array.from(
-        new Set(selectedQuestions.map((q) => q.Ch))
+        new Set(selectedQuestions.map((q) => q.chapterNo))
       ).map((ch) => ({ id: ch, name: ch }));
       setSelectedChapters(uniqueChapters);
     },
@@ -204,7 +203,7 @@ export default function ExamPaperGenerator() {
         <h1 className="text-2xl font-bold mb-4 text-center">
           Exam Paper Generator
         </h1>
-        <DemoLogin onLogin={handleLogin} />
+        {/* <DemoLogin onLogin={handleLogin} /> */}
       </div>
     );
   }
@@ -213,16 +212,6 @@ export default function ExamPaperGenerator() {
 
   return (
     <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Exam Paper Generator</h1>
-        <div className="flex items-center space-x-4">
-          <Link href="/add-questions" className="text-blue-600 hover:underline">
-            Add Question
-          </Link>
-          <span>Welcome, {user}!</span>
-          <Button onClick={handleLogout}>Logout</Button>
-        </div>
-      </div>
       <div className="flex items-center justify-center mb-4">
         <button
           className={`mr-2 px-4 py-2 rounded ${
