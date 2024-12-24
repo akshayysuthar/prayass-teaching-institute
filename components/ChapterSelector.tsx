@@ -30,8 +30,8 @@ export function ChapterSelector({
   const chapters = useMemo(() => {
     const chapterMap = new Map<string, { id: string; name: string }>();
     questions.forEach((q) => {
-      if (!chapterMap.has(q.Ch)) {
-        chapterMap.set(q.Ch, { id: q.Ch, name: q.chapterName });
+      if (!chapterMap.has(q.chapterNo)) {
+        chapterMap.set(q.chapterNo, { id: q.chapterNo, name: q.chapterName });
       }
     });
     return Array.from(chapterMap.values());
@@ -97,7 +97,7 @@ export function ChapterSelector({
 
   useEffect(() => {
     const uniqueChapters = Array.from(
-      new Set(selectedQuestions.map((q) => q.Ch))
+      new Set(selectedQuestions.map((q) => q.chapterNo))
     ).map((ch) => ({ id: ch, name: ch }));
     onSelectChapters(uniqueChapters);
   }, [selectedQuestions, onSelectChapters]);
@@ -150,7 +150,10 @@ export function ChapterSelector({
           </Badge>
           <Badge variant="secondary" className="mr-1">
             Selected Chapters:{" "}
-            {Array.from(new Set(selectedQuestions.map((q) => q.Ch))).length}
+            {
+              Array.from(new Set(selectedQuestions.map((q) => q.chapterNo)))
+                .length
+            }
           </Badge>
         </div>
         <div className="col-span-1 flex justify-center items-center">
@@ -170,7 +173,7 @@ export function ChapterSelector({
           <div key={chapter.id}>
             <button
               className={`text-blue-600 hover:underline ${
-                selectedQuestions.some((q) => q.Ch === chapter.id)
+                selectedQuestions.some((q) => q.chapterNo === chapter.id)
                   ? "font-bold"
                   : ""
               }`}
@@ -182,7 +185,7 @@ export function ChapterSelector({
               <Accordion type="multiple" className="w-full mt-4">
                 {Object.entries(
                   groupQuestionsByType(
-                    questions.filter((q) => q.Ch === chapter.id)
+                    questions.filter((q) => q.chapterNo === chapter.id)
                   )
                 ).map(([type, typeQuestions]) => (
                   <AccordionItem
