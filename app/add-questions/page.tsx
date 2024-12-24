@@ -3,7 +3,7 @@ import { AddQuestionForm } from "@/components/AddQuestionForm";
 import { useUser } from "@clerk/nextjs";
 
 export default function AddQuestionPage() {
-  const { user, isSignedIn } = useUser();
+  const { isSignedIn } = useUser(); // Removed 'user'
 
   return (
     <div className="container mx-auto p-4">

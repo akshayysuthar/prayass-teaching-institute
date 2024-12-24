@@ -9,7 +9,6 @@ interface QuestionSelectorProps {
   subject: string
   chapters: number[]
   onSelectQuestions: (questions: string[]) => void
-  totalMarks: number
   remainingMarks: number
   setRemainingMarks: (marks: number) => void
 }
@@ -30,7 +29,6 @@ export function QuestionSelector({
   subject,
   chapters,
   onSelectQuestions,
-  totalMarks,
   remainingMarks,
   setRemainingMarks,
 }: QuestionSelectorProps) {

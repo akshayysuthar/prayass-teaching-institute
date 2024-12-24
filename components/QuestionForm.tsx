@@ -21,8 +21,7 @@ interface QuestionFormProps {
   handleAddOption: () => void;
   handleOptionChange: (key: string, value: string) => void;
   handleReviewStatusChange: (isReviewed: boolean) => void;
-  isSubmitting: boolean;
-  questionType: string;
+  questionType: string; // Removed 'isSubmitting'
 }
 
 export function QuestionForm({
@@ -32,8 +31,7 @@ export function QuestionForm({
   handleAddOption,
   handleOptionChange,
   handleReviewStatusChange,
-  isSubmitting,
-  questionType,
+  questionType, // Removed 'isSubmitting'
 }: QuestionFormProps) {
   const questionInputRef = useRef<HTMLTextAreaElement>(null);
   const answerInputRef = useRef<HTMLTextAreaElement>(null);
