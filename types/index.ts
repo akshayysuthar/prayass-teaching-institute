@@ -3,7 +3,7 @@ export interface Question {
   id: string;
   isReviewed: boolean;
   reviewedBy: string; // by defeult it will system
-  lastUpdated: string;
+  last_updated: string;
   selectionCount?: number; // by defeult it will 0
   class: number; // The class/grade level of the question (e.g., 1 to 10).
   subject: string; // The subject of the question (e.g., Math, Science).
@@ -18,11 +18,11 @@ export interface Question {
 
   // client side
   question: string;
-  questionImages: string[];
-  question_images?: string[];
+  questionImages?: string[];
+  question_images: string[];
   answer: string | string[] | Record<string, string | string[]>;
   answerImages?: string[];
-  answer_images?: string[];
+  answer_images: string[];
   options?: Record<string, string>;
   marks: number;
 }

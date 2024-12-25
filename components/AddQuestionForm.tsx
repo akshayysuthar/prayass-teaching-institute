@@ -42,10 +42,28 @@ export function AddQuestionForm() {
     imageUploadPending: false,
   });
   const { toast } = useToast();
+  const [processedQuestions, setProcessedQuestions] = useState<
+    Partial<Question>[]
+  >([]);
+  const [isVerified, setIsVerified] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     fetchRecentEntries();
   }, []);
+
+  useEffect(() => {
+    const savedCurrentQuestion = localStorage.getItem("currentQuestion");
+    const savedMetadata = localStorage.getItem("metadata");
+    if (savedCurrentQuestion)
+      setCurrentQuestion(JSON.parse(savedCurrentQuestion));
+    if (savedMetadata) setMetadata(JSON.parse(savedMetadata));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("currentQuestion", JSON.stringify(currentQuestion));
+    localStorage.setItem("metadata", JSON.stringify(metadata));
+  }, [currentQuestion, metadata]);
 
   const fetchRecentEntries = async () => {
     const { data, error } = await supabase
@@ -156,6 +174,7 @@ export function AddQuestionForm() {
         ...metadata,
         ...currentQuestion,
         id: currentQuestion.id || generateSixDigitId(),
+        // Remove or update any fields that do not exist in the database schema
       };
       console.log("Saving question:", questionToSave);
 
@@ -190,6 +209,8 @@ export function AddQuestionForm() {
         imageUploadPending: false,
       });
       setIsEditing(false);
+      localStorage.removeItem("currentQuestion");
+      localStorage.removeItem("metadata");
     } catch (error) {
       console.error("Error saving question:", error);
       toast({
@@ -319,7 +340,7 @@ export function AddQuestionForm() {
         throw new Error("Invalid JSON format. Expected an array of questions.");
       }
 
-      const processedQuestions = parsedQuestions.map((q) => ({
+      const questionsToProcess = parsedQuestions.map((q) => ({
         ...metadata,
         ...q,
         id: generateSixDigitId(),
@@ -329,25 +350,30 @@ export function AddQuestionForm() {
         answer_images: q.answer_images || [],
       }));
 
-      setIsSubmitting(true);
+      setProcessedQuestions(questionsToProcess);
+      setIsVerified(false);
+      setCurrentIndex(0);
 
-      for (const question of processedQuestions) {
-        const { error } = await supabase.from("questions").insert([question]);
-
-        if (error) throw error;
+      // Set metadata and current question for the first question in the array
+      if (questionsToProcess.length > 0) {
+        const firstQuestion = questionsToProcess[0];
+        setMetadata({
+          class: firstQuestion.class?.toString() || "",
+          subject: firstQuestion.subject || "",
+          bookName: firstQuestion.bookName || "",
+          board: firstQuestion.board || "",
+          chapterNo: firstQuestion.chapterNo || "",
+          chapterName: firstQuestion.chapterName || "",
+          section: firstQuestion.section || "",
+          type: firstQuestion.type || "",
+        });
+        setCurrentQuestion(firstQuestion);
       }
 
       toast({
         title: "Success",
-        description: `Processed and saved ${processedQuestions.length} questions from JSON input.`,
+        description: `Parsed ${questionsToProcess.length} questions. Please verify before uploading.`,
       });
-
-      // Update recent entries
-      fetchRecentEntries();
-
-      // Clear the JSON input
-      setJsonInput("");
-      setShowJsonInput(false);
     } catch (error) {
       console.error("Error processing JSON input:", error);
       toast({
@@ -356,9 +382,61 @@ export function AddQuestionForm() {
           "Failed to process JSON input. Please check the format and try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleUploadVerifiedQuestions = async () => {
+    setIsSubmitting(true);
+    try {
+      for (const question of processedQuestions) {
+        const { error } = await supabase.from("questions").insert([question]);
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: `Uploaded ${processedQuestions.length} verified questions.`,
+      });
+
+      // Update recent entries
+      fetchRecentEntries();
+
+      // Clear the JSON input and processed questions
+      setJsonInput("");
+      setProcessedQuestions([]);
+      setShowJsonInput(false);
+    } catch (error) {
+      console.error("Error uploading verified questions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload verified questions. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleNextQuestion = () => {
+    if (currentIndex < processedQuestions.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setCurrentQuestion(processedQuestions[currentIndex + 1]);
+    }
+  };
+
+  const handlePreviousQuestion = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+      setCurrentQuestion(processedQuestions[currentIndex - 1]);
+    }
+  };
+
+  const handleUpdateCurrentQuestion = (updatedQuestion: Partial<Question>) => {
+    setProcessedQuestions((prev) =>
+      prev.map((q, index) => (index === currentIndex ? updatedQuestion : q))
+    );
+    setCurrentQuestion(updatedQuestion);
   };
 
   const handleUseBoilerplate = (entry: Partial<Question>) => {
@@ -424,6 +502,75 @@ export function AddQuestionForm() {
             <Button onClick={processJsonInput} disabled={isSubmitting}>
               {isSubmitting ? "Processing..." : "Process JSON"}
             </Button>
+            {processedQuestions.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-lg font-semibold">Processed Questions:</h3>
+                <div className="flex justify-between items-center mb-4">
+                  <Button
+                    onClick={handlePreviousQuestion}
+                    disabled={currentIndex === 0}
+                  >
+                    Previous
+                  </Button>
+                  <span>
+                    Question {currentIndex + 1} of {processedQuestions.length}
+                  </span>
+                  <Button
+                    onClick={handleNextQuestion}
+                    disabled={currentIndex === processedQuestions.length - 1}
+                  >
+                    Next
+                  </Button>
+                </div>
+                <MetadataForm
+                  metadata={metadata}
+                  handleMetadataChange={handleMetadataChange}
+                />
+                <QuestionForm
+                  currentQuestion={currentQuestion}
+                  handleQuestionChange={(e) =>
+                    handleUpdateCurrentQuestion({
+                      ...currentQuestion,
+                      [e.target.name]: e.target.value,
+                    })
+                  }
+                  handleImageUpload={handleImageUpload}
+                  handleAddOption={handleAddOption}
+                  handleOptionChange={(key, value) =>
+                    handleUpdateCurrentQuestion({
+                      ...currentQuestion,
+                      options: {
+                        ...currentQuestion.options,
+                        [key]: value,
+                      },
+                    })
+                  }
+                  handleReviewStatusChange={(isReviewed) =>
+                    handleUpdateCurrentQuestion({
+                      ...currentQuestion,
+                      isReviewed,
+                    })
+                  }
+                  questionType={metadata.type}
+                />
+                <Button
+                  onClick={() => setIsVerified(true)}
+                  className="mt-2"
+                  variant="outline"
+                >
+                  Verify Data
+                </Button>
+                {isVerified && (
+                  <Button
+                    onClick={handleUploadVerifiedQuestions}
+                    disabled={isSubmitting}
+                    className="mt-2"
+                  >
+                    {isSubmitting ? "Uploading..." : "Upload Verified Data"}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -454,46 +601,51 @@ export function AddQuestionForm() {
               handleAddOption={handleAddOption}
               handleOptionChange={handleOptionChange}
               handleReviewStatusChange={handleReviewStatusChange}
-              // isSubmitting={isSubmitting}
               questionType={metadata.type}
             />
-            <div className="flex justify-between items-center">
-              <Button onClick={toggleImageUploadPending}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 items-center justify-center gap-3">
+              <Button variant={"outline"} onClick={toggleImageUploadPending}>
                 {currentQuestion.imageUploadPending
                   ? "Image Upload Complete"
-                  : "Mark Image Upload Pending"}
+                  : "Image Upload Pending"}
               </Button>
-              <div className="flex space-x-2">
-                <Button
-                  onClick={() => {
-                    setCurrentQuestion({
-                      id: "",
-                      isReviewed: false,
-                      reviewedBy: user?.fullName || undefined,
-                      question: "",
-                      question_images: [],
-                      answer: "",
-                      answer_images: [],
-                      options: {},
-                      marks: 1,
-                      imageUploadPending: false,
-                    });
-                    setIsEditing(false);
-                  }}
-                >
-                  Clear Form
-                </Button>
-                <Button
-                  onClick={isEditing ? handleEditQuestion : handleSaveQuestion}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting
-                    ? "Saving..."
-                    : isEditing
-                    ? "Update Question"
-                    : "Add Question"}
-                </Button>
-              </div>
+
+              <Button
+                className="bg-green-500 hover:bg-green-600/55"
+                variant={"secondary"}
+                onClick={isEditing ? handleEditQuestion : handleSaveQuestion}
+                disabled={isSubmitting}
+              >
+                {isSubmitting
+                  ? "Saving..."
+                  : isEditing
+                  ? "Update Question"
+                  : "Add Question"}
+              </Button>
+
+              <Button
+                className="mt-5"
+                variant={"destructive"}
+                onClick={() => {
+                  setCurrentQuestion({
+                    id: "",
+                    isReviewed: false,
+                    reviewedBy: user?.fullName || undefined,
+                    question: "",
+                    question_images: [],
+                    answer: "",
+                    answer_images: [],
+                    options: {},
+                    marks: 1,
+                    imageUploadPending: false,
+                  });
+                  setIsEditing(false);
+                  localStorage.removeItem("currentQuestion");
+                  localStorage.removeItem("metadata");
+                }}
+              >
+                Clear Form
+              </Button>
             </div>
           </>
         )}
