@@ -49,35 +49,32 @@ export function AddQuestionForm() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    fetchRecentEntries();
-  }, []);
+    const fetchRecentEntries = async () => {
+      const { data, error } = await supabase
+        .from("questions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(5);
 
-  useEffect(() => {
+      if (error) {
+        console.error("Error fetching recent entries:", error);
+      } else {
+        setRecentEntries(data || []);
+      }
+    };
+
     const savedCurrentQuestion = localStorage.getItem("currentQuestion");
     const savedMetadata = localStorage.getItem("metadata");
-    if (savedCurrentQuestion)
-      setCurrentQuestion(JSON.parse(savedCurrentQuestion));
+    if (savedCurrentQuestion) setCurrentQuestion(JSON.parse(savedCurrentQuestion));
     if (savedMetadata) setMetadata(JSON.parse(savedMetadata));
+
+    fetchRecentEntries();
   }, []);
 
   useEffect(() => {
     localStorage.setItem("currentQuestion", JSON.stringify(currentQuestion));
     localStorage.setItem("metadata", JSON.stringify(metadata));
   }, [currentQuestion, metadata]);
-
-  const fetchRecentEntries = async () => {
-    const { data, error } = await supabase
-      .from("questions")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    if (error) {
-      console.error("Error fetching recent entries:", error);
-    } else {
-      setRecentEntries(data || []);
-    }
-  };
 
   const generateSixDigitId = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -144,7 +141,7 @@ export function AddQuestionForm() {
       setCurrentQuestion((prev) => ({
         ...prev,
         [inputField]: `${prev[inputField]} [img${
-          (prev[`${type}_images`]?.length || 0) + 1
+          (prev[`${type}_images`]?.length || 0) + 0
         }]`,
       }));
     }
@@ -193,7 +190,7 @@ export function AddQuestionForm() {
       });
 
       // Update recent entries
-      fetchRecentEntries();
+      // setRecentEntries();
 
       // Clear the form
       setCurrentQuestion({
@@ -248,7 +245,7 @@ export function AddQuestionForm() {
       });
 
       // Update recent entries
-      fetchRecentEntries();
+      // fetchRecentEntries();
 
       // Clear the form
       setCurrentQuestion({
@@ -400,7 +397,7 @@ export function AddQuestionForm() {
       });
 
       // Update recent entries
-      fetchRecentEntries();
+      // fetchRecentEntries();
 
       // Clear the JSON input and processed questions
       setJsonInput("");
