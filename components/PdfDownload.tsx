@@ -12,9 +12,6 @@ import {
 import { PdfDownloadProps } from "@/types";
 import { DynamicParagraph } from "./DynamicParagraph";
 
-// fix the grid of option if it can fit in one row if not then 2 option in one row and font size need to 10
-// mode like question paper with answer, worksheets in that answer below the question
-
 const styles = StyleSheet.create({
   page: {
     flexDirection: "column",
@@ -65,8 +62,8 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
     width: "50%",
-    justifyContent: "space-between", // Places content at both ends
-    alignItems: "center", // Vertically centers items
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 5,
   },
   header: {
@@ -75,9 +72,9 @@ const styles = StyleSheet.create({
     textDecoration: "underline",
   },
   date: {
-    fontSize: 12, // Smaller font size
-    color: "#555", // Optional: Grey text color for a subtle look
-    textAlign: "right", // Align text to the right
+    fontSize: 12,
+    color: "#555",
+    textAlign: "right",
     width: "25%",
   },
   leftColumn: {
@@ -93,8 +90,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   optionsRow: {
-    flexDirection: "row", // Arrange options in a row
-    flexWrap: "wrap", // Allow wrapping if too many options
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginBottom: 10,
   },
   option: {
@@ -115,16 +112,11 @@ const styles = StyleSheet.create({
   },
 });
 
-// Prayass Teaching Institute
-// STD n School:                   Subject:
-// Chapter:                        Students Name:
-// Teacher Name:
-
 const getFormattedDate = () => {
   if (typeof window !== "undefined") {
     return new Date().toLocaleDateString();
   }
-  return ""; // Default fallback for SSR
+  return "";
 };
 
 const formattedDate = getFormattedDate();
@@ -137,10 +129,7 @@ const MyDocument = ({
   subject,
   chapters,
   teacherName,
-}: // date,
-// totalMarks,
-// customContent,
-PdfDownloadProps) => (
+}: PdfDownloadProps) => (
   <Document>
     <Page size="A4" style={styles.page}>
       <View style={styles.section}>
@@ -176,7 +165,6 @@ PdfDownloadProps) => (
               {` (${question.marks} marks)`}
             </Text>
 
-            {/* If the question is MCQ, render the options in a row */}
             {question.type === "MCQ" && question.options && (
               <View style={styles.optionsRow}>
                 {Object.entries(question.options).map(([key, value]) => (
@@ -188,13 +176,6 @@ PdfDownloadProps) => (
                 ))}
               </View>
             )}
-
-            {/* Render answer for non-MCQ or other types of questions */}
-            {/* {question.answer && (
-              <View style={styles.answer}>
-                <Text style={styles.answerText}>Answer: {question.answer}</Text>
-              </View>
-            )} */}
           </View>
         ))}
       </View>
@@ -215,19 +196,6 @@ PdfDownloadProps) => (
             <Text style={styles.questionNumber}>{`${index + 1}. ${
               question.question
             }`}</Text>
-
-            {/* Render options for MCQ questions
-            {question.type === "MCQ" && question.options && (
-              <View style={styles.optionsRow}>
-                {Object.entries(question.options).map(([key, value]) => (
-                  <View key={key} style={styles.option}>
-                    <Text style={styles.optionText}>
-                      {key}) {value}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )} */}
 
             <Text>Answer:</Text>
             <DynamicParagraph
@@ -269,3 +237,4 @@ export function PdfDownload(props: PdfDownloadProps) {
     </div>
   );
 }
+

@@ -30,8 +30,8 @@ export function ChapterSelector({
   const chapters = useMemo(() => {
     const chapterMap = new Map<string, { id: string; name: string }>();
     questions.forEach((q) => {
-      if (!chapterMap.has(q.chapterNo)) {
-        chapterMap.set(q.chapterNo, { id: q.chapterNo, name: q.chapterName });
+      if (!chapterMap.has(q.subject_id.toString())) {
+        chapterMap.set(q.subject_id.toString(), { id: q.subject_id.toString(), name: q.section_title || "Unknown" });
       }
     });
     return Array.from(chapterMap.values());
@@ -46,28 +46,27 @@ export function ChapterSelector({
       try {
         const { data, error } = await supabase
           .from("questions")
-          .select("selectionCount")
+          .select("selection_count")
           .eq("id", questionId)
           .single();
 
         if (error) throw error;
 
-        const currentCount = data?.selectionCount || 0;
+        const currentCount = data?.selection_count || 0;
         const newCount = increment
           ? currentCount + 1
           : Math.max(0, currentCount - 1);
 
         const { error: updateError } = await supabase
           .from("questions")
-          .update({ selectionCount: newCount })
+          .update({ selection_count: newCount })
           .eq("id", questionId);
 
         if (updateError) throw updateError;
 
-        // Update the local state
         setSelectedQuestions((prev) =>
           prev.map((q) =>
-            q.id === questionId ? { ...q, selectionCount: newCount } : q
+            q.id === questionId ? { ...q, selection_count: newCount } : q
           )
         );
       } catch (error) {
@@ -97,7 +96,7 @@ export function ChapterSelector({
 
   useEffect(() => {
     const uniqueChapters = Array.from(
-      new Set(selectedQuestions.map((q) => q.chapterNo))
+      new Set(selectedQuestions.map((q) => q.subject_id.toString()))
     ).map((ch) => ({ id: ch, name: ch }));
     onSelectChapters(uniqueChapters);
   }, [selectedQuestions, onSelectChapters]);
@@ -130,10 +129,10 @@ export function ChapterSelector({
   const groupQuestionsByType = useCallback((chapterQuestions: Question[]) => {
     const groupedQuestions: { [key: string]: Question[] } = {};
     chapterQuestions.forEach((question) => {
-      if (!groupedQuestions[question.section]) {
-        groupedQuestions[question.section] = [];
+      if (!groupedQuestions[question.type || "Unknown"]) {
+        groupedQuestions[question.type || "Unknown"] = [];
       }
-      groupedQuestions[question.section].push(question);
+      groupedQuestions[question.type || "Unknown"].push(question);
     });
     return groupedQuestions;
   }, []);
@@ -151,7 +150,7 @@ export function ChapterSelector({
           <Badge variant="secondary" className="mr-1">
             Selected Chapters:{" "}
             {
-              Array.from(new Set(selectedQuestions.map((q) => q.chapterNo)))
+              Array.from(new Set(selectedQuestions.map((q) => q.subject_id)))
                 .length
             }
           </Badge>
@@ -173,7 +172,7 @@ export function ChapterSelector({
           <div key={chapter.id}>
             <button
               className={`text-blue-600 hover:underline ${
-                selectedQuestions.some((q) => q.chapterNo === chapter.id)
+                selectedQuestions.some((q) => q.subject_id.toString() === chapter.id)
                   ? "font-bold"
                   : ""
               }`}
@@ -185,7 +184,7 @@ export function ChapterSelector({
               <Accordion type="multiple" className="w-full mt-4">
                 {Object.entries(
                   groupQuestionsByType(
-                    questions.filter((q) => q.chapterNo === chapter.id)
+                    questions.filter((q) => q.subject_id.toString() === chapter.id)
                   )
                 ).map(([type, typeQuestions]) => (
                   <AccordionItem
@@ -216,12 +215,12 @@ export function ChapterSelector({
                               <span>
                                 {question.question} ({question.marks} marks)
                               </span>
-                              {renderImages(question.questionImages)}
-                              {question.isReviewed && (
+                              {renderImages(question.question_images || undefined)}
+                              {question.is_reviewed && (
                                 <Badge variant="secondary">Reviewed</Badge>
                               )}
                               <span className="text-sm text-gray-500">
-                                Selected {question.selectionCount || 0} times
+                                Selected {question.selection_count || 0} times
                               </span>
                             </Label>
                           </div>
@@ -238,3 +237,4 @@ export function ChapterSelector({
     </div>
   );
 }
+

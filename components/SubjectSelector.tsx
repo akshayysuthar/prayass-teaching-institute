@@ -7,44 +7,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { SubjectSelectorProps, SubjectData } from "@/types";
+import { Subject } from "@/types";
+
+export interface SubjectSelectorProps {
+  subjects: Subject[];
+
+  onSelectSubject: (subjectId: string) => void;
+
+  initialSubject?: string | null;
+}
 
 export function SubjectSelector({
-  subjectData,
-  classNumber,
-  board,
-  medium,
+  subjects,
   onSelectSubject,
   initialSubject,
 }: SubjectSelectorProps) {
-  const [subjects, setSubjects] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(
-    initialSubject
+    initialSubject ?? null
   );
-
-  useEffect(() => {
-    const filteredSubjects = subjectData
-      .filter(
-        (item: SubjectData) =>
-          item.class === classNumber &&
-          item.board === board &&
-          (!item.medium || item.medium === medium)
-      )
-      .flatMap((item: SubjectData) => {
-        if (item.subject) return [item.subject];
-        if (item.subjects) {
-          return item.subjects
-            .filter(
-              (subject) =>
-                !subject.mediums ||
-                subject.mediums.some((m) => m.language === medium)
-            )
-            .map((subject) => subject.name);
-        }
-        return [];
-      });
-    setSubjects([...new Set(filteredSubjects)]);
-  }, [subjectData, classNumber, board, medium]);
 
   const handleSubjectChange = (value: string) => {
     setSelectedSubject(value);
@@ -62,9 +42,9 @@ export function SubjectSelector({
           <SelectValue placeholder="Select Subject" />
         </SelectTrigger>
         <SelectContent>
-          {subjects.map((subject: string) => (
-            <SelectItem key={subject} value={subject}>
-              {subject}
+          {subjects.map((subject: Subject) => (
+            <SelectItem key={subject.id} value={subject.id.toString()}>
+              {subject.subject_name}
             </SelectItem>
           ))}
         </SelectContent>
