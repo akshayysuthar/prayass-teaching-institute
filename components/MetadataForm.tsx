@@ -13,8 +13,8 @@ import { Content, Subject } from "@/types";
 
 interface MetadataFormProps {
   metadata: {
-    contentId: string;
-    subjectId: string;
+    content_id: string;
+    subject_id: string;
     sectionTitle: string;
     type: string;
   };
@@ -35,10 +35,10 @@ export function MetadataForm({
   }, []);
 
   useEffect(() => {
-    if (metadata.contentId) {
-      fetchSubjects(metadata.contentId);
+    if (metadata.content_id) {
+      fetchSubjects(metadata.content_id);
     }
-  }, [metadata.contentId]);
+  }, [metadata.content_id]);
 
   const fetchContents = async () => {
     const { data, error } = await supabase.from("contents").select("*");
@@ -69,10 +69,10 @@ export function MetadataForm({
           <Label htmlFor="contentId">Content</Label>
           <Select
             name="contentId"
-            value={metadata.contentId}
+            value={metadata.content_id}
             onValueChange={(value) =>
               handleMetadataChange({
-                target: { name: "contentId", value },
+                target: { name: "content_id", value },
               } as React.ChangeEvent<HTMLSelectElement>)
             }
           >
@@ -93,10 +93,10 @@ export function MetadataForm({
           <Label htmlFor="subjectId">Subject</Label>
           <Select
             name="subjectId"
-            value={metadata.subjectId}
+            value={metadata.subject_id}
             onValueChange={(value) =>
               handleMetadataChange({
-                target: { name: "subjectId", value },
+                target: { name: "subject_id", value },
               } as React.ChangeEvent<HTMLSelectElement>)
             }
           >

@@ -29,7 +29,7 @@ export interface Content {
   code: string;
   class: number;
   created_at: string;
-  locked?: string
+  locked?: string;
 }
 
 export interface Subject {

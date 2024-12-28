@@ -128,23 +128,12 @@ export default function GenerateExamPage() {
           initialContent={selectedContent}
         />
         {selectedContent && (
-          <div>
-            {subjects.map((subject) => (
-              <div key={subject.id}>
-                <h2 className="text-xl font-bold mb-2">
-                  {subject.subject_name} (Content ID: {selectedContent?.id})
-                </h2>
-                <ChapterSelector
-                  questions={questions.filter(
-                    (q) => q.subject_id === subject.id
-                  )}
-                  subject={subject}
-                  onSelectQuestions={handleQuestionSelect}
-                  onSelectChapters={handleChapterSelect}
-                />
-              </div>
-            ))}
-          </div>
+          <ChapterSelector
+            questions={questions}
+            subject={subjects}
+            onSelectQuestions={handleQuestionSelect}
+            onSelectChapters={handleChapterSelect}
+          />
         )}
         {selectedQuestions.length > 0 && (
           <ExamPreview

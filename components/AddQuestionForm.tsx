@@ -19,13 +19,13 @@ export function AddQuestionForm() {
   const [jsonInput, setJsonInput] = useState("");
 
   const [metadata, setMetadata] = useState({
-    contentId: "",
-    subjectId: "",
+    content_id: "",
+    subject_id: "",
     sectionTitle: "",
     type: "",
   });
   const [currentQuestion, setCurrentQuestion] = useState<Partial<Question>>({
-    id: "",
+    // id: "",
     question: "",
     question_images: [],
     answer: "",
@@ -37,6 +37,9 @@ export function AddQuestionForm() {
   });
   const { toast } = useToast();
   const { user } = useUser();
+
+  console.log(metadata);
+  console.log(currentQuestion);
 
   useEffect(() => {
     if (user) {
@@ -112,14 +115,27 @@ export function AddQuestionForm() {
       return;
     }
 
+    // Validate subject_id
+    if (!metadata.subject_id || isNaN(Number(metadata.subject_id))) {
+      toast({
+        title: "Error",
+        description: "Subject ID must be a valid number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const questionToSave = {
         ...metadata,
         ...currentQuestion,
-        createdBy: user.id,
+        section_title: metadata.sectionTitle,
+        created_by: user.id,
       };
-      console.log("Saving question:", questionToSave);
+
+      // Ensure subject_id is a number
+      questionToSave.subject_id = parseInt(metadata.subject_id, 10);
 
       const { data, error } = await supabase
         .from("questions")
@@ -128,14 +144,10 @@ export function AddQuestionForm() {
 
       if (error) throw error;
 
-      console.log("Question saved successfully:", data);
-
       toast({
         title: "Success",
         description: "Question saved successfully!",
       });
-
-      // fetchRecentEntries();
 
       setCurrentQuestion({
         id: "",
@@ -176,7 +188,7 @@ export function AddQuestionForm() {
       const questionToUpdate = {
         ...metadata,
         ...currentQuestion,
-        lastEditedBy: user.id,
+        last_edited_by: user.id,
       };
       console.log("Updating question:", questionToUpdate);
 
@@ -243,9 +255,9 @@ export function AddQuestionForm() {
       if (data) {
         setCurrentQuestion(data);
         setMetadata({
-          contentId: data.subject_id,
-          subjectId: data.subject_id,
-          sectionTitle: data.section_title,
+          content_id: data.subject_id,
+          subject_id: data.subject_id,
+          sectionTitle: data.sectionTitle,
           type: data.type,
         });
         setIsEditing(true);
