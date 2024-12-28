@@ -1,6 +1,4 @@
 import { Suspense, use } from "react";
-
-import { cookies } from "next/headers";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/utils/supabase/client";

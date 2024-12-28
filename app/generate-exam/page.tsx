@@ -2,11 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ClassSelector } from "@/components/ClassSelector";
-import { SubjectSelector } from "@/components/SubjectSelector";
 import { ChapterSelector } from "@/components/ChapterSelector";
 import { ExamPreview } from "@/components/ExamPreview";
 import { PdfDownload } from "@/components/PdfDownload";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/utils/supabase/client";
 import { Content, Subject, Question, SelectedChapter } from "@/types";
 import { useToast } from "@/hooks/use-toast";
@@ -16,19 +14,14 @@ export default function GenerateExamPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
-  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
-  const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>([]);
+  const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPdfDownload, setShowPdfDownload] = useState(false);
   const { toast } = useToast();
-
-
-  // console.log(contents);
-  // console.log(subjects);
-  // console.log(questions);
-  
 
   useEffect(() => {
     fetchContents();
@@ -52,41 +45,31 @@ export default function GenerateExamPage() {
     }
   };
 
-  const fetchSubjects = async (contentId: number) => {
+  const fetchSubjectsAndQuestions = async (contentId: number) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: subjectsData, error: subjectsError } = await supabase
         .from("subjects")
         .select("*")
         .eq("content_id", contentId);
-      if (error) throw error;
-      setSubjects(data);
-    } catch (error) {
-      setError("Failed to fetch subjects");
-      toast({
-        title: "Error",
-        description: "Failed to fetch subjects. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      if (subjectsError) throw subjectsError;
+      setSubjects(subjectsData);
 
-  const fetchQuestions = async (subjectId: number) => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
+      const { data: questionsData, error: questionsError } = await supabase
         .from("questions")
         .select("*")
-        .eq("subject_id", subjectId);
-      if (error) throw error;
-      setQuestions(data);
+        .in(
+          "subject_id",
+          subjectsData.map((subject: Subject) => subject.id)
+        );
+      if (questionsError) throw questionsError;
+      setQuestions(questionsData);
     } catch (error) {
-      setError("Failed to fetch questions");
+      setError("Failed to fetch subjects and questions");
       toast({
         title: "Error",
-        description: "Failed to fetch questions. Please try again.",
+        description:
+          "Failed to fetch subjects and questions. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -97,22 +80,9 @@ export default function GenerateExamPage() {
   const handleContentSelect = (content: Content) => {
     if (content.id !== selectedContent?.id) {
       setSelectedContent(content);
-      setSelectedSubject(null);
       setSelectedQuestions([]);
       setSelectedChapters([]);
-      fetchSubjects(content.id);
-    }
-  };
-
-  const handleSubjectSelect = (subjectId: string) => {
-    if (subjectId !== selectedSubject?.id.toString()) {
-      const subject = subjects.find(s => s.id.toString() === subjectId);
-      setSelectedSubject(subject || null);
-      setSelectedQuestions([]);
-      setSelectedChapters([]);
-      if (subject) {
-        fetchQuestions(subject.id);
-      }
+      fetchSubjectsAndQuestions(content.id);
     }
   };
 
@@ -128,7 +98,8 @@ export default function GenerateExamPage() {
     if (selectedQuestions.length === 0) {
       toast({
         title: "Error",
-        description: "Please select at least one question before generating the PDF.",
+        description:
+          "Please select at least one question before generating the PDF.",
         variant: "destructive",
       });
       return;
@@ -154,18 +125,23 @@ export default function GenerateExamPage() {
           initialContent={selectedContent}
         />
         {selectedContent && (
-          <SubjectSelector
-            subjects={subjects}
-            onSelectSubject={handleSubjectSelect}
-            initialSubject={selectedSubject?.id.toString()}
-          />
-        )}
-        {selectedSubject && (
-          <ChapterSelector
-            questions={questions}
-            onSelectQuestions={handleQuestionSelect}
-            onSelectChapters={handleChapterSelect}
-          />
+          <div>
+            {subjects.map((subject) => (
+              <div key={subject.id}>
+                <h2 className="text-xl font-bold mb-2">
+                  {subject.subject_name} (Content ID: {selectedContent?.id})
+                </h2>
+                <ChapterSelector
+                  questions={questions.filter(
+                    (q) => q.subject_id === subject.id
+                  )}
+                  subject={subject}
+                  onSelectQuestions={handleQuestionSelect}
+                  onSelectChapters={handleChapterSelect}
+                />
+              </div>
+            ))}
+          </div>
         )}
         {selectedQuestions.length > 0 && (
           <ExamPreview
@@ -179,8 +155,8 @@ export default function GenerateExamPage() {
             instituteName="Your Institute Name"
             standard={selectedContent?.class.toString() || ""}
             studentName="Student Name"
-            subject={selectedSubject?.subject_name || ""}
-            chapters={selectedChapters.map(ch => ch.name).join(", ")}
+            subject={selectedContent?.name || ""}
+            chapters={selectedChapters.map((ch) => ch.name).join(", ")}
             teacherName="Teacher Name"
           />
         )}
@@ -188,4 +164,3 @@ export default function GenerateExamPage() {
     </div>
   );
 }
-

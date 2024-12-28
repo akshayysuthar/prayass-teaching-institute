@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,9 @@ export function AddQuestionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showJsonInput, setShowJsonInput] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
-  const [recentEntries, setRecentEntries] = useState<Record<string, Partial<Question>[]>>({});
+  const [recentEntries, setRecentEntries] = useState<
+    Record<string, Partial<Question>[]>
+  >({});
   const [metadata, setMetadata] = useState({
     contentId: "",
     subjectId: "",
@@ -27,13 +29,13 @@ export function AddQuestionForm() {
   const [currentQuestion, setCurrentQuestion] = useState<Partial<Question>>({
     id: "",
     question: "",
-    questionImages: [],
+    question_images: [],
     answer: "",
-    answerImages: [],
+    answer_images: [],
     marks: 1,
-    selectionCount: 0,
-    isReviewed: false,
-    reviewedBy: "",
+    selection_count: 0,
+    is_reviewed: false,
+    reviewed_by: "",
   });
   const { toast } = useToast();
   const { user } = useUser();
@@ -78,7 +80,9 @@ export function AddQuestionForm() {
   };
 
   const handleQuestionChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
     setCurrentQuestion((prev) => ({
@@ -118,7 +122,7 @@ export function AddQuestionForm() {
 
       setCurrentQuestion((prev) => ({
         ...prev,
-        [`${type}Images`]: [...(prev[`${type}Images`] || []), publicUrl],
+        [`${type}Images`]: [...(prev[`${type}_images`] || []), publicUrl],
       }));
     }
   };
@@ -161,13 +165,13 @@ export function AddQuestionForm() {
       setCurrentQuestion({
         id: "",
         question: "",
-        questionImages: [],
+        question_images: [],
         answer: "",
-        answerImages: [],
+        answer_images: [],
         marks: 1,
-        selectionCount: 0,
-        isReviewed: false,
-        reviewedBy: "",
+        selection_count: 0,
+        is_reviewed: false,
+        reviewed_by: "",
       });
       setIsEditing(false);
     } catch (error) {
@@ -204,7 +208,7 @@ export function AddQuestionForm() {
       const { data, error } = await supabase
         .from("questions")
         .update(questionToUpdate)
-        .eq('id', questionToUpdate.id)
+        .eq("id", questionToUpdate.id)
         .select();
 
       if (error) throw error;
@@ -221,13 +225,13 @@ export function AddQuestionForm() {
       setCurrentQuestion({
         id: "",
         question: "",
-        questionImages: [],
+        question_images: [],
         answer: "",
-        answerImages: [],
+        answer_images: [],
         marks: 1,
-        selectionCount: 0,
-        isReviewed: false,
-        reviewedBy: "",
+        selection_count: 0,
+        is_reviewed: false,
+        reviewed_by: "",
       });
       setIsEditing(false);
     } catch (error) {
@@ -298,7 +302,9 @@ export function AddQuestionForm() {
   return (
     <div className="space-y-8">
       <div className="space-y-4 border p-4 rounded-md">
-        <h2 className="text-2xl font-bold">{isEditing ? "Edit Question" : "Add New Question"}</h2>
+        <h2 className="text-2xl font-bold">
+          {isEditing ? "Edit Question" : "Add New Question"}
+        </h2>
         <div className="flex justify-between items-center">
           <Button onClick={() => setShowJsonInput(!showJsonInput)}>
             {showJsonInput ? "Single Question Entry" : "Bulk JSON Entry"}
@@ -326,13 +332,21 @@ export function AddQuestionForm() {
               placeholder="Paste JSON data here"
               rows={10}
             />
-            <Button onClick={() => {/* Implement JSON processing logic */}} disabled={isSubmitting}>
+            <Button
+              onClick={() => {
+                /* Implement JSON processing logic */
+              }}
+              disabled={isSubmitting}
+            >
               {isSubmitting ? "Processing..." : "Process JSON"}
             </Button>
           </div>
         ) : (
           <>
-            <MetadataForm metadata={metadata} handleMetadataChange={handleMetadataChange} />
+            <MetadataForm
+              metadata={metadata}
+              handleMetadataChange={handleMetadataChange}
+            />
             <QuestionForm
               currentQuestion={currentQuestion}
               handleQuestionChange={handleQuestionChange}
@@ -342,24 +356,33 @@ export function AddQuestionForm() {
               questionType={metadata.type}
             />
             <div className="flex justify-between items-center">
-              <Button onClick={() => {
-                setCurrentQuestion({
-                  id: "",
-                  question: "",
-                  questionImages: [],
-                  answer: "",
-                  answerImages: [],
-                  marks: 1,
-                  selectionCount: 0,
-                  isReviewed: false,
-                  reviewedBy: "",
-                });
-                setIsEditing(false);
-              }}>
+              <Button
+                onClick={() => {
+                  setCurrentQuestion({
+                    id: "",
+                    question: "",
+                    question_images: [],
+                    answer: "",
+                    answer_images: [],
+                    marks: 1,
+                    selection_count: 0,
+                    is_reviewed: false,
+                    reviewed_by: "",
+                  });
+                  setIsEditing(false);
+                }}
+              >
                 Clear Form
               </Button>
-              <Button onClick={isEditing ? handleEditQuestion : handleSaveQuestion} disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : (isEditing ? "Update Question" : "Add Question")}
+              <Button
+                onClick={isEditing ? handleEditQuestion : handleSaveQuestion}
+                disabled={isSubmitting}
+              >
+                {isSubmitting
+                  ? "Saving..."
+                  : isEditing
+                  ? "Update Question"
+                  : "Add Question"}
               </Button>
             </div>
           </>
@@ -368,4 +391,3 @@ export function AddQuestionForm() {
     </div>
   );
 }
-

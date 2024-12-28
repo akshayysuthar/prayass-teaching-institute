@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Select,
   SelectContent,
@@ -7,8 +7,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from 'lucide-react';
 import { Content } from "@/types";
 
 type ClassSelectorProps = {
@@ -22,10 +20,12 @@ export function ClassSelector({
   onSelectContent,
   initialContent = null,
 }: ClassSelectorProps) {
-  const [selectedContent, setSelectedContent] = useState<Content | null>(initialContent);
+  const [selectedContent, setSelectedContent] = useState<Content | null>(
+    initialContent
+  );
 
   const handleContentChange = (value: string) => {
-    const content = contents.find(c => c.id.toString() === value);
+    const content = contents.find((c) => c.id.toString() === value);
     if (content) {
       setSelectedContent(content);
       onSelectContent(content);
@@ -46,21 +46,22 @@ export function ClassSelector({
           <SelectContent>
             {contents.map((content) => (
               <SelectItem key={content.id} value={content.id.toString()}>
-                {content.name} - Class {content.class} - {content.board} - {content.medium}
+                {content.name} - Class {content.class} - {content.board} -{" "}
+                {content.medium} Medium
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
-      {selectedContent?.class === 9 && (
+      {/* {selectedContent?.locked && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Class 9 is currently locked and not available for exam generation.
+            Class {selectedContent.class} is currently locked and not available
+            for exam generation.
           </AlertDescription>
         </Alert>
-      )}
+      )} */}
     </div>
   );
 }
-

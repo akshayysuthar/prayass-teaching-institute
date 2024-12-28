@@ -1,4 +1,7 @@
 export interface Question {
+  content_id: any;
+  chapter_name: string;
+  chapter_no: any;
   id: string;
   subject_id: number;
   section_title: string | null;
@@ -26,6 +29,7 @@ export interface Content {
   code: string;
   class: number;
   created_at: string;
+  locked?: string
 }
 
 export interface Subject {
@@ -59,9 +63,6 @@ export interface PdfDownloadProps {
   teacherName: string;
 }
 
-
-
-
 export interface SubjectData {
   class: number;
   board: string;
@@ -89,7 +90,6 @@ export interface Chapter {
   subject: string;
   questions: Question[];
 }
-
 
 export interface SubjectDataItem {
   medium?: string;
@@ -141,7 +141,6 @@ export interface ClassSelectorProps {
   initialMedium: string | null;
 }
 
-
 // export interface Question {
 //   // server side or metadata
 //   id: string;
@@ -157,7 +156,7 @@ export interface ClassSelectorProps {
 //   chapterName: string; // Full name of the chapter.
 //   section: string; // Section within the chapter (if applicable).
 //   type: string; // Type of question (e.g., 'MCQ', 'Short Answer').
-  
+
 //   imageUploadPending: boolean;
 
 //   // client side

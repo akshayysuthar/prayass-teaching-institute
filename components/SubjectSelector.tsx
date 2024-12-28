@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Select,
   SelectContent,
@@ -11,9 +11,7 @@ import { Subject } from "@/types";
 
 export interface SubjectSelectorProps {
   subjects: Subject[];
-
   onSelectSubject: (subjectId: string) => void;
-
   initialSubject?: string | null;
 }
 
@@ -31,6 +29,12 @@ export function SubjectSelector({
     onSelectSubject(value);
   };
 
+  // Filter out duplicate subjects
+  const uniqueSubjects = subjects.filter(
+    (subject, index, self) =>
+      index === self.findIndex((s) => s.subject_name === subject.subject_name)
+  );
+
   return (
     <div>
       <Label htmlFor="subject">Subject</Label>
@@ -42,7 +46,7 @@ export function SubjectSelector({
           <SelectValue placeholder="Select Subject" />
         </SelectTrigger>
         <SelectContent>
-          {subjects.map((subject: Subject) => (
+          {uniqueSubjects.map((subject: Subject) => (
             <SelectItem key={subject.id} value={subject.id.toString()}>
               {subject.subject_name}
             </SelectItem>

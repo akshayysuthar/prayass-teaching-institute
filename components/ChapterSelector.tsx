@@ -10,28 +10,35 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import { Question, SelectedChapter } from "@/types";
+import { Question, SelectedChapter, Subject } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 
 interface ChapterSelectorProps {
   questions: Question[];
+  subject: Subject;
   onSelectQuestions: (questions: Question[]) => void;
   onSelectChapters: (chapters: SelectedChapter[]) => void;
 }
 
 export function ChapterSelector({
   questions,
+  subject,
   onSelectQuestions,
   onSelectChapters,
 }: ChapterSelectorProps) {
   const [selectedChapterId, setSelectedChapterId] = useState<string>("");
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
 
+  console.log(questions);
+  console.log(subject);
   const chapters = useMemo(() => {
     const chapterMap = new Map<string, { id: string; name: string }>();
     questions.forEach((q) => {
-      if (!chapterMap.has(q.subject_id.toString())) {
-        chapterMap.set(q.subject_id.toString(), { id: q.subject_id.toString(), name: q.section_title || "Unknown" });
+      if (!chapterMap.has(q.chapter_no)) {
+        chapterMap.set(q.chapter_no, {
+          id: q.chapter_no,
+          name: q.chapter_name || "Unknown",
+        });
       }
     });
     return Array.from(chapterMap.values());
@@ -96,7 +103,7 @@ export function ChapterSelector({
 
   useEffect(() => {
     const uniqueChapters = Array.from(
-      new Set(selectedQuestions.map((q) => q.subject_id.toString()))
+      new Set(selectedQuestions.map((q) => q.chapter_no))
     ).map((ch) => ({ id: ch, name: ch }));
     onSelectChapters(uniqueChapters);
   }, [selectedQuestions, onSelectChapters]);
@@ -129,10 +136,10 @@ export function ChapterSelector({
   const groupQuestionsByType = useCallback((chapterQuestions: Question[]) => {
     const groupedQuestions: { [key: string]: Question[] } = {};
     chapterQuestions.forEach((question) => {
-      if (!groupedQuestions[question.type || "Unknown"]) {
-        groupedQuestions[question.type || "Unknown"] = [];
+      if (!groupedQuestions[question.section_title || "Unknown"]) {
+        groupedQuestions[question.section_title || "Unknown"] = [];
       }
-      groupedQuestions[question.type || "Unknown"].push(question);
+      groupedQuestions[question.section_title || "Unknown"].push(question);
     });
     return groupedQuestions;
   }, []);
@@ -150,7 +157,7 @@ export function ChapterSelector({
           <Badge variant="secondary" className="mr-1">
             Selected Chapters:{" "}
             {
-              Array.from(new Set(selectedQuestions.map((q) => q.subject_id)))
+              Array.from(new Set(selectedQuestions.map((q) => q.chapter_no)))
                 .length
             }
           </Badge>
@@ -172,7 +179,7 @@ export function ChapterSelector({
           <div key={chapter.id}>
             <button
               className={`text-blue-600 hover:underline ${
-                selectedQuestions.some((q) => q.subject_id.toString() === chapter.id)
+                selectedQuestions.some((q) => q.chapter_no === chapter.id)
                   ? "font-bold"
                   : ""
               }`}
@@ -184,7 +191,7 @@ export function ChapterSelector({
               <Accordion type="multiple" className="w-full mt-4">
                 {Object.entries(
                   groupQuestionsByType(
-                    questions.filter((q) => q.subject_id.toString() === chapter.id)
+                    questions.filter((q) => q.chapter_no === chapter.id)
                   )
                 ).map(([type, typeQuestions]) => (
                   <AccordionItem
@@ -215,7 +222,9 @@ export function ChapterSelector({
                               <span>
                                 {question.question} ({question.marks} marks)
                               </span>
-                              {renderImages(question.question_images || undefined)}
+                              {renderImages(
+                                question.question_images || undefined
+                              )}
                               {question.is_reviewed && (
                                 <Badge variant="secondary">Reviewed</Badge>
                               )}
@@ -237,4 +246,3 @@ export function ChapterSelector({
     </div>
   );
 }
-
