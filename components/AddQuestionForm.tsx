@@ -131,7 +131,7 @@ export function AddQuestionForm() {
         ...metadata,
         ...currentQuestion,
         section_title: metadata.sectionTitle,
-        created_by: user.id,
+        created_by: user.fullName,
       };
 
       // Ensure subject_id is a number
@@ -188,7 +188,7 @@ export function AddQuestionForm() {
       const questionToUpdate = {
         ...metadata,
         ...currentQuestion,
-        last_edited_by: user.id,
+        last_edited_by: user.fullName,
       };
       console.log("Updating question:", questionToUpdate);
 

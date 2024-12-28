@@ -61,9 +61,9 @@ export function ChapterSelector({
     );
   }, [questions]);
 
-  const handleChapterChange = useCallback((chapter: string) => {
-    setSelectedChapterId((prev) => (prev === chapter ? "" : chapter));
-  }, []);
+  // const handleChapterChange = useCallback((chapter: string) => {
+  //   setSelectedChapterId((prev) => (prev === chapter ? "" : chapter));
+  // }, []);
 
   const handleQuestionChange = useCallback((question: Question) => {
     setSelectedQuestions((prev) => {
