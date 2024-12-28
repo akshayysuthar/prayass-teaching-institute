@@ -25,10 +25,10 @@ export function ChapterSelector({
   onSelectQuestions,
   onSelectChapters,
 }: ChapterSelectorProps) {
-  const [selectedChapterId, setSelectedChapterId] = useState<string>("");
+  // const [selectedChapterId, setSelectedChapterId] = useState<string>("");
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
 
-  console.log(selectedChapterId);
+  // console.log(selectedChapterId);
 
   // Group questions by subject_id first
   const groupedBySubject = useMemo(() => {
