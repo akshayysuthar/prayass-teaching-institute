@@ -1,5 +1,5 @@
 "use client";
-import { redirect } from "next/navigation";
+// import { redirect } from "next/navigation";
 import { AddContentForm } from "@/components/AddContentForm";
 import { AddSubjectForm } from "@/components/AddSubjectForm";
 // import { Button } from "@/components/ui/button";
