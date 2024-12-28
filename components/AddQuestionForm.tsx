@@ -137,7 +137,7 @@ export function AddQuestionForm() {
       // Ensure subject_id is a number
       questionToSave.subject_id = parseInt(metadata.subject_id, 10);
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("questions")
         .insert([questionToSave])
         .select();

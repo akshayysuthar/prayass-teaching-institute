@@ -11,7 +11,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Question, SelectedChapter, Subject } from "@/types";
-import { supabase } from "@/utils/supabase/client";
 
 interface ChapterSelectorProps {
   questions: Question[];
@@ -22,12 +21,14 @@ interface ChapterSelectorProps {
 
 export function ChapterSelector({
   questions,
-  subject,
+  // subject,
   onSelectQuestions,
   onSelectChapters,
 }: ChapterSelectorProps) {
   const [selectedChapterId, setSelectedChapterId] = useState<string>("");
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
+
+  console.log(selectedChapterId);
 
   // Group questions by subject_id first
   const groupedBySubject = useMemo(() => {
