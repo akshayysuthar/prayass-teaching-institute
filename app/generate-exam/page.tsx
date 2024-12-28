@@ -19,7 +19,7 @@ export default function GenerateExamPage() {
     []
   );
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
   const [showPdfDownload, setShowPdfDownload] = useState(false);
   const { toast } = useToast();
 
@@ -36,13 +36,13 @@ export default function GenerateExamPage() {
       const { data, error } = await supabase.from("contents").select("*");
       if (error) throw error;
       setContents(data);
-    // } catch (error) {
-    //   setError("Failed to fetch contents");
-    //   toast({
-    //     title: "Error",
-    //     description: "Failed to fetch contents. Please try again.",
-    //     variant: "destructive",
-    //   });
+      // } catch (error) {
+      //   setError("Failed to fetch contents");
+      //   toast({
+      //     title: "Error",
+      //     description: "Failed to fetch contents. Please try again.",
+      //     variant: "destructive",
+      //   });
     } finally {
       setIsLoading(false);
     }
@@ -67,14 +67,14 @@ export default function GenerateExamPage() {
         );
       if (questionsError) throw questionsError;
       setQuestions(questionsData);
-    // } catch (error) {
-    //   setError("Failed to fetch subjects and questions");
-    //   toast({
-    //     title: "Error",
-    //     description:
-    //       "Failed to fetch subjects and questions. Please try again.",
-    //     variant: "destructive",
-    //   });
+      // } catch (error) {
+      //   setError("Failed to fetch subjects and questions");
+      //   toast({
+      //     title: "Error",
+      //     description:
+      //       "Failed to fetch subjects and questions. Please try again.",
+      //     variant: "destructive",
+      //   });
     } finally {
       setIsLoading(false);
     }
