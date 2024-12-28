@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/utils/supabase/client";
+import { Content, Subject } from "@/types";
 
 interface MetadataFormProps {
   metadata: {
@@ -17,12 +18,17 @@ interface MetadataFormProps {
     sectionTitle: string;
     type: string;
   };
-  handleMetadataChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  handleMetadataChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => void;
 }
 
-export function MetadataForm({ metadata, handleMetadataChange }: MetadataFormProps) {
-  const [contents, setContents] = useState<any[]>([]);
-  const [subjects, setSubjects] = useState<any[]>([]);
+export function MetadataForm({
+  metadata,
+  handleMetadataChange,
+}: MetadataFormProps) {
+  const [contents, setContents] = useState<Content[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
 
   useEffect(() => {
     fetchContents();
@@ -35,9 +41,9 @@ export function MetadataForm({ metadata, handleMetadataChange }: MetadataFormPro
   }, [metadata.contentId]);
 
   const fetchContents = async () => {
-    const { data, error } = await supabase.from('contents').select('*');
+    const { data, error } = await supabase.from("contents").select("*");
     if (error) {
-      console.error('Error fetching contents:', error);
+      console.error("Error fetching contents:", error);
     } else {
       setContents(data);
     }
@@ -45,11 +51,11 @@ export function MetadataForm({ metadata, handleMetadataChange }: MetadataFormPro
 
   const fetchSubjects = async (contentId: string) => {
     const { data, error } = await supabase
-      .from('subjects')
-      .select('*')
-      .eq('content_id', contentId);
+      .from("subjects")
+      .select("*")
+      .eq("content_id", contentId);
     if (error) {
-      console.error('Error fetching subjects:', error);
+      console.error("Error fetching subjects:", error);
     } else {
       setSubjects(data);
     }
@@ -76,7 +82,8 @@ export function MetadataForm({ metadata, handleMetadataChange }: MetadataFormPro
             <SelectContent>
               {contents.map((content) => (
                 <SelectItem key={content.id} value={content.id.toString()}>
-                  {content.name} - {content.board} - {content.medium} - Class {content.class}
+                  {content.name} - {content.board} - {content.medium} - Class{" "}
+                  {content.class}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -99,7 +106,8 @@ export function MetadataForm({ metadata, handleMetadataChange }: MetadataFormPro
             <SelectContent>
               {subjects.map((subject) => (
                 <SelectItem key={subject.id} value={subject.id.toString()}>
-                  {subject.subject_name} - Chapter {subject.chapter_no}: {subject.chapter_name}
+                  {subject.subject_name} - Chapter {subject.chapter_no}:{" "}
+                  {subject.chapter_name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -129,4 +137,3 @@ export function MetadataForm({ metadata, handleMetadataChange }: MetadataFormPro
     </div>
   );
 }
-

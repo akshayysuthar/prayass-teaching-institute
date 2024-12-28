@@ -17,9 +17,7 @@ export function AddQuestionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showJsonInput, setShowJsonInput] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
-  const [recentEntries, setRecentEntries] = useState<
-    Record<string, Partial<Question>[]>
-  >({});
+
   const [metadata, setMetadata] = useState({
     contentId: "",
     subjectId: "",
@@ -42,32 +40,9 @@ export function AddQuestionForm() {
 
   useEffect(() => {
     if (user) {
-      fetchRecentEntries();
+      // fetchRecentEntries();
     }
   }, [user]);
-
-  const fetchRecentEntries = async () => {
-    const { data, error } = await supabase
-      .from("questions")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(25);
-
-    if (error) {
-      console.error("Error fetching recent entries:", error);
-    } else {
-      const entriesBySubject: Record<string, Partial<Question>[]> = {};
-      data?.forEach((question) => {
-        if (!entriesBySubject[question.subject_id]) {
-          entriesBySubject[question.subject_id] = [];
-        }
-        if (entriesBySubject[question.subject_id].length < 5) {
-          entriesBySubject[question.subject_id].push(question);
-        }
-      });
-      setRecentEntries(entriesBySubject);
-    }
-  };
 
   const handleMetadataChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -160,7 +135,7 @@ export function AddQuestionForm() {
         description: "Question saved successfully!",
       });
 
-      fetchRecentEntries();
+      // fetchRecentEntries();
 
       setCurrentQuestion({
         id: "",
@@ -220,7 +195,7 @@ export function AddQuestionForm() {
         description: "Question updated successfully!",
       });
 
-      fetchRecentEntries();
+      // fetchRecentEntries();
 
       setCurrentQuestion({
         id: "",

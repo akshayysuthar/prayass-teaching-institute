@@ -24,7 +24,10 @@ export default function GenerateExamPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchContents();
+    const fetchData = async () => {
+      await fetchContents();
+    };
+    fetchData();
   }, []);
 
   const fetchContents = async () => {
@@ -33,13 +36,13 @@ export default function GenerateExamPage() {
       const { data, error } = await supabase.from("contents").select("*");
       if (error) throw error;
       setContents(data);
-    } catch (error) {
-      setError("Failed to fetch contents");
-      toast({
-        title: "Error",
-        description: "Failed to fetch contents. Please try again.",
-        variant: "destructive",
-      });
+    // } catch (error) {
+    //   setError("Failed to fetch contents");
+    //   toast({
+    //     title: "Error",
+    //     description: "Failed to fetch contents. Please try again.",
+    //     variant: "destructive",
+    //   });
     } finally {
       setIsLoading(false);
     }
@@ -64,25 +67,25 @@ export default function GenerateExamPage() {
         );
       if (questionsError) throw questionsError;
       setQuestions(questionsData);
-    } catch (error) {
-      setError("Failed to fetch subjects and questions");
-      toast({
-        title: "Error",
-        description:
-          "Failed to fetch subjects and questions. Please try again.",
-        variant: "destructive",
-      });
+    // } catch (error) {
+    //   setError("Failed to fetch subjects and questions");
+    //   toast({
+    //     title: "Error",
+    //     description:
+    //       "Failed to fetch subjects and questions. Please try again.",
+    //     variant: "destructive",
+    //   });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleContentSelect = (content: Content) => {
+  const handleContentSelect = async (content: Content) => {
     if (content.id !== selectedContent?.id) {
       setSelectedContent(content);
       setSelectedQuestions([]);
       setSelectedChapters([]);
-      fetchSubjectsAndQuestions(content.id);
+      await fetchSubjectsAndQuestions(content.id);
     }
   };
 

@@ -28,8 +28,6 @@ export function QuestionForm({
   handleQuestionChange,
   handleImageUpload,
   handleReviewStatusChange,
-  isSubmitting,
-  questionType,
 }: QuestionFormProps) {
   const questionInputRef = useRef<HTMLTextAreaElement>(null);
   const answerInputRef = useRef<HTMLTextAreaElement>(null);

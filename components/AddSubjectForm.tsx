@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/utils/supabase/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Content } from "@/types";
 
 export function AddSubjectForm() {
@@ -40,17 +46,15 @@ export function AddSubjectForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { data, error } = await supabase
-        .from("subjects")
-        .insert([
-          {
-            content_id: parseInt(contentId),
-            subject_name: subjectName,
-            chapter_no: parseInt(chapterNo),
-            chapter_name: chapterName,
-            board_weightage: parseFloat(boardWeightage)
-          }
-        ]);
+      const { error } = await supabase.from("subjects").insert([
+        {
+          content_id: parseInt(contentId),
+          subject_name: subjectName,
+          chapter_no: parseInt(chapterNo),
+          chapter_name: chapterName,
+          board_weightage: parseFloat(boardWeightage),
+        },
+      ]);
 
       if (error) throw error;
 
@@ -135,4 +139,3 @@ export function AddSubjectForm() {
     </form>
   );
 }
-

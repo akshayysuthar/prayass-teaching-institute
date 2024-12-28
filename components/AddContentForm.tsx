@@ -18,7 +18,7 @@ export function AddContentForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("contents")
         .insert([{ name, board, medium, code, class: parseInt(classNumber) }]);
 
