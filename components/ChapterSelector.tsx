@@ -47,7 +47,7 @@ export function ChapterSelector({
   const chapters = useMemo(() => {
     const chapterMap = new Map<
       string,
-      { id: string; name: string; chapter_no: any }
+      { id: string; name: string; chapter_no: number }
     >();
     questions.forEach((q) => {
       if (!chapterMap.has(q.chapter_no)) {
