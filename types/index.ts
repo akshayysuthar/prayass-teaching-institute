@@ -3,7 +3,7 @@ export interface Question {
   chapter_name: string;
   chapter_no: any;
   id: string;
-  subject_id: number;
+  subject_id: number | string;
   section_title: string | null;
   type: string | null;
   question: string;
