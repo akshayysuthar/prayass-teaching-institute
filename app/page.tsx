@@ -12,16 +12,18 @@ import {
   Settings,
   Download,
 } from "lucide-react";
-import { InstallInstructions } from "@/components/InstallInstructions";
+
 import { supabase } from "@/utils/supabase/client";
 
-function DashboardContent() {
-  const [data, setData] = useState<{
-    questionCount: number;
-    subjectCount: number;
-    contentCount: number;
-    recentQuestions: any[];
-  }>({
+interface DashboardData {
+  questionCount: number;
+  subjectCount: number;
+  contentCount: number;
+  recentQuestions: any[];
+}
+
+function useDashboardData() {
+  const [data, setData] = useState<DashboardData>({
     questionCount: 0,
     subjectCount: 0,
     contentCount: 0,
@@ -30,7 +32,7 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchDashboardData() {
+    const fetchData = async () => {
       try {
         const [questionCount, subjectCount, contentCount, recentQuestions] =
           await Promise.all([
@@ -61,10 +63,16 @@ function DashboardContent() {
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    fetchDashboardData();
-  }, [supabase]);
+    fetchData();
+  }, []);
+
+  return { data, loading };
+}
+
+function DashboardContent() {
+  const { data, loading } = useDashboardData();
 
   if (loading) {
     return <div>Loading dashboard data...</div>;
@@ -281,8 +289,6 @@ export default function Home() {
           </Button>
         </motion.div>
       )}
-
-      <InstallInstructions />
     </div>
   );
 }
