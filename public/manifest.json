@@ -1,6 +1,6 @@
 {
   "name": "Exam Paper Generator",
-  "short_name": "ExamGen",
+  "short_name": "Prayass App",
   "description": "An app to generate and manage exam papers",
   "start_url": "/",
   "display": "standalone",

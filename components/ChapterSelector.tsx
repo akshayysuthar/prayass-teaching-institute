@@ -51,9 +51,9 @@ export function ChapterSelector({
       { id: string; name: string; chapter_no: number }
     >();
     questions.forEach((q) => {
-      if (!chapterMap.has(q.chapter_no.toString())) {
-        chapterMap.set(q.chapter_no.toString(), {
-          id: q.chapter_no.toString(),
+      if (!chapterMap.has(q.chapter_no)) {
+        chapterMap.set(q.chapter_no, {
+          id: q.chapter_no,
           name: q.chapter_name || "Unknown",
           chapter_no: q.chapter_no,
         });
@@ -81,7 +81,7 @@ export function ChapterSelector({
   useEffect(() => {
     const uniqueChapters = Array.from(
       new Set(selectedQuestions.map((q) => q.chapter_no))
-    ).map((ch) => ({ id: ch.toString(), name: ch.toString() }));
+    ).map((ch) => ({ id: ch, name: ch }));
     onSelectChapters(uniqueChapters);
   }, [selectedQuestions, onSelectChapters]);
 
@@ -181,7 +181,7 @@ export function ChapterSelector({
                                 {sectionQuestions
                                   .filter(
                                     (q) =>
-                                      q.chapter_no.toString() === chapter.id
+                                      q.chapter_no === chapter.id
                                   )
                                   .map((question) => (
                                     <div
