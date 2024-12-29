@@ -15,11 +15,17 @@ import {
 
 import { supabase } from "@/utils/supabase/client";
 
+interface Question {
+  id: string;
+  question: string;
+  created_at?: string;
+}
+
 interface DashboardData {
   questionCount: number;
   subjectCount: number;
   contentCount: number;
-  recentQuestions: any[];
+  recentQuestions: Question[];
 }
 
 function useDashboardData() {
@@ -159,7 +165,7 @@ function DashboardContent() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {data.recentQuestions.map((question: any) => (
+              {data.recentQuestions.map((question) => (
                 <li key={question.id} className="text-sm">
                   {question.question.substring(0, 100)}...
                 </li>
@@ -178,7 +184,7 @@ export default function Home() {
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
-      // @ts-ignore
+      // @ts-expect-error TypeScript does not recognize `deferredPrompt`
       window.deferredPrompt = e;
       setShowInstallPrompt(true);
     };
@@ -187,7 +193,7 @@ export default function Home() {
   }, []);
 
   const handleInstall = async () => {
-    // @ts-ignore
+    // @ts-expect-error TypeScript does not recognize `deferredPrompt`
     const promptEvent = window.deferredPrompt;
     if (promptEvent) {
       promptEvent.prompt();
@@ -197,7 +203,7 @@ export default function Home() {
       } else {
         console.log("User dismissed the install prompt");
       }
-      // @ts-ignore
+      // @ts-expect-error Clear `deferredPrompt` after use
       window.deferredPrompt = null;
     }
     setShowInstallPrompt(false);
