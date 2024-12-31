@@ -47,6 +47,15 @@ export interface SelectedChapter {
   name: string;
 }
 
+export interface NavItem {
+  title: string;
+  href: string;
+  icon?: string;
+  adminOnly?: boolean;
+  disabled?: boolean;
+  external?: boolean;
+}
+
 export interface SubjectSelectorProps {
   subjects: Subject[];
   onSelectSubject: (subjectId: string) => void;

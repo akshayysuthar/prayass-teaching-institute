@@ -20,10 +20,11 @@ export function AddQuestionForm() {
 
   const [metadata, setMetadata] = useState({
     content_id: "",
-    subject_id: "",
+    subject_id: "", // Use null instead of an empty string
     sectionTitle: "",
     type: "",
   });
+
   const [currentQuestion, setCurrentQuestion] = useState<Partial<Question>>({
     // id: "",
     question: "",
@@ -69,11 +70,11 @@ export function AddQuestionForm() {
     }));
   };
 
-  const handleReviewStatusChange = (isReviewed: boolean) => {
+  const handleReviewStatusChange = (is_reviewed: boolean) => {
     setCurrentQuestion((prev) => ({
       ...prev,
-      isReviewed,
-      reviewedBy: isReviewed ? user?.fullName || "Current User" : "",
+      is_reviewed,
+      reviewed_by: user?.fullName,
     }));
   };
 
@@ -116,7 +117,10 @@ export function AddQuestionForm() {
     }
 
     // Validate subject_id
-    if (!metadata.subject_id || isNaN(Number(metadata.subject_id))) {
+    const parsedSubjectId = metadata.subject_id
+      ? parseInt(metadata.subject_id, 10)
+      : null;
+    if (parsedSubjectId === null || isNaN(parsedSubjectId)) {
       toast({
         title: "Error",
         description: "Subject ID must be a valid number.",
@@ -130,12 +134,10 @@ export function AddQuestionForm() {
       const questionToSave = {
         ...metadata,
         ...currentQuestion,
+        subject_id: parsedSubjectId, // Ensure subject_id is a valid number or null
         section_title: metadata.sectionTitle,
         created_by: user.fullName,
       };
-
-      // Ensure subject_id is a number
-      questionToSave.subject_id = parseInt(metadata.subject_id, 10);
 
       const { error } = await supabase
         .from("questions")
