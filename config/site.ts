@@ -1,4 +1,4 @@
-import { PlusCircle, BookOpen, FileText, Settings } from "lucide-react";
+import { PlusCircle, BookOpen, FileText, Settings, Home } from "lucide-react";
 
 export type SiteConfig = {
   name: string;
@@ -40,6 +40,7 @@ export const siteConfig: SiteConfig = {
       title: "Home",
       href: "/",
       disabled: "",
+      icon: Home,
     },
     {
       title: "Add Question",

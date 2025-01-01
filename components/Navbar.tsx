@@ -10,16 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
-import {
-  Menu,
-  Home,
-  Plus,
-  FileText,
-  Book,
-  Settings,
-  X,
-  ChevronRight,
-} from "lucide-react";
+import { Menu, Home, Plus, FileText, Book, Settings } from "lucide-react";
 
 const icons = {
   home: Home,
@@ -34,10 +25,10 @@ export function Navbar() {
   const pathname = usePathname();
   const { user, isSignedIn } = useUser();
   const isAdmin =
-    user?.emailAddresses[0]?.emailAddress === "prayasteachingacademy@gmail.com";
+    user?.emailAddresses[0]?.emailAddress === "akshaysuthar05@gmail.com";
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 container">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 container px-4">
       <div className="container flex h-14 items-center justify-between">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -49,7 +40,7 @@ export function Navbar() {
               {siteConfig.name}
             </motion.span>
           </Link>
-          <nav className="flex items-center space-x-6 px-5 text-sm font-medium">
+          <nav className="flex items-center justify-center px-5 text-sm font-medium">
             {siteConfig.navLinks.map(
               (item) =>
                 (!item.adminOnly || (item.adminOnly && isAdmin)) && (
@@ -71,7 +62,7 @@ export function Navbar() {
           </nav>
         </div>
 
-        <div className="flex md:hidden">
+        <div className="flex md:hidden container">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button
@@ -82,7 +73,7 @@ export function Navbar() {
                 <span className="sr-only">Toggle Menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="pr-0">
+            <SheetContent side="left" className="">
               <div className="flex items-center">
                 <Link
                   href="/"
@@ -96,38 +87,36 @@ export function Navbar() {
                   className="ml-auto h-8 w-8 p-0"
                   onClick={() => setOpen(false)}
                 >
-                  <X className="h-6 w-6" />
+                  {/* <X className="h-6 w-6" /> */}
                   <span className="sr-only">Close</span>
                 </Button>
               </div>
-              <ScrollArea className="my-4 h-[calc(100vh-8rem)] pb-10">
+              <ScrollArea className="my-4 h-[calc(100vh-9rem)]">
                 <div className="flex flex-col space-y-2">
-                  {siteConfig.navLinks.map(
-                    (item) =>
-                      (!item.adminOnly || (item.adminOnly && isAdmin)) && (
-                        <MobileLink
-                          key={item.href}
-                          href={item.href}
-                          onOpenChange={setOpen}
-                          className="flex items-center"
-                        >
-                          {item.icon && (
-                            <span className="mr-2">
-                              {icons[item.icon as keyof typeof icons]?.({
-                                className: "h-4 w-4",
-                              })}
-                            </span>
-                          )}
-                          {item.title}
-                          <ChevronRight className="ml-auto h-4 w-4" />
-                        </MobileLink>
-                      )
-                  )}
+                  {siteConfig.navLinks.map((item) => (
+                    <MobileLink
+                      key={item.href}
+                      href={item.href}
+                      onOpenChange={setOpen}
+                      className="flex items-center"
+                    >
+                      {item.icon && (
+                        <span className="mr-2">
+                          {icons[item.icon as keyof typeof icons]?.({
+                            className: "h-4 w-4",
+                          })}
+                        </span>
+                      )}
+                      {item.title}
+                      {/* <ChevronRight className="ml-auto h-4 w-4" /> */}
+                    </MobileLink>
+                  ))}
                 </div>
               </ScrollArea>
 
-              <div className="flex items-center justify-between pt-4">
-                <span className="text-sm text-muted-foreground">
+              {/* user area  */}
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-sm">
                   {isSignedIn
                     ? `Signed in as ${user.fullName}`
                     : "Not signed in"}

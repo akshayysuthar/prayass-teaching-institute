@@ -32,9 +32,9 @@ export default function RootLayout({
           <link rel="apple-touch-icon" href="/icon-192x192.png" />
         </head>
         <body className="min-h-screen bg-background font-sans antialiased">
-          <div className="relative flex min-h-screen flex-col px-10 container">
+          <div className="relative flex min-h-screen flex-col">
             <Navbar />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 container">{children}</main>
           </div>
           <Toaster />
         </body>
