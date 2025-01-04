@@ -42,7 +42,7 @@ export default function GenerateExamPage() {
       const { data, error } = await supabase.from("contents").select("*");
       if (error) throw error;
       setContents(data);
-    } catch (error) {
+    } catch (Error) {
       setError("Failed to fetch contents");
       toast({
         title: "Error",
