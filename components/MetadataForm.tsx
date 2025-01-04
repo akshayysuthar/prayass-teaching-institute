@@ -13,8 +13,8 @@ import { Content, Subject } from "@/types";
 
 interface MetadataFormProps {
   metadata: {
-    content_id: string;
-    subject_id: string;
+    content_id: string | null;
+    subject_id: string | null;
     sectionTitle: string;
     type: string;
   };
@@ -68,8 +68,9 @@ export function MetadataForm({
         <div>
           <Label htmlFor="contentId">Content</Label>
           <Select
+            required
             name="contentId"
-            value={metadata.content_id}
+            value={metadata.content_id ?? ""}
             onValueChange={(value) =>
               handleMetadataChange({
                 target: { name: "content_id", value },
@@ -92,8 +93,9 @@ export function MetadataForm({
         <div>
           <Label htmlFor="subjectId">Subject</Label>
           <Select
+            required
             name="subjectId"
-            value={metadata.subject_id}
+            value={metadata.subject_id ?? ""}
             onValueChange={(value) =>
               handleMetadataChange({
                 target: { name: "subject_id", value },

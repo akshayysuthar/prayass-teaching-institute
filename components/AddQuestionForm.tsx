@@ -17,16 +17,16 @@ export function AddQuestionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showJsonInput, setShowJsonInput] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
-
+  const [recentEntries, setRecentEntries] = useState<
+    Record<string, Partial<Question>[]>
+  >({});
   const [metadata, setMetadata] = useState({
-    content_id: "",
-    subject_id: "", // Use null instead of an empty string
+    content_id: null,
+    subject_id: null,
     sectionTitle: "",
     type: "",
   });
-
   const [currentQuestion, setCurrentQuestion] = useState<Partial<Question>>({
-    // id: "",
     question: "",
     question_images: [],
     answer: "",
@@ -39,14 +39,37 @@ export function AddQuestionForm() {
   const { toast } = useToast();
   const { user } = useUser();
 
-  console.log(metadata);
-  console.log(currentQuestion);
+  console.log(recentEntries);
+  
 
   useEffect(() => {
     if (user) {
-      // fetchRecentEntries();
+      fetchRecentEntries();
     }
   }, [user]);
+
+  const fetchRecentEntries = async () => {
+    const { data, error } = await supabase
+      .from("questions")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(25);
+
+    if (error) {
+      console.error("Error fetching recent entries:", error);
+    } else {
+      const entriesBySubject: Record<string, Partial<Question>[]> = {};
+      data?.forEach((question) => {
+        if (!entriesBySubject[question.subject_id]) {
+          entriesBySubject[question.subject_id] = [];
+        }
+        if (entriesBySubject[question.subject_id].length < 5) {
+          entriesBySubject[question.subject_id].push(question);
+        }
+      });
+      setRecentEntries(entriesBySubject);
+    }
+  };
 
   const handleMetadataChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -70,11 +93,11 @@ export function AddQuestionForm() {
     }));
   };
 
-  const handleReviewStatusChange = (is_reviewed: boolean) => {
+  const handleReviewStatusChange = (isReviewed: boolean) => {
     setCurrentQuestion((prev) => ({
       ...prev,
-      is_reviewed,
-      reviewed_by: user?.fullName,
+      isReviewed,
+      reviewedBy: isReviewed ? user?.fullName || "Current User" : "",
     }));
   };
 
@@ -116,28 +139,21 @@ export function AddQuestionForm() {
       return;
     }
 
-    // Validate subject_id
-    const parsedSubjectId = metadata.subject_id
-      ? parseInt(metadata.subject_id, 10)
-      : null;
-    if (parsedSubjectId === null || isNaN(parsedSubjectId)) {
-      toast({
-        title: "Error",
-        description: "Subject ID must be a valid number.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const questionToSave = {
         ...metadata,
         ...currentQuestion,
-        subject_id: parsedSubjectId, // Ensure subject_id is a valid number or null
-        section_title: metadata.sectionTitle,
-        created_by: user.fullName,
+        created_by: user.id,
+        content_id: metadata.content_id
+          ? parseInt(metadata.content_id, 10)
+          : null,
+        subject_id: metadata.subject_id
+          ? parseInt(metadata.subject_id, 10)
+          : null,
+        marks: currentQuestion.marks || 1,
       };
+      console.log("Saving question:", questionToSave);
 
       const { error } = await supabase
         .from("questions")
@@ -151,8 +167,8 @@ export function AddQuestionForm() {
         description: "Question saved successfully!",
       });
 
+      // Reset the form state
       setCurrentQuestion({
-        id: "",
         question: "",
         question_images: [],
         answer: "",
@@ -162,12 +178,20 @@ export function AddQuestionForm() {
         is_reviewed: false,
         reviewed_by: "",
       });
+      // setMetadata({
+      //   content_id: null,
+      //   subject_id: null,
+      //   sectionTitle: "",
+      //   type: "",
+      // });
       setIsEditing(false);
     } catch (error) {
-      console.error("Error saving question:", error);
+      console.error("Error saving/updating question:", error);
       toast({
         title: "Error",
-        description: "Failed to save question. Please try again.",
+        description:
+          (error as Error).message ||
+          "Failed to save/update question. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -190,7 +214,14 @@ export function AddQuestionForm() {
       const questionToUpdate = {
         ...metadata,
         ...currentQuestion,
-        last_edited_by: user.fullName,
+        last_edited_by: user.id,
+        content_id: metadata.content_id
+          ? parseInt(metadata.content_id, 10)
+          : null,
+        subject_id: metadata.subject_id
+          ? parseInt(metadata.subject_id, 10)
+          : null,
+        marks: currentQuestion.marks || 1,
       };
       console.log("Updating question:", questionToUpdate);
 
@@ -209,10 +240,8 @@ export function AddQuestionForm() {
         description: "Question updated successfully!",
       });
 
-      // fetchRecentEntries();
-
+      // Reset the form state
       setCurrentQuestion({
-        id: "",
         question: "",
         question_images: [],
         answer: "",
@@ -222,12 +251,20 @@ export function AddQuestionForm() {
         is_reviewed: false,
         reviewed_by: "",
       });
+      setMetadata({
+        content_id: null,
+        subject_id: null,
+        sectionTitle: "",
+        type: "",
+      });
       setIsEditing(false);
     } catch (error) {
-      console.error("Error updating question:", error);
+      console.error("Error saving/updating question:", error);
       toast({
         title: "Error",
-        description: "Failed to update question. Please try again.",
+        description:
+          (error as Error).message ||
+          "Failed to save/update question. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -259,7 +296,7 @@ export function AddQuestionForm() {
         setMetadata({
           content_id: data.subject_id,
           subject_id: data.subject_id,
-          sectionTitle: data.sectionTitle,
+          sectionTitle: data.section_title,
           type: data.type,
         });
         setIsEditing(true);
@@ -282,6 +319,26 @@ export function AddQuestionForm() {
         variant: "destructive",
       });
     }
+  };
+
+  const resetFormState = () => {
+    setCurrentQuestion({
+      question: "",
+      question_images: [],
+      answer: "",
+      answer_images: [],
+      marks: 1,
+      selection_count: 0,
+      is_reviewed: false,
+      reviewed_by: "",
+    });
+    setMetadata({
+      content_id: null,
+      subject_id: null,
+      sectionTitle: "",
+      type: "",
+    });
+    setIsEditing(false);
   };
 
   if (!user) {
@@ -345,24 +402,7 @@ export function AddQuestionForm() {
               questionType={metadata.type}
             />
             <div className="flex justify-between items-center">
-              <Button
-                onClick={() => {
-                  setCurrentQuestion({
-                    id: "",
-                    question: "",
-                    question_images: [],
-                    answer: "",
-                    answer_images: [],
-                    marks: 1,
-                    selection_count: 0,
-                    is_reviewed: false,
-                    reviewed_by: "",
-                  });
-                  setIsEditing(false);
-                }}
-              >
-                Clear Form
-              </Button>
+              <Button onClick={resetFormState}>Clear Form</Button>
               <Button
                 onClick={isEditing ? handleEditQuestion : handleSaveQuestion}
                 disabled={isSubmitting}

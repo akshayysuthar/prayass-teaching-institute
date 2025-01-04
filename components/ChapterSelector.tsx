@@ -10,65 +10,80 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import { Question, SelectedChapter, Subject } from "@/types";
+import { Question, SelectedChapter, ExamStructure } from "@/types";
+import { supabase } from "@/utils/supabase/client";
 
 interface ChapterSelectorProps {
   questions: Question[];
-  subject: Subject[];
   onSelectQuestions: (questions: Question[]) => void;
   onSelectChapters: (chapters: SelectedChapter[]) => void;
+  examStructure: ExamStructure;
 }
 
 export function ChapterSelector({
   questions,
-  subject,
   onSelectQuestions,
   onSelectChapters,
+  examStructure,
 }: ChapterSelectorProps) {
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
+  const [chapterNames, setChapterNames] = useState<{ [key: string]: string }>(
+    {}
+  );
 
-  console.log(questions);
-  console.log(subject);
+  useEffect(() => {
+    const fetchChapterNames = async () => {
+      const subjectIds = [...new Set(questions.map((q) => q.subject_id))];
+      const { data, error } = await supabase
+        .from("subjects")
+        .select("id, chapter_name")
+        .in("id", subjectIds);
 
-  const groupedBySubject = useMemo(() => {
-    const subjectMap: { [key: string]: { [key: string]: Question[] } } = {};
-    questions.forEach((q) => {
-      if (!subjectMap[q.subject_id]) {
-        subjectMap[q.subject_id] = {};
+      if (error) {
+        console.error("Error fetching chapter names:", error);
+        return;
       }
-      const section = q.section_title || "General";
-      if (!subjectMap[q.subject_id][section]) {
-        subjectMap[q.subject_id][section] = [];
-      }
-      subjectMap[q.subject_id][section].push(q);
-    });
-    return subjectMap;
+
+      const chapterNameMap = data.reduce((acc: { [key: string]: string }, subject: { id: string; chapter_name: string }) => {
+        acc[subject.id] = subject.chapter_name;
+        return acc;
+      }, {});
+
+      setChapterNames(chapterNameMap);
+    };
+
+    fetchChapterNames();
   }, [questions]);
 
-  const chapters = useMemo(() => {
-    const chapterMap = new Map<
-      string,
-      { id: string; name: string; chapter_no: number }
-    >();
+  const groupedQuestions = useMemo(() => {
+    const grouped: { [key: string]: Question[] } = {};
     questions.forEach((q) => {
-      if (!chapterMap.has(q.chapter_no)) {
-        chapterMap.set(q.chapter_no, {
-          id: q.chapter_no,
-          name: q.chapter_name || "Unknown",
-          chapter_no: q.chapter_no,
-        });
+      const type = q.section_title || "Other";
+      if (!grouped[type]) {
+        grouped[type] = [];
       }
+      grouped[type].push(q);
     });
-    return Array.from(chapterMap.values()).sort(
-      (a, b) => a.chapter_no - b.chapter_no
-    );
+    return grouped;
   }, [questions]);
+
+  const sortedQuestionTypes = useMemo(() => {
+    return Object.keys(groupedQuestions).sort((a, b) => {
+      const indexA = examStructure.sections.findIndex(
+        (s) => s.questionType === a
+      );
+      const indexB = examStructure.sections.findIndex(
+        (s) => s.questionType === b
+      );
+      return indexA - indexB;
+    });
+  }, [groupedQuestions, examStructure]);
 
   const handleQuestionChange = useCallback((question: Question) => {
     setSelectedQuestions((prev) => {
-      const isSelected = prev.some((q) => q.id === question.id);
+      const isSelected = prev.some((q: Question) => q.id === question.id);
       const updated = isSelected
-        ? prev.filter((q) => q.id !== question.id)
+        ? prev.filter((q: Question) => q.id !== question.id)
         : [...prev, question];
       return updated;
     });
@@ -80,16 +95,17 @@ export function ChapterSelector({
 
   useEffect(() => {
     const uniqueChapters = Array.from(
-      new Set(selectedQuestions.map((q) => q.chapter_no))
-    ).map((ch) => ({ id: ch, name: ch }));
+      new Set(selectedQuestions.map((q: Question) => q.subject_id))
+    ).map((subjectId) => ({
+      id: subjectId,
+      name: chapterNames[subjectId] || subjectId,
+    }));
     onSelectChapters(uniqueChapters);
-  }, [selectedQuestions, onSelectChapters]);
+  }, [selectedQuestions, onSelectChapters, chapterNames]);
 
   const handleReset = useCallback(() => {
     setSelectedQuestions([]);
-    onSelectQuestions([]);
-    onSelectChapters([]);
-  }, [onSelectQuestions, onSelectChapters]);
+  }, []);
 
   const renderImages = useCallback((images?: string | string[]) => {
     if (!images) return null;
@@ -110,22 +126,38 @@ export function ChapterSelector({
     );
   }, []);
 
+  const isQuestionSelectable = useCallback(
+    (question: Question) => {
+      const section = examStructure.sections.find(
+        (s) => s.questionType === question.section_title
+      );
+      if (!section) return false;
+
+      const selectedQuestionsOfType = selectedQuestions.filter(
+        (q: Question) => q.section_title === question.section_title
+      );
+      const totalMarksOfType = selectedQuestionsOfType.reduce(
+        (sum, q) => sum + q.marks,
+        0
+      );
+      return totalMarksOfType < section.totalMarks;
+    },
+    [selectedQuestions, examStructure]
+  );
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-4 items-center justify-center">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <h2 className="col-span-4 text-xl font-bold text-center">
-          Select Chapter
+          Select Questions
         </h2>
         <div className="col-span-3 mt-2">
           <Badge variant="secondary" className="mr-1">
             Selected Questions: {selectedQuestions.length}
           </Badge>
           <Badge variant="secondary" className="mr-1">
-            Selected Chapters:{" "}
-            {
-              Array.from(new Set(selectedQuestions.map((q) => q.chapter_no)))
-                .length
-            }
+            Total Marks:{" "}
+            {selectedQuestions.reduce((sum, q) => sum + q.marks, 0)}
           </Badge>
         </div>
         <div className="col-span-1 flex justify-center items-center">
@@ -141,91 +173,45 @@ export function ChapterSelector({
       </div>
 
       <div className="space-y-2">
-        {Object.entries(groupedBySubject).map(([subjectId, sections]) => {
-          const subjectDetails = subject.find(
-            (sub) => sub.id === parseInt(subjectId)
-          );
-          const subjectChapters = chapters.filter((chapter) =>
-            questions.some(
-              (q) =>
-                q.subject_id === parseInt(subjectId) &&
-                q.chapter_no === parseInt(chapter.id)
-            )
-          );
-          return (
-            <Accordion type="single" collapsible key={subjectId}>
-              <AccordionItem value={`subject-${subjectId}`}>
-                <AccordionTrigger>
-                  <h3 className="text-lg font-bold flex gap-3">
-                    <span>
-                      Chapter {subjectDetails?.chapter_no || subjectId}
-                    </span>
-                    <span>{subjectDetails?.chapter_name || subjectId}</span>
-                    {subjectChapters
-                      .map((ch) => `${ch.id} (${ch.name})`)
-                      .join(", ")}
-                  </h3>
-                </AccordionTrigger>
-                <AccordionContent>
-                  {Object.entries(sections)
-                    .sort(([a], [b]) => a.localeCompare(b))
-                    .map(([section, sectionQuestions]) => (
-                      <Accordion type="single" collapsible key={section}>
-                        <AccordionItem value={`section-${section}`}>
-                          <AccordionTrigger>
-                            <h4 className="text-md font-semibold">{section}</h4>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            {chapters.map((chapter) => (
-                              <div key={chapter.id}>
-                                {sectionQuestions
-                                  .filter(
-                                    (q) =>
-                                      q.chapter_no === chapter.id
-                                  )
-                                  .map((question) => (
-                                    <div
-                                      className="flex items-start space-x-3"
-                                      key={question.id}
-                                    >
-                                      <Checkbox
-                                        id={`question-${question.id}`}
-                                        checked={selectedQuestions.some(
-                                          (q) => q.id === question.id
-                                        )}
-                                        onCheckedChange={() =>
-                                          handleQuestionChange(question)
-                                        }
-                                      />
-                                      <Label
-                                        htmlFor={`question-${question.id}`}
-                                        className="flex flex-col space-y-2"
-                                      >
-                                        <span>
-                                          {question.question} ({question.marks}{" "}
-                                          marks)
-                                        </span>
-                                        {renderImages(
-                                          question.question_images || undefined
-                                        )}
-                                        <span className="text-sm text-gray-500">
-                                          Selected{" "}
-                                          {question.selection_count || 0} times
-                                        </span>
-                                      </Label>
-                                    </div>
-                                  ))}
-                              </div>
-                            ))}
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                    ))}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          );
-        })}
+        {sortedQuestionTypes.map((questionType) => (
+          <Accordion type="single" collapsible key={questionType}>
+            <AccordionItem value={`type-${questionType}`}>
+              <AccordionTrigger>
+                <h3 className="text-lg font-bold">{questionType} Questions</h3>
+              </AccordionTrigger>
+              <AccordionContent>
+                {groupedQuestions[questionType].map((question) => (
+                  <div
+                    className="flex items-start space-x-3 mb-4"
+                    key={question.id}
+                  >
+                    <Checkbox
+                      id={`question-${question.id}`}
+                      checked={selectedQuestions.some(
+                        (q: Question) => q.id === question.id
+                      )}
+                      onCheckedChange={() => handleQuestionChange(question)}
+                      disabled={!isQuestionSelectable(question)}
+                    />
+                    <Label
+                      htmlFor={`question-${question.id}`}
+                      className="flex flex-col space-y-2"
+                    >
+                      <span>
+                        {question.question} ({question.marks} marks)
+                      </span>
+                      {renderImages(question.question_images || undefined)}
+                      <span className="text-sm text-gray-500">
+                        Chapter:{" "}
+                        {chapterNames[question.subject_id] || "Unknown"}
+                      </span>
+                    </Label>
+                  </div>
+                ))}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        ))}
       </div>
     </div>
   );

@@ -6,8 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/utils/supabase/client";
+type AddContentFormProps = {
+  onContentAdded: () => void;
+};
 
-export function AddContentForm() {
+export function AddContentForm({ onContentAdded }: AddContentFormProps) {
   const [name, setName] = useState("");
   const [board, setBoard] = useState("");
   const [medium, setMedium] = useState("");
@@ -35,6 +38,8 @@ export function AddContentForm() {
       setMedium("");
       setCode("");
       setClassNumber("");
+      // Trigger the callback to update parent state
+      onContentAdded();
     } catch (error) {
       console.error("Error adding new content:", error);
       toast({

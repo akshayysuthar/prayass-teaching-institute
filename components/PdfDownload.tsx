@@ -123,6 +123,7 @@ const formattedDate = getFormattedDate();
 
 const MyDocument = ({
   selectedQuestions,
+  examStructure,
   instituteName,
   standard,
   studentName,
@@ -151,31 +152,43 @@ const MyDocument = ({
 
           <View style={styles.row}>
             <Text style={styles.leftColumn}>Teacher Name: {teacherName}</Text>
+            <Text style={styles.rightColumn}>
+              Total Marks: {examStructure.totalMarks}
+            </Text>
           </View>
         </View>
 
-        {selectedQuestions.map((question, index) => (
-          <View key={question.id} style={styles.question}>
-            <Text style={styles.questionNumber}>
-              {`${index + 1}. `}
-              <DynamicParagraph
-                content={question.question}
-                images={question.question_images || []}
-              />
-              {` (${question.marks} marks)`}
+        {examStructure.sections.map((section, sectionIndex) => (
+          <View key={section.name}>
+            <Text style={styles.header}>
+              Section {section.name} ({section.questionType})
             </Text>
+            {selectedQuestions
+              .filter((q) => q.type === section.questionType)
+              .map((question, index) => (
+                <View key={question.id} style={styles.question}>
+                  <Text style={styles.questionNumber}>
+                    {`${sectionIndex + 1}.${index + 1}. `}
+                    <DynamicParagraph
+                      content={question.question}
+                      images={question.question_images || []}
+                    />
+                    {` (${question.marks} marks)`}
+                  </Text>
 
-            {question.type === "MCQ" && question.options && (
-              <View style={styles.optionsRow}>
-                {Object.entries(question.options).map(([key, value]) => (
-                  <View key={key} style={styles.option}>
-                    <Text style={styles.optionText}>
-                      {key}) {value}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
+                  {question.type === "MCQ" && question.options && (
+                    <View style={styles.optionsRow}>
+                      {Object.entries(question.options).map(([key, value]) => (
+                        <View key={key} style={styles.option}>
+                          <Text style={styles.optionText}>
+                            {key}) {value}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              ))}
           </View>
         ))}
       </View>
@@ -191,21 +204,30 @@ const MyDocument = ({
       <View style={styles.section}>
         <Text style={styles.header}>Answer Key</Text>
 
-        {selectedQuestions.map((question, index) => (
-          <View key={question.id} style={styles.question}>
-            <Text style={styles.questionNumber}>{`${index + 1}. ${
-              question.question
-            }`}</Text>
+        {examStructure.sections.map((section, sectionIndex) => (
+          <View key={section.name}>
+            <Text style={styles.header}>
+              Section {section.name} ({section.questionType})
+            </Text>
+            {selectedQuestions
+              .filter((q) => q.type === section.questionType)
+              .map((question, index) => (
+                <View key={question.id} style={styles.question}>
+                  <Text style={styles.questionNumber}>{`${sectionIndex + 1}.${
+                    index + 1
+                  }. ${question.question}`}</Text>
 
-            <Text>Answer:</Text>
-            <DynamicParagraph
-              content={
-                typeof question.answer === "string"
-                  ? question.answer
-                  : JSON.stringify(question.answer)
-              }
-              images={question.answer_images || []}
-            />
+                  <Text>Answer:</Text>
+                  <DynamicParagraph
+                    content={
+                      typeof question.answer === "string"
+                        ? question.answer
+                        : JSON.stringify(question.answer)
+                    }
+                    images={question.answer_images || []}
+                  />
+                </View>
+              ))}
           </View>
         ))}
       </View>
@@ -237,4 +259,3 @@ export function PdfDownload(props: PdfDownloadProps) {
     </div>
   );
 }
-

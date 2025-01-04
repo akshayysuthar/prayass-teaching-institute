@@ -1,9 +1,9 @@
 export interface Question {
-  content_id: any;
-  chapter_name: string;
-  chapter_no: any;
+  subject_id: any;
   id: string;
-  subject_id: number | string;
+  content_id: number;
+  chapter_no: string;
+  chapter_name: string;
   section_title: string | null;
   type: string | null;
   question: string;
@@ -20,6 +20,68 @@ export interface Question {
   created_at: string;
   options?: { [key: string]: string };
 }
+
+export interface Content {
+  id: number;
+  name: string;
+  board: string;
+  medium: string;
+  code: string;
+  class: number;
+  created_at: string;
+}
+
+export interface SelectedChapter {
+  id: string;
+  name: string;
+}
+
+export interface ExamStructure {
+  totalMarks: number;
+  sections: ExamSection[];
+}
+
+export interface ExamSection {
+  name: string;
+  questionType: string;
+  totalMarks: number;
+}
+
+export interface PdfDownloadProps {
+  selectedQuestions: Question[];
+  examStructure: ExamStructure;
+  instituteName: string;
+  standard: string;
+  studentName: string;
+  subject: string;
+  chapters: string;
+  teacherName: string;
+}
+
+
+
+// export interface Question {
+//   content_id: any;
+//   chapter_name: string;
+//   chapter_no: any;
+//   id: string;
+//   subject_id: number | string;
+//   section_title: string | null;
+//   type: string | null;
+//   question: string;
+//   question_images: string[] | null;
+//   answer: string | object;
+//   answer_images: string[] | null;
+//   marks: number;
+//   selection_count: number;
+//   is_reviewed: boolean;
+//   reviewed_by: string | null;
+//   created_by: string;
+//   last_edited_by: string | null;
+//   last_updated: string;
+//   created_at: string;
+//   options?: { [key: string]: string };
+// }
 
 export interface Content {
   id: number;
@@ -70,6 +132,7 @@ export interface PdfDownloadProps {
   subject: string;
   chapters: string;
   teacherName: string;
+  examStructure: ExamStructure;
 }
 
 export interface SubjectData {
@@ -120,6 +183,7 @@ export interface SubjectSelectorProps {
 export interface ChapterSelectorProps {
   questionBankData: Chapter[];
   onSelectQuestions: (questions: Question[]) => void;
+  examStructure: ExamStructure;
 }
 
 export interface ExamMetadata {
@@ -178,3 +242,15 @@ export interface ClassSelectorProps {
 //   options?: Record<string, string>;
 //   marks: number;
 // }
+
+export interface ExamSection {
+  name: string;
+  questionType: string;
+  marksPerQuestion: number;
+  totalQuestions: number;
+}
+
+export interface ExamStructure {
+  totalMarks: number;
+  sections: ExamSection[];
+}

@@ -15,7 +15,11 @@ import {
 } from "@/components/ui/select";
 import { Content } from "@/types";
 
-export function AddSubjectForm() {
+type AddSubjectFormProps = {
+  onSubjectAdded: () => void;
+};
+
+export function AddSubjectForm({ onSubjectAdded }: AddSubjectFormProps) {
   const [contentId, setContentId] = useState("");
   const [subjectName, setSubjectName] = useState("");
   const [chapterNo, setChapterNo] = useState("");
@@ -69,6 +73,8 @@ export function AddSubjectForm() {
       setChapterNo("");
       setChapterName("");
       setBoardWeightage("");
+      // Notify parent component
+      onSubjectAdded();
     } catch (error) {
       console.error("Error adding new subject:", error);
       toast({
