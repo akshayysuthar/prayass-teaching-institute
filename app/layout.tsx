@@ -11,10 +11,15 @@ export const metadata = {
   },
   description: siteConfig.description,
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
+    icon: "/file.png",
+    shortcut: "/file.png",
+    apple: "/file.png",
   },
+  // icons: {
+  //   icon: "/file.png",
+  //   shortcut: "/favicon-16x16.png",
+  //   apple: "/apple-touch-icon.png",
+  // },
 };
 
 export default function RootLayout({
@@ -28,8 +33,8 @@ export default function RootLayout({
         <head>
           <link rel="manifest" href="/manifest.json" />
           <meta name="theme-color" content="#000000" />
-          <link rel="icon" href="/favicon.ico" />
-          <link rel="apple-touch-icon" href="/icon-192x192.png" />
+          <link rel="icon" href="/file.png" />
+          <link rel="apple-touch-icon" href="/file.png" />
         </head>
         <body className="min-h-screen bg-background font-sans antialiased">
           <div className="relative flex min-h-screen flex-col">

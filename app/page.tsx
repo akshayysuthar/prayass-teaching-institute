@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/utils/supabase/client";
+import { Loading } from "@/components/Loading";
 
 interface Question {
   id: string;
@@ -83,11 +84,18 @@ function DashboardContent() {
   const { data, loading } = useDashboardData();
 
   if (loading) {
-    return <div>Loading dashboard data...</div>;
+    return (
+      <div>
+        <Loading title={"Loading dashboard data..."} />
+        {/* Loading dashboard data... */}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-8">
+      {/* <Loading title={"Loading dashboard data..."} /> */}
+
       <motion.div
         className="grid gap-4 md:grid-cols-3"
         initial="hidden"
