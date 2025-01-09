@@ -7,50 +7,39 @@ import { ExamStructureForm } from "@/components/ExamStructureForm";
 import { ExamPreview } from "@/components/ExamPreview";
 import { PdfDownload } from "@/components/PdfDownload";
 import { AutoGenerateForm } from "@/components/AutoGenerateForm";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/utils/supabase/client";
 import { Content, Question, SelectedChapter, ExamStructure } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { Loading } from "@/components/Loading";
 
-const defaultExamStructure: ExamStructure = {
+const initialExamStructure: ExamStructure = {
   totalMarks: 100,
   sections: [
     {
-      name: "A",
-      questionType: "MCQ",
-      totalMarks: 20,
+      name: "A", questionType: "MCQ", totalMarks: 20,
       marksPerQuestion: 0,
-      totalQuestions: 0,
+      totalQuestions: 0
     },
     {
-      name: "B",
-      questionType: "1 Mark",
-      totalMarks: 20,
+      name: "B", questionType: "1 Mark", totalMarks: 20,
       marksPerQuestion: 0,
-      totalQuestions: 0,
+      totalQuestions: 0
     },
     {
-      name: "C",
-      questionType: "2 Marks",
-      totalMarks: 20,
+      name: "C", questionType: "2 Marks", totalMarks: 20,
       marksPerQuestion: 0,
-      totalQuestions: 0,
+      totalQuestions: 0
     },
     {
-      name: "D",
-      questionType: "3 Marks",
-      totalMarks: 20,
+      name: "D", questionType: "3 Marks", totalMarks: 20,
       marksPerQuestion: 0,
-      totalQuestions: 0,
+      totalQuestions: 0
     },
     {
-      name: "E",
-      questionType: "5 Marks",
-      totalMarks: 20,
+      name: "E", questionType: "5 Marks", totalMarks: 20,
       marksPerQuestion: 0,
-      totalQuestions: 0,
+      totalQuestions: 0
     },
   ],
 };
@@ -63,12 +52,9 @@ export default function GenerateExamPage() {
   const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>(
     []
   );
-  const [examStructure, setExamStructure] = useState<ExamStructure>({
-    totalMarks: 100,
-    sections: [],
-  });
+  const [examStructure, setExamStructure] =
+    useState<ExamStructure>(initialExamStructure);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showPdfDownload, setShowPdfDownload] = useState(false);
   const [generationMode, setGenerationMode] = useState<"auto" | "manual">(
     "manual"
@@ -81,8 +67,7 @@ export default function GenerateExamPage() {
       const { data, error } = await supabase.from("contents").select("*");
       if (error) throw error;
       setContents(data);
-    } catch (error) {
-      setError("Failed to fetch contents");
+    } catch (err) {
       toast({
         title: "Error",
         description: "Failed to fetch contents. Please try again.",
@@ -116,8 +101,8 @@ export default function GenerateExamPage() {
             name: String.fromCharCode(65 + index), // A, B, C, etc.
             questionType: type,
             totalMarks: 20, // Default value, can be adjusted
-            totalQuestions: 0, // Default value, can be adjusted
             marksPerQuestion: 0, // Default value, can be adjusted
+            totalQuestions: 0, // Default value, can be adjusted
           }));
         setExamStructure({
           totalMarks: dynamicSections.reduce(
@@ -126,8 +111,7 @@ export default function GenerateExamPage() {
           ),
           sections: dynamicSections,
         });
-      } catch (error) {
-        setError("Failed to fetch questions");
+      } catch (err) {
         toast({
           title: "Error",
           description: "Failed to fetch questions. Please try again.",
@@ -195,9 +179,9 @@ export default function GenerateExamPage() {
     return <Loading title="Loading exam generation..." />;
   }
 
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
+  // if (error) {
+  //   return <div>Error: {error}</div>;
+  // }
 
   return (
     <div className="container mx-auto p-4">
@@ -215,7 +199,7 @@ export default function GenerateExamPage() {
               onExamStructureChange={handleExamStructureChange}
             />
             <Tabs
-              defaultValue="manual"
+              value={generationMode}
               onValueChange={(value) =>
                 setGenerationMode(value as "auto" | "manual")
               }

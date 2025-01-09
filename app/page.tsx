@@ -11,19 +11,21 @@ import {
   FileText,
   Settings,
   Download,
-  AlertTriangle,
 } from "lucide-react";
 
 import { Loading } from "@/components/Loading";
+import { Question } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 
+interface DashboardData {
+  questionCount: number;
+  subjectCount: number;
+  contentCount: number;
+  recentQuestions: Question[];
+}
+
 function useDashboardData() {
-  const [data, setData] = useState<{
-    questionCount: number;
-    subjectCount: number;
-    contentCount: number;
-    recentQuestions: any[];
-  }>({
+  const [data, setData] = useState<DashboardData>({
     questionCount: 0,
     subjectCount: 0,
     contentCount: 0,
@@ -159,7 +161,7 @@ function DashboardContent() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {data.recentQuestions.map((question: any) => (
+              {data.recentQuestions.map((question: Question) => (
                 <li key={question.id} className="text-sm">
                   {question.question.substring(0, 100)}...
                 </li>
@@ -178,7 +180,7 @@ export default function Home() {
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
-      // @ts-ignore
+      // @ts-expect-error BeforeInstallPromptEvent is not yet in TypeScript
       window.deferredPrompt = e;
       setShowInstallPrompt(true);
     };
@@ -187,7 +189,7 @@ export default function Home() {
   }, []);
 
   const handleInstall = async () => {
-    // @ts-ignore
+    // @ts-expect-error BeforeInstallPromptEvent is not yet in TypeScript
     const promptEvent = window.deferredPrompt;
     if (promptEvent) {
       promptEvent.prompt();
@@ -197,7 +199,7 @@ export default function Home() {
       } else {
         console.log("User dismissed the install prompt");
       }
-      // @ts-ignore
+      // @ts-expect-error BeforeInstallPromptEvent is not yet in TypeScript
       window.deferredPrompt = null;
     }
     setShowInstallPrompt(false);
@@ -234,10 +236,10 @@ export default function Home() {
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0 },
           }}
-          className="col-span-1"
+          className="col-span-2"
         >
           <Link href="/generate-exam">
-            <Button className="w-full h-24 text-xl">
+            <Button className="w-full h-32 text-xl">
               <FileText className="mr-2 h-8 w-8" /> Generate Exam Paper
             </Button>
           </Link>
