@@ -16,6 +16,7 @@ import {
 import { Loading } from "@/components/Loading";
 import { Question } from "@/types";
 import { supabase } from "@/utils/supabase/client";
+import { useUser } from "@clerk/nextjs";
 
 interface DashboardData {
   questionCount: number;
@@ -175,6 +176,7 @@ function DashboardContent() {
 }
 
 export default function Home() {
+  const { isSignedIn } = useUser();
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
   useEffect(() => {
@@ -216,7 +218,7 @@ export default function Home() {
       </motion.h1>
 
       <motion.div
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8"
+        className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8"
         initial="hidden"
         animate="visible"
         variants={{
@@ -232,11 +234,11 @@ export default function Home() {
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0 },
           }}
-          className="col-span-2"
+          className="sm:col-span-1"
         >
-          <Link href="/generate-exam">
-            <Button className="w-full h-32 text-xl">
-              <FileText className="mr-2 h-8 w-8" /> Generate Exam Paper
+          <Link href={isSignedIn ? "/generate-exam" : "/sign-in"}>
+            <Button className="w-full h-16 text-lg">
+              <FileText className="mr-2 h-6 w-6" /> Generate Exam Paper
             </Button>
           </Link>
         </motion.div>
@@ -246,9 +248,9 @@ export default function Home() {
             visible: { opacity: 1, y: 0 },
           }}
         >
-          <Link href="/add-questions">
-            <Button className="w-full h-24 text-lg" variant="secondary">
-              <PlusCircle className="mr-2 h-6 w-6" /> Add New Questions
+          <Link href={isSignedIn ? "/add-questions" : "/sign-in"}>
+            <Button className="w-full h-16 text-base" variant="secondary">
+              <PlusCircle className="mr-2 h-5 w-5" /> Add New Questions
             </Button>
           </Link>
         </motion.div>
@@ -258,9 +260,9 @@ export default function Home() {
             visible: { opacity: 1, y: 0 },
           }}
         >
-          <Link href="/question-bank">
-            <Button className="w-full h-24 text-lg" variant="secondary">
-              <BookOpen className="mr-2 h-6 w-6" /> View Question Bank
+          <Link href={isSignedIn ? "/question-bank" : "/sign-in"}>
+            <Button className="w-full h-16 text-base" variant="secondary">
+              <BookOpen className="mr-2 h-5 w-5" /> View Question Bank
             </Button>
           </Link>
         </motion.div>
@@ -270,9 +272,9 @@ export default function Home() {
             visible: { opacity: 1, y: 0 },
           }}
         >
-          <Link href="/manage-content">
-            <Button className="w-full h-24 text-lg" variant="secondary">
-              <Settings className="mr-2 h-6 w-6" /> Manage Content
+          <Link href={isSignedIn ? "/manage-content" : "/sign-in"}>
+            <Button className="w-full h-16 text-base" variant="secondary">
+              <Settings className="mr-2 h-5 w-5" /> Manage Content
             </Button>
           </Link>
         </motion.div>

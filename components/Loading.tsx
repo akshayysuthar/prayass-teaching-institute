@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export function Loading({ title }: { title: string }) {
   return (
-    <div className="flex flex-col justify-center items-center h-[calc(100vh-4rem)]">
+    <div className="flex flex-col justify-center items-center h-[calc(100vh-100rem">
       <span className="p-2">
         <Image
           alt="logo"
