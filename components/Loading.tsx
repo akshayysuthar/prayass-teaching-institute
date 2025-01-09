@@ -1,21 +1,18 @@
-// import { Loader2 } from 'lucide-react'
 import Image from "next/image";
 
 export function Loading({ title }: { title: string }) {
   return (
-    <div className="flex justify-center items-center h-24">
-      <span className="p-2 ">
+    <div className="flex flex-col justify-center items-center h-[calc(100vh-4rem)]">
+      <span className="p-2">
         <Image
           alt="logo"
           className="animate-pulse p-0 rounded-full"
-          src={"/file.png"}
+          src="/file.png"
           height={100}
           width={100}
         />
       </span>
-      <h2>{title}</h2>
-
-      {/* <Loader2 className="h-8 w-8 animate-spin text-primary" /> */}
+      <h2 className="mt-4 text-xl font-semibold">{title}</h2>
     </div>
   );
 }

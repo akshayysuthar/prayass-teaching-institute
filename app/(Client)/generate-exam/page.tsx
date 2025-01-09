@@ -7,11 +7,53 @@ import { ExamStructureForm } from "@/components/ExamStructureForm";
 import { ExamPreview } from "@/components/ExamPreview";
 import { PdfDownload } from "@/components/PdfDownload";
 import { AutoGenerateForm } from "@/components/AutoGenerateForm";
-// import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/utils/supabase/client";
 import { Content, Question, SelectedChapter, ExamStructure } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { Loading } from "@/components/Loading";
+
+const defaultExamStructure: ExamStructure = {
+  totalMarks: 100,
+  sections: [
+    {
+      name: "A",
+      questionType: "MCQ",
+      totalMarks: 20,
+      marksPerQuestion: 0,
+      totalQuestions: 0,
+    },
+    {
+      name: "B",
+      questionType: "1 Mark",
+      totalMarks: 20,
+      marksPerQuestion: 0,
+      totalQuestions: 0,
+    },
+    {
+      name: "C",
+      questionType: "2 Marks",
+      totalMarks: 20,
+      marksPerQuestion: 0,
+      totalQuestions: 0,
+    },
+    {
+      name: "D",
+      questionType: "3 Marks",
+      totalMarks: 20,
+      marksPerQuestion: 0,
+      totalQuestions: 0,
+    },
+    {
+      name: "E",
+      questionType: "5 Marks",
+      totalMarks: 20,
+      marksPerQuestion: 0,
+      totalQuestions: 0,
+    },
+  ],
+};
 
 export default function GenerateExamPage() {
   const [contents, setContents] = useState<Content[]>([]);
@@ -31,10 +73,7 @@ export default function GenerateExamPage() {
   const [generationMode, setGenerationMode] = useState<"auto" | "manual">(
     "manual"
   );
-  //const [questionTypes, setQuestionTypes] = useState<string[]>([]); //Removed as per update 3
   const { toast } = useToast();
-
-  console.log(generationMode);
 
   const fetchContents = useCallback(async () => {
     setIsLoading(true);
@@ -42,7 +81,7 @@ export default function GenerateExamPage() {
       const { data, error } = await supabase.from("contents").select("*");
       if (error) throw error;
       setContents(data);
-    } catch {
+    } catch (error) {
       setError("Failed to fetch contents");
       toast({
         title: "Error",
@@ -77,8 +116,8 @@ export default function GenerateExamPage() {
             name: String.fromCharCode(65 + index), // A, B, C, etc.
             questionType: type,
             totalMarks: 20, // Default value, can be adjusted
-            marksPerQuestion: 0, // Default value, can be adjusted
             totalQuestions: 0, // Default value, can be adjusted
+            marksPerQuestion: 0, // Default value, can be adjusted
           }));
         setExamStructure({
           totalMarks: dynamicSections.reduce(
@@ -87,21 +126,13 @@ export default function GenerateExamPage() {
           ),
           sections: dynamicSections,
         });
-        //setQuestionTypes(types.filter((t): t is string => t !== null)); //Removed as per update 3
       } catch (error) {
         setError("Failed to fetch questions");
         toast({
           title: "Error",
-          description:
-            (error as Error).message ||
-            "Failed to fetch questions. Please try again.",
+          description: "Failed to fetch questions. Please try again.",
           variant: "destructive",
         });
-        // toast({
-        //   title: "Error",
-        //   description: "Failed to fetch questions. Please try again.",
-        //   variant: "destructive",
-        // });
       } finally {
         setIsLoading(false);
       }
@@ -138,16 +169,9 @@ export default function GenerateExamPage() {
 
   const handleGeneratePdf = useCallback(() => {
     if (selectedQuestions.length === 0) {
-      // toast({
-      //   title: "Error",
-      //   description:
-      //     "Please select at least one question before generating the PDF.",
-      //   variant: "destructive",
-      // });
       toast({
         title: "Error",
         description:
-          // (error as Error).message ||
           "Please select at least one question before generating the PDF.",
         variant: "destructive",
       });
@@ -168,7 +192,7 @@ export default function GenerateExamPage() {
   );
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <Loading title="Loading exam generation..." />;
   }
 
   if (error) {
@@ -189,7 +213,6 @@ export default function GenerateExamPage() {
             <ExamStructureForm
               examStructure={examStructure}
               onExamStructureChange={handleExamStructureChange}
-              //questionTypes={questionTypes} //Removed as per update 3
             />
             <Tabs
               defaultValue="manual"

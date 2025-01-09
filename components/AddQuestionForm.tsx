@@ -26,21 +26,20 @@ export function AddQuestionForm() {
     sectionTitle: "",
     type: "",
   });
-  const [currentQuestion, setCurrentQuestion] = useState<Partial<Question>>({
-    question: "",
-    question_images: [],
-    answer: "",
-    answer_images: [],
-    marks: 1,
-    selection_count: 0,
-    is_reviewed: false,
-    reviewed_by: "",
-  });
+  const [questions, setQuestions] = useState<Partial<Question>[]>([
+    {
+      question: "",
+      question_images: [],
+      answer: "",
+      answer_images: [],
+      marks: 1,
+      selection_count: 0,
+      is_reviewed: false,
+      reviewed_by: "",
+    },
+  ]);
   const { toast } = useToast();
   const { user } = useUser();
-
-  console.log(recentEntries);
-  
 
   useEffect(() => {
     if (user) {
@@ -82,31 +81,42 @@ export function AddQuestionForm() {
   };
 
   const handleQuestionChange = (
+    index: number,
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
     const { name, value } = e.target;
-    setCurrentQuestion((prev) => ({
-      ...prev,
-      [name]: name === "marks" ? parseInt(value, 10) : value,
-    }));
+    setQuestions((prev) => {
+      const newQuestions = [...prev];
+      newQuestions[index] = {
+        ...newQuestions[index],
+        [name]: name === "marks" ? parseInt(value, 10) : value,
+      };
+      return newQuestions;
+    });
   };
 
-  const handleReviewStatusChange = (isReviewed: boolean) => {
-    setCurrentQuestion((prev) => ({
-      ...prev,
-      isReviewed,
-      reviewedBy: isReviewed ? user?.fullName || "Current User" : "",
-    }));
+  const handleReviewStatusChange = (index: number, isReviewed: boolean) => {
+    setQuestions((prev) => {
+      const newQuestions = [...prev];
+      newQuestions[index] = {
+        ...newQuestions[index],
+        is_reviewed: isReviewed,
+        reviewed_by: isReviewed ? user?.fullName || "Current User" : "",
+      };
+      return newQuestions;
+    });
   };
 
   const handleImageUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
+    index: number,
+    files: File[],
     type: "question" | "answer"
   ) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
+    const uploadedUrls: string[] = [];
+
+    for (const file of files) {
       const fileExt = file.name.split(".").pop();
       const fileName = `${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
@@ -115,21 +125,47 @@ export function AddQuestionForm() {
 
       if (uploadError) {
         console.error("Error uploading image:", uploadError);
-        return;
+        continue;
       }
 
       const {
         data: { publicUrl },
       } = supabase.storage.from("question-images").getPublicUrl(fileName);
 
-      setCurrentQuestion((prev) => ({
-        ...prev,
-        [`${type}Images`]: [...(prev[`${type}_images`] || []), publicUrl],
-      }));
+      uploadedUrls.push(publicUrl);
     }
+
+    setQuestions((prev) => {
+      const newQuestions = [...prev];
+      newQuestions[index] = {
+        ...newQuestions[index],
+        [`${type}_images`]: [
+          ...(newQuestions[index][`${type}_images`] || []),
+          ...uploadedUrls,
+        ],
+      };
+      return newQuestions;
+    });
   };
 
-  const handleSaveQuestion = async () => {
+  const handleImageRemove = (
+    questionIndex: number,
+    imageIndex: number,
+    type: "question" | "answer"
+  ) => {
+    setQuestions((prev) => {
+      const newQuestions = [...prev];
+      const images = newQuestions[questionIndex][`${type}_images`] as string[];
+      images.splice(imageIndex, 1);
+      newQuestions[questionIndex] = {
+        ...newQuestions[questionIndex],
+        [`${type}_images`]: images,
+      };
+      return newQuestions;
+    });
+  };
+
+  const handleSaveQuestions = async () => {
     if (!user) {
       toast({
         title: "Error",
@@ -141,9 +177,9 @@ export function AddQuestionForm() {
 
     setIsSubmitting(true);
     try {
-      const questionToSave = {
+      const questionsToSave = questions.map((question) => ({
         ...metadata,
-        ...currentQuestion,
+        ...question,
         created_by: user.id,
         content_id: metadata.content_id
           ? parseInt(metadata.content_id, 10)
@@ -151,24 +187,53 @@ export function AddQuestionForm() {
         subject_id: metadata.subject_id
           ? parseInt(metadata.subject_id, 10)
           : null,
-        marks: currentQuestion.marks || 1,
-      };
-      console.log("Saving question:", questionToSave);
+        marks: question.marks || 1,
+      }));
 
       const { error } = await supabase
         .from("questions")
-        .insert([questionToSave])
+        .insert(questionsToSave)
         .select();
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Question saved successfully!",
+        description: `${questions.length} question(s) saved successfully!`,
       });
 
       // Reset the form state
-      setCurrentQuestion({
+      setQuestions([
+        {
+          question: "",
+          question_images: [],
+          answer: "",
+          answer_images: [],
+          marks: 1,
+          selection_count: 0,
+          is_reviewed: false,
+          reviewed_by: "",
+        },
+      ]);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error saving questions:", error);
+      toast({
+        title: "Error",
+        description:
+          (error as Error).message ||
+          "Failed to save questions. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const addNewQuestion = () => {
+    setQuestions((prev) => [
+      ...prev,
+      {
         question: "",
         question_images: [],
         answer: "",
@@ -177,161 +242,27 @@ export function AddQuestionForm() {
         selection_count: 0,
         is_reviewed: false,
         reviewed_by: "",
-      });
-      // setMetadata({
-      //   content_id: null,
-      //   subject_id: null,
-      //   sectionTitle: "",
-      //   type: "",
-      // });
-      setIsEditing(false);
-    } catch (error) {
-      console.error("Error saving/updating question:", error);
-      toast({
-        title: "Error",
-        description:
-          (error as Error).message ||
-          "Failed to save/update question. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+      },
+    ]);
   };
 
-  const handleEditQuestion = async () => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to edit questions.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const questionToUpdate = {
-        ...metadata,
-        ...currentQuestion,
-        last_edited_by: user.id,
-        content_id: metadata.content_id
-          ? parseInt(metadata.content_id, 10)
-          : null,
-        subject_id: metadata.subject_id
-          ? parseInt(metadata.subject_id, 10)
-          : null,
-        marks: currentQuestion.marks || 1,
-      };
-      console.log("Updating question:", questionToUpdate);
-
-      const { data, error } = await supabase
-        .from("questions")
-        .update(questionToUpdate)
-        .eq("id", questionToUpdate.id)
-        .select();
-
-      if (error) throw error;
-
-      console.log("Question updated successfully:", data);
-
-      toast({
-        title: "Success",
-        description: "Question updated successfully!",
-      });
-
-      // Reset the form state
-      setCurrentQuestion({
-        question: "",
-        question_images: [],
-        answer: "",
-        answer_images: [],
-        marks: 1,
-        selection_count: 0,
-        is_reviewed: false,
-        reviewed_by: "",
-      });
-      setMetadata({
-        content_id: null,
-        subject_id: null,
-        sectionTitle: "",
-        type: "",
-      });
-      setIsEditing(false);
-    } catch (error) {
-      console.error("Error saving/updating question:", error);
-      toast({
-        title: "Error",
-        description:
-          (error as Error).message ||
-          "Failed to save/update question. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleFetchQuestion = async () => {
-    if (!currentQuestion.id) {
-      toast({
-        title: "Error",
-        description: "Please enter a question ID to fetch.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from("questions")
-        .select("*")
-        .eq("id", currentQuestion.id)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setCurrentQuestion(data);
-        setMetadata({
-          content_id: data.subject_id,
-          subject_id: data.subject_id,
-          sectionTitle: data.section_title,
-          type: data.type,
-        });
-        setIsEditing(true);
-        toast({
-          title: "Success",
-          description: "Question fetched successfully!",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "No question found with the given ID.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching question:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch question. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const removeQuestion = (index: number) => {
+    setQuestions((prev) => prev.filter((_, i) => i !== index));
   };
 
   const resetFormState = () => {
-    setCurrentQuestion({
-      question: "",
-      question_images: [],
-      answer: "",
-      answer_images: [],
-      marks: 1,
-      selection_count: 0,
-      is_reviewed: false,
-      reviewed_by: "",
-    });
+    setQuestions([
+      {
+        question: "",
+        question_images: [],
+        answer: "",
+        answer_images: [],
+        marks: 1,
+        selection_count: 0,
+        is_reviewed: false,
+        reviewed_by: "",
+      },
+    ]);
     setMetadata({
       content_id: null,
       subject_id: null,
@@ -348,74 +279,51 @@ export function AddQuestionForm() {
   return (
     <div className="space-y-8">
       <div className="space-y-4 border p-4 rounded-md">
-        <h2 className="text-2xl font-bold">
-          {isEditing ? "Edit Question" : "Add New Question"}
-        </h2>
-        <div className="flex justify-between items-center">
-          <Button onClick={() => setShowJsonInput(!showJsonInput)}>
-            {showJsonInput ? "Single Question Entry" : "Bulk JSON Entry"}
-          </Button>
-          {!isEditing && !showJsonInput && (
-            <div className="flex items-center space-x-2">
-              <Input
-                id="id"
-                name="id"
-                value={currentQuestion.id || ""}
-                onChange={handleQuestionChange}
-                placeholder="Enter question ID to edit"
-              />
-              <Button onClick={handleFetchQuestion}>Fetch Question</Button>
-            </div>
-          )}
-        </div>
-        {showJsonInput ? (
-          <div className="space-y-4">
-            <Label htmlFor="jsonInput">JSON Input (for bulk data entry)</Label>
-            <Textarea
-              id="jsonInput"
-              value={jsonInput}
-              onChange={(e) => setJsonInput(e.target.value)}
-              placeholder="Paste JSON data here"
-              rows={10}
-            />
-            <Button
-              onClick={() => {
-                /* Implement JSON processing logic */
-              }}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Processing..." : "Process JSON"}
-            </Button>
-          </div>
-        ) : (
-          <>
-            <MetadataForm
-              metadata={metadata}
-              handleMetadataChange={handleMetadataChange}
-            />
+        <h2 className="text-2xl font-bold">Add New Questions</h2>
+        <MetadataForm
+          metadata={metadata}
+          handleMetadataChange={handleMetadataChange}
+        />
+        {questions.map((question, index) => (
+          <div key={index} className="border-t pt-4 mt-4">
+            <h3 className="text-lg font-semibold mb-2">Question {index + 1}</h3>
             <QuestionForm
-              currentQuestion={currentQuestion}
-              handleQuestionChange={handleQuestionChange}
-              handleImageUpload={handleImageUpload}
-              handleReviewStatusChange={handleReviewStatusChange}
+              currentQuestion={question}
+              handleQuestionChange={(e) => handleQuestionChange(index, e)}
+              handleImageUpload={(files, type) =>
+                handleImageUpload(index, files, type)
+              }
+              handleImageRemove={(imageIndex, type) =>
+                handleImageRemove(index, imageIndex, type)
+              }
+              handleReviewStatusChange={(isReviewed) =>
+                handleReviewStatusChange(index, isReviewed)
+              }
               isSubmitting={isSubmitting}
               questionType={metadata.type}
             />
-            <div className="flex justify-between items-center">
-              <Button onClick={resetFormState}>Clear Form</Button>
+            {questions.length > 1 && (
               <Button
-                onClick={isEditing ? handleEditQuestion : handleSaveQuestion}
-                disabled={isSubmitting}
+                onClick={() => removeQuestion(index)}
+                variant="destructive"
+                className="mt-2"
               >
-                {isSubmitting
-                  ? "Saving..."
-                  : isEditing
-                  ? "Update Question"
-                  : "Add Question"}
+                Remove Question
               </Button>
-            </div>
-          </>
-        )}
+            )}
+          </div>
+        ))}
+        <div className="flex flex-wrap justify-between items-center mt-4 gap-2">
+          <Button onClick={addNewQuestion}>Add Another Question</Button>
+          <Button onClick={resetFormState}>Clear All</Button>
+          <Button
+            onClick={handleSaveQuestions}
+            disabled={isSubmitting}
+            className="w-full sm:w-auto"
+          >
+            {isSubmitting ? "Saving..." : "Save All Questions"}
+          </Button>
+        </div>
       </div>
     </div>
   );

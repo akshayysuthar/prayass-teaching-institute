@@ -96,7 +96,8 @@ export function AddSubjectForm({ onSubjectAdded }: AddSubjectFormProps) {
           <SelectContent>
             {contents.map((content) => (
               <SelectItem key={content.id} value={content.id.toString()}>
-                {content.name} - Class {content.class}
+                {content.name} - Class {content.class} - {content.medium} -
+                {content.board}
               </SelectItem>
             ))}
           </SelectContent>

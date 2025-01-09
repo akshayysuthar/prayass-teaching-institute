@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-// import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { AddContentForm } from "@/components/AddContentForm";
 import { AddSubjectForm } from "@/components/AddSubjectForm";
 import { EditContentForm } from "@/components/EditContentForm";
@@ -10,6 +10,8 @@ import { EditSubjectForm } from "@/components/EditSubjectForm";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/utils/supabase/client";
 import { Content, Subject } from "@/types";
+import { Loading } from "@/components/Loading";
+import { siteConfig } from "@/config/site";
 
 export default function ManageContentPage() {
   const { user } = useUser();
@@ -17,15 +19,16 @@ export default function ManageContentPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [editingContent, setEditingContent] = useState<Content | null>(null);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // useEffect(() => {
-  //   if (
-  //     !user ||
-  //     user.emailAddresses[0]?.emailAddress !== "akshaysuthar05@gmail.com", ""
-  //   ) {
-  //     redirect("/");
-  //   }
-  // }, [user]);
+  useEffect(() => {
+    if (
+      !user ||
+      !siteConfig.adminEmail.includes(user.emailAddresses[0]?.emailAddress)
+    ) {
+      redirect("/");
+    }
+  }, [user]);
 
   useEffect(() => {
     fetchContents();
@@ -33,21 +36,25 @@ export default function ManageContentPage() {
   }, []);
 
   const fetchContents = async () => {
+    setIsLoading(true);
     const { data, error } = await supabase.from("contents").select("*");
     if (error) {
       console.error("Error fetching contents:", error);
     } else {
       setContents(data);
     }
+    setIsLoading(false);
   };
 
   const fetchSubjects = async () => {
+    setIsLoading(true);
     const { data, error } = await supabase.from("subjects").select("*");
     if (error) {
       console.error("Error fetching subjects:", error);
     } else {
       setSubjects(data);
     }
+    setIsLoading(false);
   };
 
   const handleContentAdded = () => {
@@ -69,6 +76,10 @@ export default function ManageContentPage() {
   };
 
   if (!user) return null;
+
+  if (isLoading) {
+    return <Loading title="Loading content management..." />;
+  }
 
   return (
     <div className="container mx-auto p-4">

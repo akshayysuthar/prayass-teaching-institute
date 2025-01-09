@@ -1,7 +1,5 @@
 "use client";
 
-// merge the client branch
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -13,26 +11,19 @@ import {
   FileText,
   Settings,
   Download,
+  AlertTriangle,
 } from "lucide-react";
 
-import { supabase } from "@/utils/supabase/client";
 import { Loading } from "@/components/Loading";
-
-interface Question {
-  id: string;
-  question: string;
-  created_at?: string;
-}
-
-interface DashboardData {
-  questionCount: number;
-  subjectCount: number;
-  contentCount: number;
-  recentQuestions: Question[];
-}
+import { supabase } from "@/utils/supabase/client";
 
 function useDashboardData() {
-  const [data, setData] = useState<DashboardData>({
+  const [data, setData] = useState<{
+    questionCount: number;
+    subjectCount: number;
+    contentCount: number;
+    recentQuestions: any[];
+  }>({
     questionCount: 0,
     subjectCount: 0,
     contentCount: 0,
@@ -84,18 +75,11 @@ function DashboardContent() {
   const { data, loading } = useDashboardData();
 
   if (loading) {
-    return (
-      <div>
-        <Loading title={"Loading dashboard data..."} />
-        {/* Loading dashboard data... */}
-      </div>
-    );
+    return <Loading title="Loading dashboard data..." />;
   }
 
   return (
     <div className="space-y-8">
-      {/* <Loading title={"Loading dashboard data..."} /> */}
-
       <motion.div
         className="grid gap-4 md:grid-cols-3"
         initial="hidden"
@@ -175,7 +159,7 @@ function DashboardContent() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {data.recentQuestions.map((question) => (
+              {data.recentQuestions.map((question: any) => (
                 <li key={question.id} className="text-sm">
                   {question.question.substring(0, 100)}...
                 </li>
@@ -194,7 +178,7 @@ export default function Home() {
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
-      // @ts-expect-error TypeScript does not recognize `deferredPrompt`
+      // @ts-ignore
       window.deferredPrompt = e;
       setShowInstallPrompt(true);
     };
@@ -203,7 +187,7 @@ export default function Home() {
   }, []);
 
   const handleInstall = async () => {
-    // @ts-expect-error TypeScript does not recognize `deferredPrompt`
+    // @ts-ignore
     const promptEvent = window.deferredPrompt;
     if (promptEvent) {
       promptEvent.prompt();
@@ -213,10 +197,14 @@ export default function Home() {
       } else {
         console.log("User dismissed the install prompt");
       }
-      // @ts-expect-error Clear `deferredPrompt` after use
+      // @ts-ignore
       window.deferredPrompt = null;
     }
     setShowInstallPrompt(false);
+  };
+
+  const triggerTestError = () => {
+    throw new Error("This is a test error triggered by the user");
   };
 
   return (
@@ -246,10 +234,11 @@ export default function Home() {
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0 },
           }}
+          className="col-span-1"
         >
-          <Link href="/add-question">
-            <Button className="w-full h-24 text-lg">
-              <PlusCircle className="mr-2 h-6 w-6" /> Add New Question
+          <Link href="/generate-exam">
+            <Button className="w-full h-24 text-xl">
+              <FileText className="mr-2 h-8 w-8" /> Generate Exam Paper
             </Button>
           </Link>
         </motion.div>
@@ -259,9 +248,9 @@ export default function Home() {
             visible: { opacity: 1, y: 0 },
           }}
         >
-          <Link href="/generate-exam">
+          <Link href="/add-questions">
             <Button className="w-full h-24 text-lg" variant="secondary">
-              <FileText className="mr-2 h-6 w-6" /> Generate Exam
+              <PlusCircle className="mr-2 h-6 w-6" /> Add New Questions
             </Button>
           </Link>
         </motion.div>

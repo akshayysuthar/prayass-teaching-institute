@@ -6,6 +6,7 @@ import { QuestionFilters } from "@/components/QuestionFilters";
 import { Question } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Loading } from "@/components/Loading";
 
 export default function QuestionBankPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -36,13 +37,13 @@ export default function QuestionBankPage() {
       if (filters.searchTerm) {
         query = query.ilike("question", `%${filters.searchTerm}%`);
       }
-      if (filters.type) {
+      if (filters.type && filters.type !== "all") {
         query = query.eq("type", filters.type);
       }
-      if (filters.subject) {
+      if (filters.subject && filters.subject !== "all") {
         query = query.eq("subject_id", filters.subject);
       }
-      if (filters.marks) {
+      if (filters.marks && filters.marks !== "all") {
         query = query.eq("marks", parseInt(filters.marks));
       }
 
@@ -88,6 +89,10 @@ export default function QuestionBankPage() {
   const handleLoadMore = () => {
     fetchQuestions(true);
   };
+
+  if (loading && page === 0) {
+    return <Loading title="Loading questions..." />;
+  }
 
   return (
     <div className="container mx-auto py-8">
