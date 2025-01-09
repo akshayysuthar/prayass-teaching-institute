@@ -33,12 +33,12 @@ const icons = {
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const { user, isSignedIn } = useUser();
+  const { user } = useUser();
   const isAdmin =
     user?.emailAddresses[0]?.emailAddress === "akshaysuthar05@gmail.com";
 
   return (
-    <header className="container sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -97,7 +97,7 @@ export function Navbar() {
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-2">
             <span className="hidden text-sm text-muted-foreground md:inline-block">
-              {isSignedIn ? `Welcome, ${user.fullName}` : "Not signed in"}
+              {user ? `Welcome, ${user.fullName}` : "Not signed in"}
             </span>
             <UserButton afterSignOutUrl="/" />
           </nav>
@@ -109,7 +109,7 @@ export function Navbar() {
 
 function MobileNav() {
   const pathname = usePathname();
-  const { user, isSignedIn } = useUser();
+  const { user } = useUser();
   const isAdmin =
     user?.emailAddresses[0]?.emailAddress === "akshaysuthar05@gmail.com";
 

@@ -205,10 +205,6 @@ export default function Home() {
     setShowInstallPrompt(false);
   };
 
-  const triggerTestError = () => {
-    throw new Error("This is a test error triggered by the user");
-  };
-
   return (
     <div className="container mx-auto py-8 px-4">
       <motion.h1

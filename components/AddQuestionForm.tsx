@@ -2,9 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Question } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,19 +10,7 @@ import { QuestionForm } from "./QuestionForm";
 import { useUser } from "@clerk/nextjs";
 
 export function AddQuestionForm() {
-  const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showJsonInput, setShowJsonInput] = useState(false);
-  const [jsonInput, setJsonInput] = useState("");
-  const [recentEntries, setRecentEntries] = useState<
-    Record<string, Partial<Question>[]>
-  >({});
-  const [metadata, setMetadata] = useState({
-    content_id: null,
-    subject_id: null,
-    sectionTitle: "",
-    type: "",
-  });
   const [questions, setQuestions] = useState<Partial<Question>[]>([
     {
       question: "",
@@ -38,6 +23,12 @@ export function AddQuestionForm() {
       reviewed_by: "",
     },
   ]);
+  const [metadata, setMetadata] = useState({
+    content_id: null,
+    subject_id: null,
+    sectionTitle: "",
+    type: "",
+  });
   const { toast } = useToast();
   const { user } = useUser();
 
@@ -66,7 +57,7 @@ export function AddQuestionForm() {
           entriesBySubject[question.subject_id].push(question);
         }
       });
-      setRecentEntries(entriesBySubject);
+      //setRecentEntries(entriesBySubject);
     }
   };
 
@@ -215,7 +206,7 @@ export function AddQuestionForm() {
           reviewed_by: "",
         },
       ]);
-      setIsEditing(false);
+      //setIsEditing(false);
     } catch (error) {
       console.error("Error saving questions:", error);
       toast({
@@ -269,7 +260,7 @@ export function AddQuestionForm() {
       sectionTitle: "",
       type: "",
     });
-    setIsEditing(false);
+    //setIsEditing(false);
   };
 
   if (!user) {
