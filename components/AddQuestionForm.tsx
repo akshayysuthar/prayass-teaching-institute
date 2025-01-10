@@ -128,12 +128,12 @@ export function AddQuestionForm() {
 
     setQuestions((prev) => {
       const newQuestions = [...prev];
+      const currentImages = newQuestions[index][`${type}_images`] || [];
+      const newImages = [...currentImages, ...uploadedUrls];
       newQuestions[index] = {
         ...newQuestions[index],
-        [`${type}_images`]: [
-          ...(newQuestions[index][`${type}_images`] || []),
-          ...uploadedUrls,
-        ],
+        [`${type}_images`]: newImages,
+        [type]: `${newQuestions[index][type] || ""} [img${newImages.length}]`,
       };
       return newQuestions;
     });
@@ -151,6 +151,9 @@ export function AddQuestionForm() {
       newQuestions[questionIndex] = {
         ...newQuestions[questionIndex],
         [`${type}_images`]: images,
+        [type]: (newQuestions[questionIndex][type] as string)
+          .replace(`[img${imageIndex + 1}]`, "")
+          .trim(),
       };
       return newQuestions;
     });
