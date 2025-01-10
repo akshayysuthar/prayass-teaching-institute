@@ -117,7 +117,7 @@ export function ChapterSelector({
             key={index}
             src={img}
             alt={`Question image ${index + 1}`}
-            width={200}
+            width={550}
             height={200}
             className="object-contain"
           />
