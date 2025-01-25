@@ -231,7 +231,7 @@ export function BilingualQuestionForm({
             <Label htmlFor="section_title">Section Title</Label>
             <Input
               id="section_title"
-              value={question.section_title || ''}
+              value={question.section_title || ""}
               onChange={(e) =>
                 handleQuestionChange("en", "section_title", e.target.value)
               }
@@ -240,7 +240,7 @@ export function BilingualQuestionForm({
           <div>
             <Label htmlFor="type">Question Type</Label>
             <Select
-              value={question.type || ''}
+              value={question.type || ""}
               onValueChange={(value) =>
                 handleQuestionChange("en", "type", value)
               }

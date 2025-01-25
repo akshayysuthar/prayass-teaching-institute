@@ -67,7 +67,9 @@ export default function BilingualQuestionsPage() {
     try {
       const { data, error } = await supabase
         .from("subjects")
-        .select("id, subject_name, chapter_no, chapter_name")
+        .select(
+          "id, subject_name, chapter_no, chapter_name, content_id, board_weightage, created_at"
+        )
         .eq("content_id", contentId)
         .order("chapter_no", { ascending: true });
 
@@ -200,6 +202,7 @@ export default function BilingualQuestionsPage() {
             onQuestionAdded={handleQuestionAdded}
             onQuestionUpdated={handleQuestionUpdated}
             onQuestionRemoved={handleQuestionRemoved}
+            totalQuestions={0}
           />
         </>
       )}

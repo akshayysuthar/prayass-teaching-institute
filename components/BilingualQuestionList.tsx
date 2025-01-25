@@ -228,27 +228,28 @@ export function BilingualQuestionList({
   ) => {
     const uploadedUrls: string[] = [];
 
-    if (typeof files === "string") {
-      uploadedUrls.push(files);
-    } else {
-      for (const file of Array.from(files)) {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from("question-images")
-          .upload(fileName, file);
-
-        if (uploadError) {
-          console.error("Error uploading image:", uploadError);
-          continue;
-        }
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("question-images").getPublicUrl(fileName);
-
-        uploadedUrls.push(publicUrl);
+    const fileArray = Array.isArray(files) ? files : Array.from(files);
+    for (const file of fileArray) {
+      if (typeof file === "string") {
+        uploadedUrls.push(file);
+        continue;
       }
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("question-images")
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error("Error uploading image:", uploadError);
+        continue;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("question-images").getPublicUrl(fileName);
+
+      uploadedUrls.push(publicUrl);
     }
 
     if (questionId && editedQuestion) {

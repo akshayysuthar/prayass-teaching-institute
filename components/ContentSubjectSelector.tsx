@@ -1,4 +1,4 @@
-import type { Content } from "@/types";
+import type { Content, Subject } from "@/types";
 import {
   Select,
   SelectContent,
@@ -14,7 +14,7 @@ interface ContentSubjectSelectorProps {
   selectedContent: Content | null;
   selectedSubject: LocalSubject | null;
   onContentChange: (content: Content) => void;
-  onSubjectChange: (subject: LocalSubject) => void;
+  onSubjectChange: (subject: Subject) => void;
 }
 
 interface LocalSubject {
@@ -22,6 +22,9 @@ interface LocalSubject {
   subject_name: string;
   chapter_no: number;
   chapter_name: string;
+  content_id: number;
+  board_weightage: number;
+  created_at: string;
 }
 
 export function ContentSubjectSelector({
@@ -61,7 +64,9 @@ export function ContentSubjectSelector({
         <Select
           value={selectedSubject?.id.toString()}
           onValueChange={(value) => {
-            const subject = subjects.find((s: LocalSubject) => s.id.toString() === value);
+            const subject = subjects.find(
+              (s: LocalSubject) => s.id.toString() === value
+            );
             if (subject) onSubjectChange(subject);
           }}
           disabled={!selectedContent}
