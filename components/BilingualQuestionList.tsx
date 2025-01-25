@@ -187,7 +187,7 @@ export function BilingualQuestionList({
 
   const handleAddNewQuestion = async () => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("questions")
         .insert([newQuestion])
         .select();
