@@ -198,6 +198,7 @@ export default function BilingualQuestionsPage() {
             </Select>
           </div>
           <BilingualQuestionList
+            subject={{ id: selectedSubject.id, question_count: questions.length }}
             questions={questions}
             onQuestionAdded={handleQuestionAdded}
             onQuestionUpdated={handleQuestionUpdated}

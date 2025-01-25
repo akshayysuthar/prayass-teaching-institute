@@ -24,6 +24,11 @@ interface BilingualQuestionListProps {
   onQuestionUpdated: () => void;
   onQuestionRemoved: () => void;
   totalQuestions: number;
+  subject: {
+    id: number;
+    question_count: number;
+    // ...other subject properties
+  };
 }
 
 const ImagePreview = ({ src, alt }: { src: string; alt: string }) => {
@@ -56,11 +61,11 @@ const ImagePreview = ({ src, alt }: { src: string; alt: string }) => {
 };
 
 export function BilingualQuestionList({
+  subject,
   questions,
   onQuestionAdded,
   onQuestionUpdated,
   onQuestionRemoved,
-  totalQuestions,
 }: BilingualQuestionListProps) {
   const [expandedQuestions, setExpandedQuestions] = useState<string[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
@@ -83,12 +88,16 @@ export function BilingualQuestionList({
   const { toast } = useToast();
 
   useEffect(() => {
-    const gujaratiQuestions = questions.filter(
-      (q) => q.question_gu && q.question_gu.trim() !== ""
-    );
-    const percentage = (gujaratiQuestions.length / totalQuestions) * 100;
-    setProgress(Math.round(percentage));
-  }, [questions, totalQuestions]);
+    if (subject?.question_count) {
+      const gujaratiQuestions = questions.filter(
+        (q) => q.question_gu && q.question_gu.trim() !== ""
+      );
+      const percentage = (gujaratiQuestions.length / subject.question_count) * 100;
+      setProgress(Math.round(percentage));
+    } else {
+      setProgress(0);
+    }
+  }, [questions, subject?.question_count]);
 
   const renderContent = (content: string, images: string[] | null) => {
     if (!content) return null;
