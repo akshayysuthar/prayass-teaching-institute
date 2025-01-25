@@ -78,18 +78,21 @@ export function QuestionFilters({ onFilterChange }: QuestionFiltersProps) {
         <Label htmlFor="type">Question Type</Label>
         <Select
           onValueChange={(value) => handleFilterChange("type", value)}
-          value={filters.type}
+          value={filters.type || "all"}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select type" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            {questionTypes.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
-              </SelectItem>
-            ))}
+            {questionTypes.map(
+              (type) =>
+                type && (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                )
+            )}
           </SelectContent>
         </Select>
       </div>

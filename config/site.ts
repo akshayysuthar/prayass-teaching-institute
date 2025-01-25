@@ -74,6 +74,13 @@ export const siteConfig: SiteConfig = {
       adminOnly: true,
       disabled: "",
     },
+    {
+      title: "bilingual questions",
+      href: "/bilingual-questions",
+      icon: Settings,
+      adminOnly: true,
+      disabled: "",
+    },
   ],
   footerLinks: [
     {

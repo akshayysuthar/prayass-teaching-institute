@@ -1,5 +1,4 @@
 export interface Question {
-  subject_id: any;
   id: string;
   content_id: number;
   chapter_no: string;
@@ -7,9 +6,13 @@ export interface Question {
   section_title: string | null;
   type: string | null;
   question: string;
+  question_gu: string;
   question_images: string[] | null;
+  question_images_gu: string[] | null;
   answer: string | object;
+  answer_gu: string | object;
   answer_images: string[] | null;
+  answer_images_gu: string[] | null;
   marks: number;
   selection_count: number;
   is_reviewed: boolean;
@@ -19,6 +22,7 @@ export interface Question {
   last_updated: string;
   created_at: string;
   options?: { [key: string]: string };
+  [key: string]: any // Add this line
 }
 
 export interface Content {
@@ -57,8 +61,6 @@ export interface PdfDownloadProps {
   chapters: string;
   teacherName: string;
 }
-
-
 
 // export interface Question {
 //   content_id: any;
