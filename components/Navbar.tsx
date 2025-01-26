@@ -13,22 +13,22 @@ import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 import {
   Menu,
-  Home,
-  Plus,
-  FileText,
-  Book,
-  Settings,
-  AlertCircle,
+  // Home,
+  // Plus,
+  // FileText,
+  // Book,
+  // Settings,
+  // AlertCircle,
 } from "lucide-react";
 
-const icons = {
-  home: Home,
-  plus: Plus,
-  file: FileText,
-  book: Book,
-  settings: Settings,
-  alertCircle: AlertCircle,
-};
+// const icons = {
+//   home: Home,
+//   plus: Plus,
+//   file: FileText,
+//   book: Book,
+//   settings: Settings,
+//   alertCircle: AlertCircle,
+// };
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
