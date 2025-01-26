@@ -151,71 +151,6 @@ export function QuestionForm({
               </div>
             )}
         </div>
-
-        {/* Gujarati Question Section */}
-        <div className="space-y-4">
-          <div className="relative">
-            <Label htmlFor="question_gu" className="text-lg font-semibold">
-              Question (Gujarati)
-            </Label>
-            <div
-              className={`relative mt-2 ${
-                dragActive ? "border-primary" : "border-input"
-              }`}
-              onDragEnter={(e) => handleDrag(e)}
-              onDragLeave={(e) => handleDrag(e)}
-              onDragOver={(e) => handleDrag(e)}
-              onDrop={(e) => handleDrop(e, "question", "gu")}
-            >
-              <label className="absolute top-2 right-2 cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => handleFileSelect(e, "question", "gu")}
-                />
-                <Paperclip className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-              </label>
-              <Textarea
-                id="question_gu"
-                name="question_gu"
-                value={currentQuestion.question_gu || ""}
-                onChange={handleQuestionChange}
-                className="min-h-[150px] pr-10"
-                placeholder="અહીં તમારો પ્રશ્ન ટાઇપ કરો..."
-                required
-                onPaste={async (e) => {
-                  const items = e.clipboardData.items;
-                  for (let i = 0; i < items.length; i++) {
-                    if (items[i].type.indexOf("image") !== -1) {
-                      e.preventDefault();
-                      const file = items[i].getAsFile();
-                      if (file) {
-                        const compressedFile = await compressImage(file);
-                        handleImageUpload([compressedFile], "question", "gu");
-                      }
-                    }
-                  }
-                }}
-              />
-            </div>
-          </div>
-          {currentQuestion.question_images_gu &&
-            currentQuestion.question_images_gu.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                {currentQuestion.question_images_gu.map((img, index) => (
-                  <ImagePreview
-                    key={index}
-                    src={img || "/placeholder.svg"}
-                    alt={`Question image (Gujarati) ${index + 1}`}
-                    onRemove={() => handleImageRemove(index, "question", "gu")}
-                  />
-                ))}
-              </div>
-            )}
-        </div>
-
         {/* Answer Sections - Following the same pattern */}
         <div className="space-y-4">
           <div className="relative">
@@ -280,6 +215,69 @@ export function QuestionForm({
             )}
         </div>
 
+        {/* Gujarati Question Section */}
+        <div className="space-y-4">
+          <div className="relative">
+            <Label htmlFor="question_gu" className="text-lg font-semibold">
+              Question (Gujarati)
+            </Label>
+            <div
+              className={`relative mt-2 ${
+                dragActive ? "border-primary" : "border-input"
+              }`}
+              onDragEnter={(e) => handleDrag(e)}
+              onDragLeave={(e) => handleDrag(e)}
+              onDragOver={(e) => handleDrag(e)}
+              onDrop={(e) => handleDrop(e, "question", "gu")}
+            >
+              <label className="absolute top-2 right-2 cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleFileSelect(e, "question", "gu")}
+                />
+                <Paperclip className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              </label>
+              <Textarea
+                id="question_gu"
+                name="question_gu"
+                value={currentQuestion.question_gu || ""}
+                onChange={handleQuestionChange}
+                className="min-h-[150px] pr-10"
+                placeholder="અહીં તમારો પ્રશ્ન ટાઇપ કરો..."
+                required
+                onPaste={async (e) => {
+                  const items = e.clipboardData.items;
+                  for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf("image") !== -1) {
+                      e.preventDefault();
+                      const file = items[i].getAsFile();
+                      if (file) {
+                        const compressedFile = await compressImage(file);
+                        handleImageUpload([compressedFile], "question", "gu");
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+          {currentQuestion.question_images_gu &&
+            currentQuestion.question_images_gu.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                {currentQuestion.question_images_gu.map((img, index) => (
+                  <ImagePreview
+                    key={index}
+                    src={img || "/placeholder.svg"}
+                    alt={`Question image (Gujarati) ${index + 1}`}
+                    onRemove={() => handleImageRemove(index, "question", "gu")}
+                  />
+                ))}
+              </div>
+            )}
+        </div>
         <div className="space-y-4">
           <div className="relative">
             <Label htmlFor="answer_gu" className="text-lg font-semibold">
