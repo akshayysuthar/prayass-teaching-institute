@@ -1,12 +1,14 @@
-import React, { useRef, useState } from "react";
+"use client";
+
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import Image from "next/image";
-import { Question } from "@/types";
-import { X } from "lucide-react";
+import { ImagePreview } from "./ImagePreview";
+import { compressImage } from "@/utils/imageCompression";
+import type { Question } from "@/types";
+import { Paperclip } from "lucide-react";
 
 interface QuestionFormProps {
   currentQuestion: Partial<Question>;
@@ -15,11 +17,20 @@ interface QuestionFormProps {
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => void;
-  handleImageUpload: (files: File[], type: "question" | "answer") => void;
-  handleImageRemove: (index: number, type: "question" | "answer") => void;
+  handleImageUpload: (
+    files: File[],
+    type: "question" | "answer",
+    language: "en" | "gu"
+  ) => void;
+  handleImageRemove: (
+    index: number,
+    type: "question" | "answer",
+    language: "en" | "gu"
+  ) => void;
   handleReviewStatusChange: (isReviewed: boolean) => void;
   isSubmitting: boolean;
   questionType: string;
+  removeQuestion: () => void;
 }
 
 export function QuestionForm({
@@ -28,182 +39,357 @@ export function QuestionForm({
   handleImageUpload,
   handleImageRemove,
   handleReviewStatusChange,
+  removeQuestion,
 }: QuestionFormProps) {
-  const questionInputRef = useRef<HTMLTextAreaElement>(null);
-  const answerInputRef = useRef<HTMLTextAreaElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
-  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (
-    e: React.DragEvent<HTMLDivElement>,
-    type: "question" | "answer"
-  ) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    handleImageUpload(files, type);
-  };
-
-  const handlePaste = (
-    e: React.ClipboardEvent<HTMLTextAreaElement>,
-    type: "question" | "answer"
-  ) => {
-    const items = e.clipboardData.items;
-    const files: File[] = [];
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf("image") !== -1) {
-        const file = items[i].getAsFile();
-        if (file) files.push(file);
-      }
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
     }
-    if (files.length > 0) {
+  }, []);
+
+  const handleDrop = useCallback(
+    async (
+      e: React.DragEvent,
+      type: "question" | "answer",
+      language: "en" | "gu"
+    ) => {
       e.preventDefault();
-      handleImageUpload(files, type);
-    }
-  };
+      e.stopPropagation();
+      setDragActive(false);
+
+      const files = Array.from(e.dataTransfer.files);
+      const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+      const compressedFiles = await Promise.all(imageFiles.map(compressImage));
+      handleImageUpload(compressedFiles, type, language);
+    },
+    [handleImageUpload]
+  );
+
+  const handleFileSelect = useCallback(
+    async (
+      e: React.ChangeEvent<HTMLInputElement>,
+      type: "question" | "answer",
+      language: "en" | "gu"
+    ) => {
+      const files = Array.from(e.target.files || []);
+      const compressedFiles = await Promise.all(files.map(compressImage));
+      handleImageUpload(compressedFiles, type, language);
+      e.target.value = ""; // Reset input
+    },
+    [handleImageUpload]
+  );
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor="question">Question</Label>
-        <div
-          className={`border-2 border-dashed rounded-md p-4 ${
-            isDragging ? "border-primary" : "border-gray-300"
-          }`}
-          onDragEnter={handleDragEnter}
-          onDragOver={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, "question")}
-        >
-          <Textarea
-            className="w-full mb-2"
-            id="question"
-            name="question"
-            value={currentQuestion.question || ""}
-            onChange={handleQuestionChange}
-            required
-            ref={questionInputRef}
-            onPaste={(e) => handlePaste(e, "question")}
-          />
-          <div className="flex flex-wrap gap-2 mt-2">
-            {currentQuestion.question_images &&
-              currentQuestion.question_images.map((img, index) => (
-                <div key={index} className="relative group">
-                  <Image
-                    src={img}
-                    alt={`Question image ${index + 1}`}
-                    width={100}
-                    height={100}
-                    className="object-cover rounded-md"
-                  />
-                  <button
-                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleImageRemove(index, "question")}
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ))}
-          </div>
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              handleImageUpload(Array.from(e.target.files || []), "question")
-            }
-            className="mt-2"
-            multiple
-          />
-        </div>
-      </div>
-      <div>
-        <Label htmlFor="answer">Answer</Label>
-        <div
-          className={`border-2 border-dashed rounded-md p-4 ${
-            isDragging ? "border-primary" : "border-gray-300"
-          }`}
-          onDragEnter={handleDragEnter}
-          onDragOver={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, "answer")}
-        >
-          <Textarea
-            id="answer"
-            name="answer"
-            className="w-full mb-2"
-            value={(currentQuestion.answer as string) || ""}
-            onChange={handleQuestionChange}
-            required
-            ref={answerInputRef}
-            onPaste={(e) => handlePaste(e, "answer")}
-          />
-          <div className="flex flex-wrap gap-2 mt-2">
-            {currentQuestion.answer_images &&
-              currentQuestion.answer_images.map((img, index) => (
-                <div key={index} className="relative group">
-                  <Image
-                    src={img}
-                    alt={`Answer image ${index + 1}`}
-                    width={100}
-                    height={100}
-                    className="object-cover rounded-md"
-                  />
-                  <button
-                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleImageRemove(index, "answer")}
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ))}
-          </div>
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              handleImageUpload(Array.from(e.target.files || []), "answer")
-            }
-            className="mt-2"
-            multiple
-          />
-        </div>
-      </div>
-      <div>
-        <Label htmlFor="marks">Marks</Label>
-        <RadioGroup
-          defaultValue={currentQuestion.marks?.toString() || "1"}
-          onValueChange={(value) =>
-            handleQuestionChange({
-              target: { name: "marks", value },
-            } as React.ChangeEvent<HTMLInputElement>)
-          }
-          className="flex flex-wrap gap-4"
-        >
-          {[1, 2, 3, 4, 5].map((mark) => (
-            <div key={mark} className="flex items-center space-x-2">
-              <RadioGroupItem value={mark.toString()} id={`mark-${mark}`} />
-              <Label htmlFor={`mark-${mark}`}>{mark}</Label>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* English Question Section */}
+        <div className="space-y-4">
+          <div className="relative">
+            <Label htmlFor="question" className="text-lg font-semibold">
+              Question (English)
+            </Label>
+            <div
+              className={`relative mt-2 ${
+                dragActive ? "border-primary" : "border-input"
+              }`}
+              onDragEnter={(e) => handleDrag(e)}
+              onDragLeave={(e) => handleDrag(e)}
+              onDragOver={(e) => handleDrag(e)}
+              onDrop={(e) => handleDrop(e, "question", "en")}
+            >
+              <label className="absolute top-2 right-2 cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleFileSelect(e, "question", "en")}
+                />
+                <Paperclip className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              </label>
+              <Textarea
+                id="question"
+                name="question"
+                value={currentQuestion.question || ""}
+                onChange={handleQuestionChange}
+                className="min-h-[150px] pr-10"
+                placeholder="Type your question here..."
+                required
+                onPaste={async (e) => {
+                  const items = e.clipboardData.items;
+                  for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf("image") !== -1) {
+                      e.preventDefault();
+                      const file = items[i].getAsFile();
+                      if (file) {
+                        const compressedFile = await compressImage(file);
+                        handleImageUpload([compressedFile], "question", "en");
+                      }
+                    }
+                  }
+                }}
+              />
             </div>
-          ))}
-        </RadioGroup>
+          </div>
+          {currentQuestion.question_images &&
+            currentQuestion.question_images.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                {currentQuestion.question_images.map((img, index) => (
+                  <ImagePreview
+                    key={index}
+                    src={img || "/placeholder.svg"}
+                    alt={`Question image ${index + 1}`}
+                    onRemove={() => handleImageRemove(index, "question", "en")}
+                  />
+                ))}
+              </div>
+            )}
+        </div>
+
+        {/* Gujarati Question Section */}
+        <div className="space-y-4">
+          <div className="relative">
+            <Label htmlFor="question_gu" className="text-lg font-semibold">
+              Question (Gujarati)
+            </Label>
+            <div
+              className={`relative mt-2 ${
+                dragActive ? "border-primary" : "border-input"
+              }`}
+              onDragEnter={(e) => handleDrag(e)}
+              onDragLeave={(e) => handleDrag(e)}
+              onDragOver={(e) => handleDrag(e)}
+              onDrop={(e) => handleDrop(e, "question", "gu")}
+            >
+              <label className="absolute top-2 right-2 cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleFileSelect(e, "question", "gu")}
+                />
+                <Paperclip className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              </label>
+              <Textarea
+                id="question_gu"
+                name="question_gu"
+                value={currentQuestion.question_gu || ""}
+                onChange={handleQuestionChange}
+                className="min-h-[150px] pr-10"
+                placeholder="અહીં તમારો પ્રશ્ન ટાઇપ કરો..."
+                required
+                onPaste={async (e) => {
+                  const items = e.clipboardData.items;
+                  for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf("image") !== -1) {
+                      e.preventDefault();
+                      const file = items[i].getAsFile();
+                      if (file) {
+                        const compressedFile = await compressImage(file);
+                        handleImageUpload([compressedFile], "question", "gu");
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+          {currentQuestion.question_images_gu &&
+            currentQuestion.question_images_gu.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                {currentQuestion.question_images_gu.map((img, index) => (
+                  <ImagePreview
+                    key={index}
+                    src={img || "/placeholder.svg"}
+                    alt={`Question image (Gujarati) ${index + 1}`}
+                    onRemove={() => handleImageRemove(index, "question", "gu")}
+                  />
+                ))}
+              </div>
+            )}
+        </div>
+
+        {/* Answer Sections - Following the same pattern */}
+        <div className="space-y-4">
+          <div className="relative">
+            <Label htmlFor="answer" className="text-lg font-semibold">
+              Answer (English)
+            </Label>
+            <div
+              className={`relative mt-2 ${
+                dragActive ? "border-primary" : "border-input"
+              }`}
+              onDragEnter={(e) => handleDrag(e)}
+              onDragLeave={(e) => handleDrag(e)}
+              onDragOver={(e) => handleDrag(e)}
+              onDrop={(e) => handleDrop(e, "answer", "en")}
+            >
+              <label className="absolute top-2 right-2 cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleFileSelect(e, "answer", "en")}
+                />
+                <Paperclip className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              </label>
+              <Textarea
+                id="answer"
+                name="answer"
+                value={(currentQuestion.answer as string) || ""}
+                onChange={handleQuestionChange}
+                className="min-h-[150px] pr-10"
+                placeholder="Type your answer here..."
+                required
+                onPaste={async (e) => {
+                  const items = e.clipboardData.items;
+                  for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf("image") !== -1) {
+                      e.preventDefault();
+                      const file = items[i].getAsFile();
+                      if (file) {
+                        const compressedFile = await compressImage(file);
+                        handleImageUpload([compressedFile], "answer", "en");
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+          {currentQuestion.answer_images &&
+            currentQuestion.answer_images.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                {currentQuestion.answer_images.map((img, index) => (
+                  <ImagePreview
+                    key={index}
+                    src={img || "/placeholder.svg"}
+                    alt={`Answer image ${index + 1}`}
+                    onRemove={() => handleImageRemove(index, "answer", "en")}
+                  />
+                ))}
+              </div>
+            )}
+        </div>
+
+        <div className="space-y-4">
+          <div className="relative">
+            <Label htmlFor="answer_gu" className="text-lg font-semibold">
+              Answer (Gujarati)
+            </Label>
+            <div
+              className={`relative mt-2 ${
+                dragActive ? "border-primary" : "border-input"
+              }`}
+              onDragEnter={(e) => handleDrag(e)}
+              onDragLeave={(e) => handleDrag(e)}
+              onDragOver={(e) => handleDrag(e)}
+              onDrop={(e) => handleDrop(e, "answer", "gu")}
+            >
+              <label className="absolute top-2 right-2 cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleFileSelect(e, "answer", "gu")}
+                />
+                <Paperclip className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              </label>
+              <Textarea
+                id="answer_gu"
+                name="answer_gu"
+                value={(currentQuestion.answer_gu as string) || ""}
+                onChange={handleQuestionChange}
+                className="min-h-[150px] pr-10"
+                placeholder="અહીં તમારો જવાબ ટાઇપ કરો..."
+                required
+                onPaste={async (e) => {
+                  const items = e.clipboardData.items;
+                  for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf("image") !== -1) {
+                      e.preventDefault();
+                      const file = items[i].getAsFile();
+                      if (file) {
+                        const compressedFile = await compressImage(file);
+                        handleImageUpload([compressedFile], "answer", "gu");
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+          {currentQuestion.answer_images_gu &&
+            currentQuestion.answer_images_gu.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                {currentQuestion.answer_images_gu.map((img, index) => (
+                  <ImagePreview
+                    key={index}
+                    src={img || "/placeholder.svg"}
+                    alt={`Answer image (Gujarati) ${index + 1}`}
+                    onRemove={() => handleImageRemove(index, "answer", "gu")}
+                  />
+                ))}
+              </div>
+            )}
+        </div>
       </div>
-      <div className="flex items-center space-x-2">
-        <Button
-          onClick={() => handleReviewStatusChange(!currentQuestion.is_reviewed)}
-        >
-          {currentQuestion.is_reviewed
-            ? "Unmark as Reviewed"
-            : "Mark as Reviewed"}
-        </Button>
+
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="marks" className="text-lg font-semibold">
+            Marks
+          </Label>
+          <RadioGroup
+            defaultValue={currentQuestion.marks?.toString() || "1"}
+            onValueChange={(value) =>
+              handleQuestionChange({
+                target: { name: "marks", value },
+              } as React.ChangeEvent<HTMLInputElement>)
+            }
+            className="flex flex-wrap gap-4 mt-2"
+          >
+            {[1, 2, 3, 4, 5].map((mark) => (
+              <div key={mark} className="flex items-center space-x-2">
+                <RadioGroupItem value={mark.toString()} id={`mark-${mark}`} />
+                <Label htmlFor={`mark-${mark}`}>{mark}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <Button
+            onClick={() =>
+              handleReviewStatusChange(!currentQuestion.is_reviewed)
+            }
+          >
+            {currentQuestion.is_reviewed
+              ? "Unmark as Reviewed"
+              : "Mark as Reviewed"}
+          </Button>
+          <Button
+            onClick={() => {
+              if (
+                window.confirm("Are you sure you want to remove this question?")
+              ) {
+                removeQuestion();
+              }
+            }}
+            variant="destructive"
+          >
+            Remove Question
+          </Button>
+        </div>
       </div>
     </div>
   );

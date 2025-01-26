@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Question } from "@/types";
+import type { Question } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MetadataForm } from "./MetadataForm";
@@ -14,9 +14,13 @@ export function AddQuestionForm() {
   const [questions, setQuestions] = useState<Partial<Question>[]>([
     {
       question: "",
+      question_gu: "",
       question_images: [],
+      question_images_gu: [],
       answer: "",
+      answer_gu: "",
       answer_images: [],
+      answer_images_gu: [],
       marks: 1,
       selection_count: 0,
       is_reviewed: false,
@@ -82,7 +86,7 @@ export function AddQuestionForm() {
       const newQuestions = [...prev];
       newQuestions[index] = {
         ...newQuestions[index],
-        [name]: name === "marks" ? parseInt(value, 10) : value,
+        [name]: name === "marks" ? Number.parseInt(value, 10) : value,
       };
       return newQuestions;
     });
@@ -103,14 +107,15 @@ export function AddQuestionForm() {
   const handleImageUpload = async (
     index: number,
     files: File[],
-    type: "question" | "answer"
+    type: "question" | "answer",
+    language: "en" | "gu"
   ) => {
     const uploadedUrls: string[] = [];
 
     for (const file of files) {
       const fileExt = file.name.split(".").pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data } = await supabase.storage
         .from("question-images")
         .upload(fileName, file);
 
@@ -119,21 +124,25 @@ export function AddQuestionForm() {
         continue;
       }
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("question-images").getPublicUrl(fileName);
-
-      uploadedUrls.push(publicUrl);
+      if (data) {
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("question-images").getPublicUrl(data.path);
+        uploadedUrls.push(publicUrl);
+      }
     }
 
     setQuestions((prev) => {
       const newQuestions = [...prev];
-      const currentImages = newQuestions[index][`${type}_images`] || [];
+      const fieldName = `${type}_images${language === "gu" ? "_gu" : ""}`;
+      const currentImages = newQuestions[index][fieldName] || [];
       const newImages = [...currentImages, ...uploadedUrls];
       newQuestions[index] = {
         ...newQuestions[index],
-        [`${type}_images`]: newImages,
-        [type]: `${newQuestions[index][type] || ""} [img${newImages.length}]`,
+        [fieldName]: newImages,
+        [`${type}${language === "gu" ? "_gu" : ""}`]: `${
+          newQuestions[index][`${type}${language === "gu" ? "_gu" : ""}`] || ""
+        } [img${newImages.length}]`,
       };
       return newQuestions;
     });
@@ -142,16 +151,22 @@ export function AddQuestionForm() {
   const handleImageRemove = (
     questionIndex: number,
     imageIndex: number,
-    type: "question" | "answer"
+    type: "question" | "answer",
+    language: "en" | "gu"
   ) => {
     setQuestions((prev) => {
       const newQuestions = [...prev];
-      const images = newQuestions[questionIndex][`${type}_images`] as string[];
+      const fieldName = `${type}_images${language === "gu" ? "_gu" : ""}`;
+      const images = newQuestions[questionIndex][fieldName] as string[];
       images.splice(imageIndex, 1);
       newQuestions[questionIndex] = {
         ...newQuestions[questionIndex],
-        [`${type}_images`]: images,
-        [type]: (newQuestions[questionIndex][type] as string)
+        [fieldName]: images,
+        [`${type}${language === "gu" ? "_gu" : ""}`]: (
+          newQuestions[questionIndex][
+            `${type}${language === "gu" ? "_gu" : ""}`
+          ] as string
+        )
           .replace(`[img${imageIndex + 1}]`, "")
           .trim(),
       };
@@ -176,10 +191,10 @@ export function AddQuestionForm() {
         ...question,
         created_by: user.id,
         content_id: metadata.content_id
-          ? parseInt(metadata.content_id, 10)
+          ? Number.parseInt(metadata.content_id, 10)
           : null,
         subject_id: metadata.subject_id
-          ? parseInt(metadata.subject_id, 10)
+          ? Number.parseInt(metadata.subject_id, 10)
           : null,
         marks: question.marks || 1,
       }));
@@ -200,16 +215,19 @@ export function AddQuestionForm() {
       setQuestions([
         {
           question: "",
+          question_gu: "",
           question_images: [],
+          question_images_gu: [],
           answer: "",
+          answer_gu: "",
           answer_images: [],
+          answer_images_gu: [],
           marks: 1,
           selection_count: 0,
           is_reviewed: false,
           reviewed_by: "",
         },
       ]);
-      //setIsEditing(false);
     } catch (error) {
       console.error("Error saving questions:", error);
       toast({
@@ -229,9 +247,13 @@ export function AddQuestionForm() {
       ...prev,
       {
         question: "",
+        question_gu: "",
         question_images: [],
+        question_images_gu: [],
         answer: "",
+        answer_gu: "",
         answer_images: [],
+        answer_images_gu: [],
         marks: 1,
         selection_count: 0,
         is_reviewed: false,
@@ -248,9 +270,13 @@ export function AddQuestionForm() {
     setQuestions([
       {
         question: "",
+        question_gu: "",
         question_images: [],
+        question_images_gu: [],
         answer: "",
+        answer_gu: "",
         answer_images: [],
+        answer_images_gu: [],
         marks: 1,
         selection_count: 0,
         is_reviewed: false,
@@ -263,7 +289,6 @@ export function AddQuestionForm() {
       sectionTitle: "",
       type: "",
     });
-    //setIsEditing(false);
   };
 
   if (!user) {
@@ -284,27 +309,19 @@ export function AddQuestionForm() {
             <QuestionForm
               currentQuestion={question}
               handleQuestionChange={(e) => handleQuestionChange(index, e)}
-              handleImageUpload={(files, type) =>
-                handleImageUpload(index, files, type)
+              handleImageUpload={(files, type, language) =>
+                handleImageUpload(index, files, type, language)
               }
-              handleImageRemove={(imageIndex, type) =>
-                handleImageRemove(index, imageIndex, type)
+              handleImageRemove={(imageIndex, type, language) =>
+                handleImageRemove(index, imageIndex, type, language)
               }
               handleReviewStatusChange={(isReviewed) =>
                 handleReviewStatusChange(index, isReviewed)
               }
               isSubmitting={isSubmitting}
               questionType={metadata.type}
+              removeQuestion={() => removeQuestion(index)}
             />
-            {questions.length > 1 && (
-              <Button
-                onClick={() => removeQuestion(index)}
-                variant="destructive"
-                className="mt-2"
-              >
-                Remove Question
-              </Button>
-            )}
           </div>
         ))}
         <div className="flex flex-wrap justify-between items-center mt-4 gap-2">
