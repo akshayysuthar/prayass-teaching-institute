@@ -1,12 +1,9 @@
 import { useState } from "react";
-import { Question } from "@/types";
+import type { Question } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuestionDetails } from "./QuestionDetails";
 import Image from "next/image";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/utils/supabase/client";
 
 interface QuestionListProps {
   questions: Question[];
@@ -26,24 +23,19 @@ export function QuestionList({
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(
     null
   );
-  const [editingField, setEditingField] = useState<{
-    id: string;
-    field: string;
-  } | null>(null);
-  const { toast } = useToast();
 
   const renderContent = (content: string, images: string[] | null) => {
     if (!content) return null;
     const parts = content.split(/(\[img\d+\])/g);
     return parts.map((part, index) => {
       const imgMatch = part.match(/\[img(\d+)\]/);
-      if (imgMatch && images && images[parseInt(imgMatch[1]) - 1]) {
+      if (imgMatch && images && images[Number.parseInt(imgMatch[1]) - 1]) {
         return (
           <Image
             key={index}
-            src={images[parseInt(imgMatch[1]) - 1]}
+            src={images[Number.parseInt(imgMatch[1]) - 1] || "/placeholder.svg"}
             alt={`Image ${imgMatch[1]}`}
-            width={600}
+            width={100}
             height={100}
             className="inline-block mr-2"
           />
@@ -51,36 +43,6 @@ export function QuestionList({
       }
       return <span key={index}>{part}</span>;
     });
-  };
-
-  const handleEdit = async (
-    question: Question,
-    field: string,
-    value: string | number
-  ) => {
-    try {
-      const { error } = await supabase
-        .from("questions")
-        .update({ [field]: value })
-        .eq("id", question.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Question updated successfully!",
-      });
-
-      onQuestionUpdated();
-    } catch (error) {
-      console.error("Error updating question:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update question. Please try again.",
-        variant: "destructive",
-      });
-    }
-    setEditingField(null);
   };
 
   return (
@@ -93,73 +55,58 @@ export function QuestionList({
           <CardContent>
             <div className="space-y-2">
               <div>
-                <strong>Question:</strong>{" "}
-                {renderContent(question.question, question.question_images)}
+                <strong>Content:</strong> {question.content_name}
               </div>
               <div>
-                <strong>Answer:</strong>{" "}
+                <strong>Subject:</strong> {question.subject_name}
+              </div>
+              <div>
+                <strong>Chapter:</strong> {question.chapter_no}.{" "}
+                {question.chapter_name}
+              </div>
+              <div>
+                <strong>Question (English):</strong>{" "}
+                {renderContent(question.question, question.question_images)}
+              </div>
+              {question.question_gu && (
+                <div>
+                  <strong>Question (Gujarati):</strong>{" "}
+                  {renderContent(
+                    question.question_gu,
+                    question.question_images_gu
+                  )}
+                </div>
+              )}
+              <div>
+                <strong>Answer (English):</strong>{" "}
                 {renderContent(
                   question.answer as string,
                   question.answer_images
                 )}
               </div>
+              {question.answer_gu && (
+                <div>
+                  <strong>Answer (Gujarati):</strong>{" "}
+                  {renderContent(
+                    question.answer_gu as string,
+                    question.answer_images_gu
+                  )}
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <strong>Type:</strong>{" "}
-                  {editingField?.id === question.id &&
-                  editingField.field === "type" ? (
-                    <Input
-                      value={question.type || ""}
-                      onChange={(e) =>
-                        handleEdit(question, "type", e.target.value)
-                      }
-                      onBlur={() => setEditingField(null)}
-                      autoFocus
-                    />
-                  ) : (
-                    <span
-                      onClick={() =>
-                        isAdmin &&
-                        setEditingField({ id: question.id, field: "type" })
-                      }
-                    >
-                      {question.type}
-                    </span>
-                  )}
+                  <strong>Type:</strong> {question.type}
                 </div>
                 <div>
-                  <strong>Marks:</strong>{" "}
-                  {editingField?.id === question.id &&
-                  editingField.field === "marks" ? (
-                    <Input
-                      type="number"
-                      value={question.marks}
-                      onChange={(e) =>
-                        handleEdit(question, "marks", parseInt(e.target.value))
-                      }
-                      onBlur={() => setEditingField(null)}
-                      autoFocus
-                    />
-                  ) : (
-                    <span
-                      onClick={() =>
-                        isAdmin &&
-                        setEditingField({ id: question.id, field: "marks" })
-                      }
-                    >
-                      {question.marks}
-                    </span>
-                  )}
+                  <strong>Marks:</strong> {question.marks}
                 </div>
                 <div>
-                  <strong>Subject:</strong> {question.subject_id}
+                  <strong>Reviewed:</strong>{" "}
+                  {question.is_reviewed ? "Yes" : "No"}
                 </div>
                 <div>
-                  <strong>Chapter:</strong> {question.section_title}
+                  <strong>Created By:</strong> {question.created_by}
                 </div>
-              </div>
-              <div>
-                <strong>Reviewed:</strong> {question.is_reviewed ? "Yes" : "No"}
               </div>
               <Button onClick={() => setSelectedQuestion(question)}>
                 {isAdmin ? "Edit" : "View"} Details

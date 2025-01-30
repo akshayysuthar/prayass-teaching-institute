@@ -28,11 +28,13 @@ export function AddQuestionForm() {
     },
   ]);
   const [metadata, setMetadata] = useState({
-    content_id: null,
-    subject_id: null,
+    content_id: "",
+    subject_id: "",
     sectionTitle: "",
     type: "",
   });
+  const [selectedContentMedium, setSelectedContentMedium] =
+    useState<string>("");
   const { toast } = useToast();
   const { user } = useUser();
 
@@ -41,6 +43,12 @@ export function AddQuestionForm() {
       fetchRecentEntries();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (metadata.content_id) {
+      fetchContentMedium(metadata.content_id);
+    }
+  }, [metadata.content_id]);
 
   const fetchRecentEntries = async () => {
     const { data, error } = await supabase
@@ -62,6 +70,19 @@ export function AddQuestionForm() {
         }
       });
       //setRecentEntries(entriesBySubject);
+    }
+  };
+
+  const fetchContentMedium = async (contentId: string) => {
+    const { data, error } = await supabase
+      .from("contents")
+      .select("medium")
+      .eq("id", contentId)
+      .single();
+    if (error) {
+      console.error("Error fetching content medium:", error);
+    } else {
+      setSelectedContentMedium(data.medium);
     }
   };
 
@@ -184,12 +205,30 @@ export function AddQuestionForm() {
       return;
     }
 
+    // Check if all required fields are filled
+    const isValid = questions.every(
+      (q) =>
+        q.question &&
+        q.answer &&
+        q.marks &&
+        (selectedContentMedium === "English" || (q.question_gu && q.answer_gu))
+    );
+
+    if (!isValid) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields for each question.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const questionsToSave = questions.map((question) => ({
         ...metadata,
         ...question,
-        created_by: user.id,
+        created_by: user.fullName,
         content_id: metadata.content_id
           ? Number.parseInt(metadata.content_id, 10)
           : null,
@@ -212,22 +251,7 @@ export function AddQuestionForm() {
       });
 
       // Reset the form state
-      setQuestions([
-        {
-          question: "",
-          question_gu: "",
-          question_images: [],
-          question_images_gu: [],
-          answer: "",
-          answer_gu: "",
-          answer_images: [],
-          answer_images_gu: [],
-          marks: 1,
-          selection_count: 0,
-          is_reviewed: false,
-          reviewed_by: "",
-        },
-      ]);
+      resetFormState();
     } catch (error) {
       console.error("Error saving questions:", error);
       toast({
@@ -280,12 +304,11 @@ export function AddQuestionForm() {
         marks: 1,
         selection_count: 0,
         is_reviewed: false,
-        reviewed_by: "",
       },
     ]);
     setMetadata({
-      content_id: null,
-      subject_id: null,
+      content_id: "",
+      subject_id: "",
       sectionTitle: "",
       type: "",
     });
@@ -299,6 +322,15 @@ export function AddQuestionForm() {
     <div className="space-y-8">
       <div className="space-y-4 border p-4 rounded-md">
         <h2 className="text-2xl font-bold">Add New Questions</h2>
+        <h3 className="text-lg font-semibold text-gray-700">
+          Instructions: Based on the selected content&apos;s medium, you&apos;ll
+          see different input fields: - For English medium: Only English
+          question and answer fields will be shown. - For Gujarati medium: Both
+          English and Gujarati fields will be displayed. - For 'Both' medium:
+          All fields (English and Gujarati) will be available. English inputs
+          are always required. Gujarati inputs are required when the medium is
+          Gujarati or &apos;Both&apos;.
+        </h3>
         <MetadataForm
           metadata={metadata}
           handleMetadataChange={handleMetadataChange}
@@ -321,6 +353,7 @@ export function AddQuestionForm() {
               isSubmitting={isSubmitting}
               questionType={metadata.type}
               removeQuestion={() => removeQuestion(index)}
+              selectedContentMedium={selectedContentMedium}
             />
           </div>
         ))}

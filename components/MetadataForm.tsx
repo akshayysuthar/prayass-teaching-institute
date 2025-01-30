@@ -1,76 +1,73 @@
-import React, { useEffect, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { supabase } from "@/utils/supabase/client";
-import { Content, Subject } from "@/types";
+import type React from "react"
+import { useEffect, useState } from "react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { supabase } from "@/utils/supabase/client"
+import { Content, Subject } from "@/types"
 
 interface MetadataFormProps {
   metadata: {
-    content_id: string | null;
-    subject_id: string | null;
-    sectionTitle: string;
-    type: string;
-  };
-  handleMetadataChange: (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => void;
+    content_id: string
+    subject_id: string
+    sectionTitle: string
+    type: string
+  }
+  handleMetadataChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
 }
 
-export function MetadataForm({
-  metadata,
-  handleMetadataChange,
-}: MetadataFormProps) {
-  const [contents, setContents] = useState<Content[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+export function MetadataForm({ metadata, handleMetadataChange }: MetadataFormProps) {
+  const [contents, setContents] = useState<Content[]>([])
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [selectedContentMedium, setSelectedContentMedium] = useState<string>("")
 
   useEffect(() => {
-    fetchContents();
-  }, []);
+    fetchContents()
+  }, [])
 
   useEffect(() => {
     if (metadata.content_id) {
-      fetchSubjects(metadata.content_id);
+      fetchSubjects(metadata.content_id)
+      fetchContentMedium(metadata.content_id)
     }
-  }, [metadata.content_id]);
+  }, [metadata.content_id])
 
   const fetchContents = async () => {
-    const { data, error } = await supabase.from("contents").select("*");
+    const { data, error } = await supabase.from("contents").select("*")
     if (error) {
-      console.error("Error fetching contents:", error);
+      console.error("Error fetching contents:", error)
     } else {
-      setContents(data);
+      setContents(data)
     }
-  };
+  }
 
-  const fetchSubjects = async (contentId: string) => {
-    const { data, error } = await supabase
-      .from("subjects")
-      .select("*")
-      .eq("content_id", contentId);
+  const fetchSubjects = async (content_id: string) => {
+    const { data, error } = await supabase.from("subjects").select("*").eq("content_id", content_id)
     if (error) {
-      console.error("Error fetching subjects:", error);
+      console.error("Error fetching subjects:", error)
     } else {
-      setSubjects(data);
+      setSubjects(data)
     }
-  };
+  }
+
+  const fetchContentMedium = async (content_id: string) => {
+    const { data, error } = await supabase.from("contents").select("medium").eq("id", content_id).single()
+    if (error) {
+      console.error("Error fetching content medium:", error)
+    } else {
+      setSelectedContentMedium(data.medium)
+    }
+  }
 
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Metadata</h3>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="contentId">Content</Label>
+          <Label htmlFor="content_id">Content</Label>
           <Select
-            required
-            name="contentId"
-            value={metadata.content_id ?? ""}
+            name="content_id"
+            value={metadata.content_id}
             onValueChange={(value) =>
               handleMetadataChange({
                 target: { name: "content_id", value },
@@ -83,19 +80,17 @@ export function MetadataForm({
             <SelectContent>
               {contents.map((content) => (
                 <SelectItem key={content.id} value={content.id.toString()}>
-                  {content.name} - {content.board} - {content.medium} - Class{" "}
-                  {content.class}
+                  {content.name} - {content.board} - {content.medium} - Class {content.class}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label htmlFor="subjectId">Subject</Label>
+          <Label htmlFor="subject_id">Subject</Label>
           <Select
-            required
-            name="subjectId"
-            value={metadata.subject_id ?? ""}
+            name="subject_id"
+            value={metadata.subject_id}
             onValueChange={(value) =>
               handleMetadataChange({
                 target: { name: "subject_id", value },
@@ -108,8 +103,7 @@ export function MetadataForm({
             <SelectContent>
               {subjects.map((subject) => (
                 <SelectItem key={subject.id} value={subject.id.toString()}>
-                  {subject.subject_name} - Chapter {subject.chapter_no}:{" "}
-                  {subject.chapter_name}
+                  {subject.subject_name} - Chapter {subject.chapter_no}: {subject.chapter_name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -127,15 +121,15 @@ export function MetadataForm({
         </div>
         <div>
           <Label htmlFor="type">Question Type</Label>
-          <Input
-            id="type"
-            name="type"
-            value={metadata.type}
-            onChange={handleMetadataChange}
-            required
-          />
+          <Input id="type" name="type" value={metadata.type} onChange={handleMetadataChange} required />
         </div>
       </div>
+      {selectedContentMedium && (
+        <div>
+          <Label>Selected Content Medium: {selectedContentMedium}</Label>
+        </div>
+      )}
     </div>
-  );
+  )
 }
+

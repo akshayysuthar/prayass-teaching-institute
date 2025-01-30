@@ -1,70 +1,47 @@
-import { useState, useEffect } from "react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { supabase } from "@/utils/supabase/client";
+import { useState, useEffect } from "react"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { Content, Subject } from "@/types"
 
 interface QuestionFiltersProps {
-  onFilterChange: (filters: FilterState) => void;
+  onFilterChange: (filters: FilterState) => void
+  contents: Content[]
+  subjects: Subject[]
 }
 
 interface FilterState {
-  searchTerm: string;
-  type: string;
-  subject: string;
-  marks: string;
+  searchTerm: string
+  contentId: string
+  subjectId: string
+  type: string
+  marks: string
 }
 
-export function QuestionFilters({ onFilterChange }: QuestionFiltersProps) {
+export function QuestionFilters({ onFilterChange, contents, subjects }: QuestionFiltersProps) {
   const [filters, setFilters] = useState<FilterState>({
     searchTerm: "",
+    contentId: "",
+    subjectId: "",
     type: "all",
-    subject: "all",
     marks: "all",
-  });
-  const [questionTypes, setQuestionTypes] = useState<string[]>([]);
-  const [subjects, setSubjects] = useState<string[]>([]);
+  })
+  const [questionTypes, setQuestionTypes] = useState<string[]>([])
 
   useEffect(() => {
-    fetchQuestionTypes();
-    fetchSubjects();
-  }, []);
-
-  const fetchQuestionTypes = async () => {
-    const { data, error } = await supabase
-      .from("questions")
-      .select("type")
-      .not("type", "is", null);
-    if (!error && data) {
-      const types = [...new Set(data.map((item) => item.type))];
-      setQuestionTypes(types);
-    }
-  };
-
-  const fetchSubjects = async () => {
-    const { data, error } = await supabase
-      .from("subjects")
-      .select("subject_name");
-    if (!error && data) {
-      const subjectNames = [...new Set(data.map((item) => item.subject_name))];
-      setSubjects(subjectNames);
-    }
-  };
+    // Fetch question types from the questions in the database
+    const types = [...new Set(subjects.map((subject) => subject.type))].filter(Boolean)
+    setQuestionTypes(types as string[])
+  }, [subjects])
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
-  };
+    const newFilters = { ...filters, [key]: value }
+    setFilters(newFilters)
+    onFilterChange(newFilters)
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
       <div>
         <Label htmlFor="search">Search</Label>
         <Input
@@ -75,41 +52,48 @@ export function QuestionFilters({ onFilterChange }: QuestionFiltersProps) {
         />
       </div>
       <div>
-        <Label htmlFor="type">Question Type</Label>
-        <Select
-          onValueChange={(value) => handleFilterChange("type", value)}
-          value={filters.type || "all"}
-        >
+        <Label htmlFor="content">Content</Label>
+        <Select onValueChange={(value) => handleFilterChange("contentId", value)} value={filters.contentId}>
           <SelectTrigger>
-            <SelectValue placeholder="Select type" />
+            <SelectValue placeholder="Select content" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {questionTypes.map(
-              (type) =>
-                type && (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                )
-            )}
+            <SelectItem value="0">All Contents</SelectItem>
+            {contents.map((content) => (
+              <SelectItem key={content.id} value={content.id.toString()}>
+                {content.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
       <div>
         <Label htmlFor="subject">Subject</Label>
-        <Select
-          onValueChange={(value) => handleFilterChange("subject", value)}
-          value={filters.subject}
-        >
+        <Select onValueChange={(value) => handleFilterChange("subjectId", value)} value={filters.subjectId}>
           <SelectTrigger>
             <SelectValue placeholder="Select subject" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Subjects</SelectItem>
+            <SelectItem value="0">All Subjects</SelectItem>
             {subjects.map((subject) => (
-              <SelectItem key={subject} value={subject}>
-                {subject}
+              <SelectItem key={subject.id} value={subject.id.toString()}>
+                {subject.subject_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label htmlFor="type">Question Type</Label>
+        <Select onValueChange={(value) => handleFilterChange("type", value)} value={filters.type}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            {questionTypes.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type}
               </SelectItem>
             ))}
           </SelectContent>
@@ -117,23 +101,21 @@ export function QuestionFilters({ onFilterChange }: QuestionFiltersProps) {
       </div>
       <div>
         <Label htmlFor="marks">Marks</Label>
-        <Select
-          onValueChange={(value) => handleFilterChange("marks", value)}
-          value={filters.marks}
-        >
+        <Select onValueChange={(value) => handleFilterChange("marks", value)} value={filters.marks}>
           <SelectTrigger>
             <SelectValue placeholder="Select marks" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Marks</SelectItem>
-            <SelectItem value="1">1</SelectItem>
-            <SelectItem value="2">2</SelectItem>
-            <SelectItem value="3">3</SelectItem>
-            <SelectItem value="4">4</SelectItem>
-            <SelectItem value="5">5</SelectItem>
+            {[1, 2, 3, 4, 5].map((mark) => (
+              <SelectItem key={mark} value={mark.toString()}>
+                {mark}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
     </div>
-  );
+  )
 }
+

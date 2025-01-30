@@ -22,7 +22,7 @@ export interface Question {
   last_updated: string;
   created_at: string;
   options?: { [key: string]: string };
-  [key: string]: any // Add this line
+  [key: string]: any; // Add this line
 }
 
 export interface Content {
@@ -104,6 +104,7 @@ export interface Subject {
   chapter_name: string;
   board_weightage: number;
   created_at: string;
+  type: string;
 }
 
 export interface SelectedChapter {
