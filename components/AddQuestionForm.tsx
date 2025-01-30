@@ -326,7 +326,7 @@ export function AddQuestionForm() {
           Instructions: Based on the selected content&apos;s medium, you&apos;ll
           see different input fields: - For English medium: Only English
           question and answer fields will be shown. - For Gujarati medium: Both
-          English and Gujarati fields will be displayed. - For 'Both' medium:
+          English and Gujarati fields will be displayed. - For &apos;Both&apos; medium:
           All fields (English and Gujarati) will be available. English inputs
           are always required. Gujarati inputs are required when the medium is
           Gujarati or &apos;Both&apos;.
