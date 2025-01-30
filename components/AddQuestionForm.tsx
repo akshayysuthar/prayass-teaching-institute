@@ -306,12 +306,12 @@ export function AddQuestionForm() {
         is_reviewed: false,
       },
     ]);
-    setMetadata({
-      content_id: "",
-      subject_id: "",
-      sectionTitle: "",
-      type: "",
-    });
+    // setMetadata({
+    //   content_id: "",
+    //   subject_id: "",
+    //   sectionTitle: "",
+    //   type: "",
+    // });
   };
 
   if (!user) {

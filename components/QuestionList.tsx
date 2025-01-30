@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Question } from "@/types";
+import type { Question, Content, Subject } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuestionDetails } from "./QuestionDetails";
@@ -11,6 +11,8 @@ interface QuestionListProps {
   onLoadMore: () => void;
   hasMore: boolean;
   isAdmin: boolean;
+  contents: Content[];
+  subjects: Subject[];
 }
 
 export function QuestionList({
@@ -19,6 +21,8 @@ export function QuestionList({
   onLoadMore,
   hasMore,
   isAdmin,
+  contents,
+  subjects,
 }: QuestionListProps) {
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(
     null
@@ -55,7 +59,9 @@ export function QuestionList({
           <CardContent>
             <div className="space-y-2">
               <div>
-                <strong>Content:</strong> {question.content_name}
+                <strong>Content:</strong> {question.content_name} - Class{" "}
+                {question.contents?.class} - {question.contents?.board} -{" "}
+                {question.contents?.medium}
               </div>
               <div>
                 <strong>Subject:</strong> {question.subject_name}
@@ -109,7 +115,7 @@ export function QuestionList({
                 </div>
               </div>
               <Button onClick={() => setSelectedQuestion(question)}>
-                {isAdmin ? "Edit" : "View"} Details
+                Edit Question
               </Button>
             </div>
           </CardContent>
@@ -131,6 +137,8 @@ export function QuestionList({
             onQuestionUpdated();
           }}
           isAdmin={isAdmin}
+          contents={contents}
+          subjects={subjects}
         />
       )}
     </div>

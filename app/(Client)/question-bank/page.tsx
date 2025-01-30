@@ -157,6 +157,8 @@ export default function QuestionBankPage() {
           onLoadMore={handleLoadMore}
           hasMore={hasMore}
           isAdmin={isAdmin}
+          contents={contents}
+          subjects={subjects}
         />
       )}
     </div>
