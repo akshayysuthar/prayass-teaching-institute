@@ -98,13 +98,14 @@ export interface Content {
 
 export interface Subject {
   id: number;
-  content_id: number;
   subject_name: string;
   chapter_no: number;
   chapter_name: string;
+  content_id: number;
   board_weightage: number;
   created_at: string;
-  type: string;
+  // type is not actually in the database, so we'll make it optional
+  type?: string;
 }
 
 export interface SelectedChapter {

@@ -10,21 +10,11 @@ import { Label } from "@/components/ui/label";
 
 interface ContentSubjectSelectorProps {
   contents: Content[];
-  subjects: LocalSubject[];
+  subjects: Subject[];
   selectedContent: Content | null;
-  selectedSubject: LocalSubject | null;
+  selectedSubject: Subject | null;
   onContentChange: (content: Content) => void;
   onSubjectChange: (subject: Subject) => void;
-}
-
-interface LocalSubject {
-  id: number;
-  subject_name: string;
-  chapter_no: number;
-  chapter_name: string;
-  content_id: number;
-  board_weightage: number;
-  created_at: string;
 }
 
 export function ContentSubjectSelector({
@@ -65,7 +55,7 @@ export function ContentSubjectSelector({
           value={selectedSubject?.id.toString()}
           onValueChange={(value) => {
             const subject = subjects.find(
-              (s: LocalSubject) => s.id.toString() === value
+              (s: Subject) => s.id.toString() === value
             );
             if (subject) onSubjectChange(subject);
           }}

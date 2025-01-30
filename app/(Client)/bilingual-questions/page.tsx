@@ -74,7 +74,8 @@ export default function BilingualQuestionsPage() {
         .order("chapter_no", { ascending: true });
 
       if (error) throw error;
-      setSubjects(data || []);
+      // Cast the data to Subject[] since we know the shape matches
+      setSubjects((data || []) as Subject[]);
     } catch (error) {
       console.error("Error fetching subjects:", error);
       toast({
@@ -193,12 +194,15 @@ export default function BilingualQuestionsPage() {
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="MCQ">Multiple Choice</SelectItem>
                 <SelectItem value="Short Answer">Short Answer</SelectItem>
-                <SelectItem value="Long Answer">Long Answer</SelectItem>
+                <SelectItem value="Long Answer">Long Answer </SelectItem>
               </SelectContent>
             </Select>
           </div>
           <BilingualQuestionList
-            subject={{ id: selectedSubject.id, question_count: questions.length }}
+            subject={{
+              id: selectedSubject.id,
+              question_count: questions.length,
+            }}
             questions={questions}
             onQuestionAdded={handleQuestionAdded}
             onQuestionUpdated={handleQuestionUpdated}
