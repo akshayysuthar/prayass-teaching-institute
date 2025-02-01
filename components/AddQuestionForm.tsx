@@ -35,6 +35,7 @@ export function AddQuestionForm() {
   });
   const [selectedContentMedium, setSelectedContentMedium] =
     useState<string>("");
+  //const [showHiddenInputs, setShowHiddenInputs] = useState(false)
   const { toast } = useToast();
   const { user } = useUser();
 
@@ -113,18 +114,6 @@ export function AddQuestionForm() {
     });
   };
 
-  const handleReviewStatusChange = (index: number, isReviewed: boolean) => {
-    setQuestions((prev) => {
-      const newQuestions = [...prev];
-      newQuestions[index] = {
-        ...newQuestions[index],
-        is_reviewed: isReviewed,
-        reviewed_by: isReviewed ? user?.fullName || "Current User" : "",
-      };
-      return newQuestions;
-    });
-  };
-
   const handleImageUpload = async (
     index: number,
     files: File[],
@@ -195,6 +184,20 @@ export function AddQuestionForm() {
     });
   };
 
+  const checkRequiredFields = (question: Partial<Question>) => {
+    const requiredFields = ["question", "answer"];
+    if (
+      selectedContentMedium === "Gujarati" ||
+      selectedContentMedium === "Both"
+    ) {
+      requiredFields.push("question_gu", "answer_gu");
+    }
+    return requiredFields.reduce((acc, field) => {
+      acc[field] = !question[field];
+      return acc;
+    }, {} as Record<string, boolean>);
+  };
+
   const handleSaveQuestions = async () => {
     if (!user) {
       toast({
@@ -205,19 +208,24 @@ export function AddQuestionForm() {
       return;
     }
 
-    // Check if all required fields are filled
-    const isValid = questions.every(
-      (q) =>
-        q.question &&
-        q.answer &&
-        q.marks &&
-        (selectedContentMedium === "English" || (q.question_gu && q.answer_gu))
+    const emptyFieldsByQuestion = questions.map(checkRequiredFields);
+    const isValid = emptyFieldsByQuestion.every(
+      (fields) => !Object.values(fields).some(Boolean)
     );
 
     if (!isValid) {
+      const emptyFields = emptyFieldsByQuestion.flatMap((fields, index) =>
+        Object.entries(fields)
+          .filter(([isEmpty]) => isEmpty)
+          // Changed from ([_, isEmpty]) to ([field, isEmpty])
+          .map(([field]) => `Question ${index + 1}: ${field}`)
+      );
+
       toast({
         title: "Error",
-        description: "Please fill in all required fields for each question.",
+        description: `Please fill in all required fields: ${emptyFields.join(
+          ", "
+        )}`,
         variant: "destructive",
       });
       return;
@@ -309,7 +317,7 @@ export function AddQuestionForm() {
     // setMetadata({
     //   content_id: "",
     //   subject_id: "",
-    //   sectionTitle: "",
+    //   section_title: "",
     //   type: "",
     // });
   };
@@ -326,15 +334,15 @@ export function AddQuestionForm() {
           Instructions: Based on the selected content&apos;s medium, you&apos;ll
           see different input fields: - For English medium: Only English
           question and answer fields will be shown. - For Gujarati medium: Both
-          English and Gujarati fields will be displayed. - For &apos;Both&apos; medium:
-          All fields (English and Gujarati) will be available. English inputs
-          are always required. Gujarati inputs are required when the medium is
-          Gujarati or &apos;Both&apos;.
+          English and Gujarati fields will be displayed. English inputs are
+          always required. Gujarati inputs are required when the medium is
+          Gujarati.
         </h3>
         <MetadataForm
           metadata={metadata}
           handleMetadataChange={handleMetadataChange}
         />
+        {/* Remove this JSX */}
         {questions.map((question, index) => (
           <div key={index} className="border-t pt-4 mt-4">
             <h3 className="text-lg font-semibold mb-2">Question {index + 1}</h3>
@@ -347,23 +355,26 @@ export function AddQuestionForm() {
               handleImageRemove={(imageIndex, type, language) =>
                 handleImageRemove(index, imageIndex, type, language)
               }
-              handleReviewStatusChange={(isReviewed) =>
-                handleReviewStatusChange(index, isReviewed)
-              }
               isSubmitting={isSubmitting}
               questionType={metadata.type}
               removeQuestion={() => removeQuestion(index)}
               selectedContentMedium={selectedContentMedium}
+              emptyFields={checkRequiredFields(question)}
             />
           </div>
         ))}
         <div className="flex flex-wrap justify-between items-center mt-4 gap-2">
-          <Button onClick={addNewQuestion}>Add Another Question</Button>
-          <Button onClick={resetFormState}>Clear All</Button>
+          <Button onClick={addNewQuestion} variant="outline">
+            Add Another Question
+          </Button>
+          <Button onClick={resetFormState} variant="secondary">
+            Clear All
+          </Button>
           <Button
             onClick={handleSaveQuestions}
             disabled={isSubmitting}
             className="w-full sm:w-auto"
+            variant="default"
           >
             {isSubmitting ? "Saving..." : "Save All Questions"}
           </Button>
