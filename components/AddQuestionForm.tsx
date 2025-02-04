@@ -22,9 +22,7 @@ export function AddQuestionForm() {
       answer_images: [],
       answer_images_gu: [],
       marks: 1,
-      selection_count: 0,
-      is_reviewed: false,
-      reviewed_by: "",
+      created_by: "",
     },
   ]);
   const [metadata, setMetadata] = useState({
@@ -287,9 +285,7 @@ export function AddQuestionForm() {
         answer_images: [],
         answer_images_gu: [],
         marks: 1,
-        selection_count: 0,
-        is_reviewed: false,
-        reviewed_by: "",
+        reviewed_by: user?.fullName,
       },
     ]);
   };
@@ -310,8 +306,6 @@ export function AddQuestionForm() {
         answer_images: [],
         answer_images_gu: [],
         marks: 1,
-        selection_count: 0,
-        is_reviewed: false,
       },
     ]);
     // setMetadata({

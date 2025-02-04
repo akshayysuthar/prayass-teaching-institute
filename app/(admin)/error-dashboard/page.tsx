@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 interface ErrorRecord {
+  [x: string]: ReactNode;
   id: number;
   message: string;
   stack: string | null;
@@ -85,6 +86,7 @@ export default function ErrorDashboard() {
           <TableRow>
             <TableHead>Timestamp</TableHead>
             <TableHead>Message</TableHead>
+            <TableHead>Details</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
@@ -96,6 +98,7 @@ export default function ErrorDashboard() {
                 {new Date(error.timestamp).toLocaleString()}
               </TableCell>
               <TableCell>{error.message}</TableCell>
+              <TableCell>{error.details}</TableCell>
               <TableCell>{error.status}</TableCell>
               <TableCell>
                 <Button

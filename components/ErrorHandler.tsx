@@ -9,6 +9,7 @@ interface ErrorData {
   message: string;
   stack?: string;
   timestamp: number;
+  details?: string;
 }
 
 export function ErrorHandler() {
@@ -18,12 +19,14 @@ export function ErrorHandler() {
   const saveError = useCallback(
     async (errorData: ErrorData) => {
       try {
+        const errorDetails = JSON.stringify(errorData, null, 2);
         await supabase.from("errors").insert([
           {
             message: errorData.message,
             stack: errorData.stack,
             timestamp: new Date(errorData.timestamp).toISOString(),
             status: "Active",
+            details: errorDetails, // Add this line to save the full error object
           },
         ]);
 
@@ -50,7 +53,9 @@ export function ErrorHandler() {
         title: "An error occurred",
         description: (
           <div>
-            <p>{error.message}</p>
+            <p>
+              {error.message} {error.details}
+            </p>
             <Button onClick={() => saveError(error)}>Save Error</Button>
           </div>
         ),
@@ -67,6 +72,7 @@ export function ErrorHandler() {
         message: errorMessage,
         stack: new Error().stack,
         timestamp: Date.now(),
+        details: JSON.stringify(args, null, 2), // Add this line
       });
       originalConsoleError.apply(console, args);
     };
@@ -76,6 +82,7 @@ export function ErrorHandler() {
         message: event.message,
         stack: event.error?.stack,
         timestamp: Date.now(),
+        details: JSON.stringify(event.error, null, 2), // Add this line
       });
     });
 
@@ -84,6 +91,7 @@ export function ErrorHandler() {
         message: event.reason.message || "Unhandled Promise Rejection",
         stack: event.reason.stack,
         timestamp: Date.now(),
+        details: JSON.stringify(event.reason, null, 2), // Add this line
       });
     });
 

@@ -84,7 +84,7 @@ export function Navbar() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="pr-0">
-              <MobileNav />
+              <MobileNav setOpen={setOpen} />
             </SheetContent>
           </Sheet>
           <Link href="/" className="flex items-center space-x-2">
@@ -114,7 +114,7 @@ export function Navbar() {
   );
 }
 
-function MobileNav() {
+function MobileNav({ setOpen }: { setOpen: (open: boolean) => void }) {
   const pathname = usePathname();
   const { user } = useUser();
   const isAdmin =
@@ -122,31 +122,22 @@ function MobileNav() {
     siteConfig.adminEmail.includes(user.emailAddresses[0].emailAddress);
 
   return (
-    <>
-      {/* <MobileLink href="/" pathname={pathname} className="flex items-center">
-        <Image src="/file.png" alt="Logo" width={32} height={32} />
-        <span className="font-bold">{siteConfig.name}</span>
-      </MobileLink> */}
-      <ScrollArea className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
-        <div className="flex flex-col space-y-3">
-          {siteConfig.navLinks.map(
-            (item) =>
-              (!item.adminOnly || (item.adminOnly && isAdmin)) && (
-                <MobileLink
-                  key={item.href}
-                  href={item.href}
-                  pathname={pathname}
-                  className={cn(
-                    "text-foreground/70 transition-colors hover:text-foreground",
-                    pathname === item.href && "text-foreground"
-                  )}
-                >
-                  {item.title}
-                </MobileLink>
-              )
-          )}
-        </div>
-      </ScrollArea>
+    <ScrollArea className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
+      <div className="flex flex-col space-y-3">
+        {siteConfig.navLinks.map(
+          (item) =>
+            (!item.adminOnly || (item.adminOnly && isAdmin)) && (
+              <MobileLink
+                key={item.href}
+                href={item.href}
+                pathname={pathname}
+                onClick={() => setOpen(false)}
+              >
+                {item.title}
+              </MobileLink>
+            )
+        )}
+      </div>
       {!user && (
         <div className="mt-4 px-6">
           <SignInButton mode="modal">
@@ -154,7 +145,7 @@ function MobileNav() {
           </SignInButton>
         </div>
       )}
-    </>
+    </ScrollArea>
   );
 }
 
@@ -162,10 +153,10 @@ interface MobileLinkProps {
   href: string;
   pathname: string;
   children: React.ReactNode;
-  className?: string;
+  onClick: () => void;
 }
 
-function MobileLink({ href, pathname, children }: MobileLinkProps) {
+function MobileLink({ href, pathname, children, onClick }: MobileLinkProps) {
   const isActive = pathname === href;
 
   return (
@@ -175,6 +166,7 @@ function MobileLink({ href, pathname, children }: MobileLinkProps) {
         "text-foreground/70 transition-colors hover:text-foreground",
         isActive && "text-foreground"
       )}
+      onClick={onClick}
     >
       {children}
     </Link>
