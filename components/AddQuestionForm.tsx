@@ -22,7 +22,7 @@ export function AddQuestionForm() {
       answer_images: [],
       answer_images_gu: [],
       marks: 1,
-      created_by: "",
+      created_by?: string | null;
     },
   ]);
   const [metadata, setMetadata] = useState({
