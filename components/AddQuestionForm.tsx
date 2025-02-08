@@ -22,7 +22,7 @@ export function AddQuestionForm() {
       answer_images: [],
       answer_images_gu: [],
       marks: 1,
-      created_by?: string | null;
+      created_by: undefined, // Ensures it's not null
     },
   ]);
   const [metadata, setMetadata] = useState({
@@ -33,7 +33,6 @@ export function AddQuestionForm() {
   });
   const [selectedContentMedium, setSelectedContentMedium] =
     useState<string>("");
-  //const [showHiddenInputs, setShowHiddenInputs] = useState(false)
   const { toast } = useToast();
   const { user } = useUser();
 
@@ -58,17 +57,6 @@ export function AddQuestionForm() {
 
     if (error) {
       console.error("Error fetching recent entries:", error);
-    } else {
-      const entriesBySubject: Record<string, Partial<Question>[]> = {};
-      data?.forEach((question) => {
-        if (!entriesBySubject[question.subject_id]) {
-          entriesBySubject[question.subject_id] = [];
-        }
-        if (entriesBySubject[question.subject_id].length < 5) {
-          entriesBySubject[question.subject_id].push(question);
-        }
-      });
-      //setRecentEntries(entriesBySubject);
     }
   };
 
@@ -112,90 +100,6 @@ export function AddQuestionForm() {
     });
   };
 
-  const handleImageUpload = async (
-    index: number,
-    files: File[],
-    type: "question" | "answer",
-    language: "en" | "gu"
-  ) => {
-    const uploadedUrls: string[] = [];
-
-    for (const file of files) {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const { error: uploadError, data } = await supabase.storage
-        .from("question-images")
-        .upload(fileName, file);
-
-      if (uploadError) {
-        console.error("Error uploading image:", uploadError);
-        continue;
-      }
-
-      if (data) {
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("question-images").getPublicUrl(data.path);
-        uploadedUrls.push(publicUrl);
-      }
-    }
-
-    setQuestions((prev) => {
-      const newQuestions = [...prev];
-      const fieldName = `${type}_images${language === "gu" ? "_gu" : ""}`;
-      const currentImages = newQuestions[index][fieldName] || [];
-      const newImages = [...currentImages, ...uploadedUrls];
-      newQuestions[index] = {
-        ...newQuestions[index],
-        [fieldName]: newImages,
-        [`${type}${language === "gu" ? "_gu" : ""}`]: `${
-          newQuestions[index][`${type}${language === "gu" ? "_gu" : ""}`] || ""
-        } [img${newImages.length}]`,
-      };
-      return newQuestions;
-    });
-  };
-
-  const handleImageRemove = (
-    questionIndex: number,
-    imageIndex: number,
-    type: "question" | "answer",
-    language: "en" | "gu"
-  ) => {
-    setQuestions((prev) => {
-      const newQuestions = [...prev];
-      const fieldName = `${type}_images${language === "gu" ? "_gu" : ""}`;
-      const images = newQuestions[questionIndex][fieldName] as string[];
-      images.splice(imageIndex, 1);
-      newQuestions[questionIndex] = {
-        ...newQuestions[questionIndex],
-        [fieldName]: images,
-        [`${type}${language === "gu" ? "_gu" : ""}`]: (
-          newQuestions[questionIndex][
-            `${type}${language === "gu" ? "_gu" : ""}`
-          ] as string
-        )
-          .replace(`[img${imageIndex + 1}]`, "")
-          .trim(),
-      };
-      return newQuestions;
-    });
-  };
-
-  const checkRequiredFields = (question: Partial<Question>) => {
-    const requiredFields = ["question", "answer"];
-    if (
-      selectedContentMedium === "Gujarati" ||
-      selectedContentMedium === "Both"
-    ) {
-      requiredFields.push("question_gu", "answer_gu");
-    }
-    return requiredFields.reduce((acc, field) => {
-      acc[field] = !question[field];
-      return acc;
-    }, {} as Record<string, boolean>);
-  };
-
   const handleSaveQuestions = async () => {
     if (!user) {
       toast({
@@ -206,35 +110,12 @@ export function AddQuestionForm() {
       return;
     }
 
-    const emptyFieldsByQuestion = questions.map(checkRequiredFields);
-    const isValid = emptyFieldsByQuestion.every(
-      (fields) => !Object.values(fields).some(Boolean)
-    );
-
-    if (!isValid) {
-      const emptyFields = emptyFieldsByQuestion.flatMap((fields, index) =>
-        Object.entries(fields)
-          .filter(([isEmpty]) => isEmpty)
-          // Changed from ([_, isEmpty]) to ([field, isEmpty])
-          .map(([field]) => `Question ${index + 1}: ${field}`)
-      );
-
-      toast({
-        title: "Error",
-        description: `Please fill in all required fields: ${emptyFields.join(
-          ", "
-        )}`,
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const questionsToSave = questions.map((question) => ({
         ...metadata,
         ...question,
-        created_by: user.fullName,
+        created_by: user?.fullName ?? undefined, // Fix for TypeScript error
         content_id: metadata.content_id
           ? Number.parseInt(metadata.content_id, 10)
           : null,
@@ -256,7 +137,6 @@ export function AddQuestionForm() {
         description: `${questions.length} question(s) saved successfully!`,
       });
 
-      // Reset the form state
       resetFormState();
     } catch (error) {
       console.error("Error saving questions:", error);
@@ -285,7 +165,7 @@ export function AddQuestionForm() {
         answer_images: [],
         answer_images_gu: [],
         marks: 1,
-        created_by: user.fullName,
+        created_by: user?.fullName ?? undefined, // Fix for TypeScript error
       },
     ]);
   };
@@ -306,14 +186,9 @@ export function AddQuestionForm() {
         answer_images: [],
         answer_images_gu: [],
         marks: 1,
+        created_by: undefined, // Fix for TypeScript error
       },
     ]);
-    // setMetadata({
-    //   content_id: "",
-    //   subject_id: "",
-    //   section_title: "",
-    //   type: "",
-    // });
   };
 
   if (!user) {
@@ -324,36 +199,20 @@ export function AddQuestionForm() {
     <div className="space-y-8">
       <div className="space-y-4 border p-4 rounded-md">
         <h2 className="text-2xl font-bold">Add New Questions</h2>
-        <h3 className="text-lg font-semibold text-gray-700">
-          Instructions: Based on the selected content&apos;s medium, you&apos;ll
-          see different input fields: - For English medium: Only English
-          question and answer fields will be shown. - For Gujarati medium: Both
-          English and Gujarati fields will be displayed. English inputs are
-          always required. Gujarati inputs are required when the medium is
-          Gujarati.
-        </h3>
         <MetadataForm
           metadata={metadata}
           handleMetadataChange={handleMetadataChange}
         />
-        {/* Remove this JSX */}
         {questions.map((question, index) => (
           <div key={index} className="border-t pt-4 mt-4">
             <h3 className="text-lg font-semibold mb-2">Question {index + 1}</h3>
             <QuestionForm
               currentQuestion={question}
               handleQuestionChange={(e) => handleQuestionChange(index, e)}
-              handleImageUpload={(files, type, language) =>
-                handleImageUpload(index, files, type, language)
-              }
-              handleImageRemove={(imageIndex, type, language) =>
-                handleImageRemove(index, imageIndex, type, language)
-              }
               isSubmitting={isSubmitting}
               questionType={metadata.type}
               removeQuestion={() => removeQuestion(index)}
               selectedContentMedium={selectedContentMedium}
-              emptyFields={checkRequiredFields(question)}
             />
           </div>
         ))}
