@@ -1,4 +1,3 @@
-import React from "react";
 import { Button } from "@/components/ui/button";
 import {
   Document,
@@ -9,8 +8,9 @@ import {
   PDFViewer,
   PDFDownloadLink,
 } from "@react-pdf/renderer";
-import { PdfDownloadProps } from "@/types";
+import type { PdfDownloadProps } from "@/types";
 import { DynamicParagraph } from "./DynamicParagraph";
+import type { Question, ExamStructure } from "@/types";
 
 const styles = StyleSheet.create({
   page: {
@@ -121,6 +121,48 @@ const getFormattedDate = () => {
 
 const formattedDate = getFormattedDate();
 
+// Update the PdfDownload component to better handle all selected questions
+
+// First, ensure we're grouping questions by their section type
+const groupQuestionsBySection = (
+  questions: Question[],
+  examStructure: ExamStructure
+) => {
+  // Create a map of all sections from the exam structure
+  const sectionMap = examStructure.sections.reduce((acc, section) => {
+    acc[section.questionType] = {
+      ...section,
+      questions: [],
+    };
+    return acc;
+  }, {} as Record<string, any>);
+
+  // Add each question to its corresponding section
+  questions.forEach((question) => {
+    const sectionType = question.sectionTitle || "Other";
+
+    // If this question type isn't in our structure yet, add it
+    if (!sectionMap[sectionType]) {
+      const newSectionName = String.fromCharCode(
+        65 + Object.keys(sectionMap).length
+      );
+      sectionMap[sectionType] = {
+        name: newSectionName,
+        questionType: sectionType,
+        marksPerQuestion: question.marks,
+        questions: [],
+      };
+    }
+
+    sectionMap[sectionType].questions.push(question);
+  });
+
+  return Object.values(sectionMap)
+    .filter((section) => section.questions.length > 0)
+    .sort((a, b) => a.questionType.localeCompare(b.questionType, undefined, { numeric: true }));
+};
+
+// Then, update the MyDocument component to use this grouping
 const MyDocument = ({
   selectedQuestions,
   examStructure,
@@ -130,42 +172,49 @@ const MyDocument = ({
   subject,
   chapters,
   teacherName,
-}: PdfDownloadProps) => (
-  <Document>
-    <Page size="A4" style={styles.page}>
-      <View style={styles.section}>
-        <View style={styles.headerContainer}>
-          <View style={styles.row}>
-            <Text style={styles.header}>{instituteName}</Text>
-            <Text style={styles.date}>{formattedDate}</Text>
+}: PdfDownloadProps) => {
+  const groupedSections = groupQuestionsBySection(
+    selectedQuestions,
+    examStructure
+  );
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.section}>
+          <View style={styles.headerContainer}>
+            <View style={styles.row}>
+              <Text style={styles.header}>{instituteName}</Text>
+              <Text style={styles.date}>{formattedDate}</Text>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.leftColumn}>STD n School: {standard}</Text>
+              <Text style={styles.rightColumn}>Subject: {subject}</Text>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.leftColumn}>Chapter: Ch {chapters}</Text>
+              <Text style={styles.rightColumn}>
+                Student Name: {studentName}
+              </Text>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.leftColumn}>Teacher Name: {teacherName}</Text>
+              <Text style={styles.rightColumn}>
+                Total Marks:{" "}
+                {selectedQuestions.reduce((sum, q) => sum + q.marks, 0)}
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.row}>
-            <Text style={styles.leftColumn}>STD n School: {standard}</Text>
-            <Text style={styles.rightColumn}>Subject: {subject}</Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.leftColumn}>Chapter: Ch {chapters}</Text>
-            <Text style={styles.rightColumn}>Student Name: {studentName}</Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.leftColumn}>Teacher Name: {teacherName}</Text>
-            <Text style={styles.rightColumn}>
-              Total Marks: {examStructure.totalMarks}
-            </Text>
-          </View>
-        </View>
-
-        {examStructure.sections.map((section, sectionIndex) => (
-          <View key={section.name}>
-            <Text style={styles.header}>
-              Section {section.name} ({section.questionType})
-            </Text>
-            {selectedQuestions
-              .filter((q) => q.type === section.questionType)
-              .map((question, index) => (
+          {groupedSections.map((section, sectionIndex) => (
+            <View key={section.questionType}>
+              <Text style={styles.header}>
+                Section {section.name} ({section.questionType})
+              </Text>
+              {section.questions.map((question: Question, index: number) => (
                 <View key={question.id} style={styles.question}>
                   <Text style={styles.questionNumber}>
                     {`${sectionIndex + 1}.${index + 1}. `}
@@ -189,29 +238,29 @@ const MyDocument = ({
                   )}
                 </View>
               ))}
-          </View>
-        ))}
-      </View>
-      <Text style={styles.Footer}>All The Best!</Text>
-      <Text
-        style={styles.pageNumber}
-        render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
-        fixed
-      />
-    </Page>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.Footer}>All The Best!</Text>
+        <Text
+          style={styles.pageNumber}
+          render={({ pageNumber, totalPages }) =>
+            `${pageNumber} / ${totalPages}`
+          }
+          fixed
+        />
+      </Page>
 
-    <Page size="A4" style={styles.page}>
-      <View style={styles.section}>
-        <Text style={styles.header}>Answer Key</Text>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.section}>
+          <Text style={styles.header}>Answer Key</Text>
 
-        {examStructure.sections.map((section, sectionIndex) => (
-          <View key={section.name}>
-            <Text style={styles.header}>
-              Section {section.name} ({section.questionType})
-            </Text>
-            {selectedQuestions
-              .filter((q) => q.type === section.questionType)
-              .map((question, index) => (
+          {groupedSections.map((section, sectionIndex) => (
+            <View key={section.questionType}>
+              <Text style={styles.header}>
+                Section {section.name} ({section.questionType})
+              </Text>
+              {section.questions.map((question: Question, index: number) => (
                 <View key={question.id} style={styles.question}>
                   <Text style={styles.questionNumber}>{`${sectionIndex + 1}.${
                     index + 1
@@ -228,18 +277,21 @@ const MyDocument = ({
                   />
                 </View>
               ))}
-          </View>
-        ))}
-      </View>
+            </View>
+          ))}
+        </View>
 
-      <Text
-        style={styles.pageNumber}
-        render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
-        fixed
-      />
-    </Page>
-  </Document>
-);
+        <Text
+          style={styles.pageNumber}
+          render={({ pageNumber, totalPages }) =>
+            `${pageNumber} / ${totalPages}`
+          }
+          fixed
+        />
+      </Page>
+    </Document>
+  );
+};
 
 export function PdfDownload(props: PdfDownloadProps) {
   return (

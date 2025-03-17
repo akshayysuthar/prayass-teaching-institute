@@ -285,7 +285,7 @@ export function AddQuestionForm() {
         answer_images: [],
         answer_images_gu: [],
         marks: 1,
-        reviewed_by: user?.fullName,
+        created_by: user?.fullName ?? "User Not Login",
       },
     ]);
   };

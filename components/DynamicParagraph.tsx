@@ -12,8 +12,13 @@ const styles = StyleSheet.create({
   },
   image: {
     marginVertical: 5,
-    maxWidth: '30%',
+    maxWidth: '100%',
     maxHeight: 200,
+  },
+  smallImage: {
+    marginVertical: 5,
+    maxWidth: '50%',
+    maxHeight: 100,
   },
 });
 
@@ -27,7 +32,15 @@ export const DynamicParagraph: React.FC<DynamicParagraphProps> = ({ content, ima
         if (match) {
           const imgIndex = parseInt(match[1], 10) - 1;
           if (images[imgIndex]) {
-            return <Image key={index} style={styles.image} src={images[imgIndex]} />;
+            const imgSrc = images[imgIndex];
+            const isSmallImage = imgSrc.includes('small'); // Assuming small images have 'small' in their URL
+            return (
+              <Image
+                key={index}
+                style={isSmallImage ? styles.smallImage : styles.image}
+                src={imgSrc}
+              />
+            );
           }
         }
         return <Text key={index}>{part}</Text>;
