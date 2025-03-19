@@ -21,6 +21,9 @@ interface ChapterSelectorProps {
   onSelectChapters: (chapters: SelectedChapter[]) => void;
   examStructure: ExamStructure;
   onExamStructureChange: (newStructure: ExamStructure) => void;
+  isSectionWise: boolean;
+  totalMarks: number;
+  remainingMarks: number;
 }
 
 export function ChapterSelector({
@@ -29,12 +32,14 @@ export function ChapterSelector({
   onSelectChapters,
   examStructure,
   onExamStructureChange,
+  isSectionWise,
+  totalMarks,
+  remainingMarks,
 }: ChapterSelectorProps) {
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
   const [chapterNames, setChapterNames] = useState<{ [key: string]: string }>(
     {}
   );
-  const [visibleQuestions, setVisibleQuestions] = useState<number>(20);
 
   useEffect(() => {
     const fetchChapterNames = async () => {
@@ -49,13 +54,10 @@ export function ChapterSelector({
         return;
       }
 
-      const chapterNameMap = data.reduce<{ [key: string]: string }>(
-        (acc, subject) => {
-          acc[subject.id] = subject.chapter_name;
-          return acc;
-        },
-        {}
-      );
+      const chapterNameMap = data.reduce((acc, subject) => {
+        acc[subject.id] = subject.chapter_name;
+        return acc;
+      }, {});
 
       setChapterNames(chapterNameMap);
     };
@@ -63,52 +65,18 @@ export function ChapterSelector({
     fetchChapterNames();
   }, [questions]);
 
+  // Group questions by chapter
   const groupedQuestions = useMemo(() => {
     const grouped: { [key: string]: Question[] } = {};
     questions.forEach((q) => {
-      const type = q.sectionTitle || "Other";
-      if (!grouped[type]) {
-        grouped[type] = [];
+      const chapterId = q.subject_id.toString();
+      if (!grouped[chapterId]) {
+        grouped[chapterId] = [];
       }
-      grouped[type].push(q);
+      grouped[chapterId].push(q);
     });
     return grouped;
   }, [questions]);
-
-  const sortedQuestionTypes = useMemo(() => {
-    return Object.keys(groupedQuestions).sort((a, b) => {
-      const indexA = examStructure.sections.findIndex(
-        (s) => s.questionType === a
-      );
-      const indexB = examStructure.sections.findIndex(
-        (s) => s.questionType === b
-      );
-      return indexA - indexB;
-    });
-  }, [groupedQuestions, examStructure]);
-
-  const isQuestionSelectable = useCallback(
-    (question: Question) => {
-      // Find if there's an existing section for this question type
-      const section = examStructure.sections.find(
-        (s) => s.questionType === question.sectionTitle
-      );
-
-      // If there's no section for this question type, it's always selectable
-      if (!section) return true;
-
-      // If there is a section, check if we've reached the mark limit
-      const selectedQuestionsOfType = selectedQuestions.filter(
-        (q: Question) => q.sectionTitle === question.sectionTitle
-      );
-      const totalMarksOfType = selectedQuestionsOfType.reduce(
-        (sum, q) => sum + q.marks,
-        0
-      );
-      return totalMarksOfType < section.totalMarks;
-    },
-    [selectedQuestions, examStructure]
-  );
 
   const handleQuestionChange = useCallback(
     (question: Question) => {
@@ -117,49 +85,64 @@ export function ChapterSelector({
 
         // If deselecting, just remove the question
         if (isSelected) {
-          return prev.filter((q: Question) => q.id !== question.id);
+          const updated = prev.filter((q: Question) => q.id !== question.id);
+          onSelectQuestions(updated);
+          return updated;
         }
 
-        // If selecting, check if we need to add a new section
-        const questionType = question.sectionTitle || "Other";
-        const existingSection = examStructure.sections.find(
-          (s) => s.questionType === questionType
-        );
-
-        // If this is a new question type, add a new section to the exam structure
-        if (!existingSection) {
-          const newSectionName = String.fromCharCode(
-            65 + examStructure.sections.length
+        // If selecting, check if we have enough remaining marks
+        if (remainingMarks < question.marks) {
+          alert(
+            `Not enough remaining marks. You need ${question.marks} marks but only have ${remainingMarks} left.`
           );
-          const newSection = {
-            name: newSectionName,
-            questionType: questionType,
-            totalMarks: question.marks * 5, // Default to 5 questions of this type
-            marksPerQuestion: question.marks,
-            totalQuestions: 5,
-          };
+          return prev;
+        }
 
-          // Update the exam structure with the new section
-          const updatedExamStructure = {
-            ...examStructure,
-            totalMarks: examStructure.totalMarks + newSection.totalMarks,
-            sections: [...examStructure.sections, newSection],
-          };
+        // If this is a new question type and we're using section-wise, add a new section
+        if (isSectionWise) {
+          const questionType = question.type || "Other";
+          const existingSection = examStructure.sections.find(
+            (s) => s.questionType === questionType
+          );
 
-          // Call the onExamStructureChange prop to update the parent component
-          onExamStructureChange(updatedExamStructure);
+          if (!existingSection) {
+            const newSectionName = String.fromCharCode(
+              65 + examStructure.sections.length
+            );
+            const newSection = {
+              name: newSectionName,
+              questionType: questionType,
+              totalMarks: question.marks * 5, // Default to 5 questions of this type
+              marksPerQuestion: question.marks,
+              totalQuestions: 5,
+            };
+
+            // Update the exam structure with the new section
+            const updatedExamStructure = {
+              ...examStructure,
+              totalMarks: examStructure.totalMarks + newSection.totalMarks,
+              sections: [...examStructure.sections, newSection],
+            };
+
+            // Call the onExamStructureChange prop to update the parent component
+            onExamStructureChange(updatedExamStructure);
+          }
         }
 
         // Add the question to the selected questions
-        return [...prev, question];
+        const updated = [...prev, question];
+        onSelectQuestions(updated);
+        return updated;
       });
     },
-    [examStructure, onExamStructureChange]
+    [
+      examStructure,
+      onExamStructureChange,
+      onSelectQuestions,
+      remainingMarks,
+      isSectionWise,
+    ]
   );
-
-  useEffect(() => {
-    onSelectQuestions(selectedQuestions);
-  }, [selectedQuestions, onSelectQuestions]);
 
   useEffect(() => {
     const uniqueChapters = Array.from(
@@ -173,7 +156,8 @@ export function ChapterSelector({
 
   const handleReset = useCallback(() => {
     setSelectedQuestions([]);
-  }, []);
+    onSelectQuestions([]);
+  }, [onSelectQuestions]);
 
   const renderImages = useCallback((images?: string | string[]) => {
     if (!images) return null;
@@ -194,16 +178,9 @@ export function ChapterSelector({
     );
   }, []);
 
-  const loadMoreQuestions = useCallback(() => {
-    setVisibleQuestions((prev) => prev + 20);
-  }, []);
-
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <h2 className="col-span-4 text-xl font-bold text-center">
-          Select Questions
-        </h2>
         <div className="col-span-3 mt-2">
           <Badge variant="secondary" className="mr-1">
             Selected Questions: {selectedQuestions.length}
@@ -226,16 +203,18 @@ export function ChapterSelector({
       </div>
 
       <div className="space-y-2">
-        {sortedQuestionTypes.map((questionType) => (
-          <Accordion type="single" collapsible key={questionType}>
-            <AccordionItem value={`type-${questionType}`}>
-              <AccordionTrigger>
-                <h3 className="text-lg font-bold">{questionType} Questions</h3>
-              </AccordionTrigger>
-              <AccordionContent>
-                {groupedQuestions[questionType]
-                  .slice(0, visibleQuestions)
-                  .map((question) => (
+        {Object.entries(groupedQuestions).map(
+          ([chapterId, chapterQuestions]) => (
+            <Accordion type="single" collapsible key={chapterId}>
+              <AccordionItem value={`chapter-${chapterId}`}>
+                <AccordionTrigger>
+                  <h3 className="text-lg font-bold">
+                    Chapter: {chapterNames[chapterId] || chapterId} (
+                    {chapterQuestions.length} questions)
+                  </h3>
+                </AccordionTrigger>
+                <AccordionContent>
+                  {chapterQuestions.map((question) => (
                     <div
                       className="flex items-start space-x-3 mb-4"
                       key={question.id}
@@ -246,7 +225,6 @@ export function ChapterSelector({
                           (q: Question) => q.id === question.id
                         )}
                         onCheckedChange={() => handleQuestionChange(question)}
-                        disabled={!isQuestionSelectable(question)}
                       />
                       <Label
                         htmlFor={`question-${question.id}`}
@@ -257,21 +235,16 @@ export function ChapterSelector({
                         </span>
                         {renderImages(question.question_images || undefined)}
                         <span className="text-sm text-gray-500">
-                          Chapter: {question.chapter_no}.{" "}
-                          {chapterNames[question.subject_id] || "Unknown"}
+                          Type: {question.type || "General"}
                         </span>
                       </Label>
                     </div>
                   ))}
-                {groupedQuestions[questionType].length > visibleQuestions && (
-                  <div className="text-center mt-4">
-                    <Button onClick={loadMoreQuestions}>More Questions</Button>
-                  </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        ))}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          )
+        )}
       </div>
     </div>
   );

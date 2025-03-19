@@ -110,6 +110,12 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 5,
   },
+  sectionHeader: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginTop: 10,
+    marginBottom: 5,
+  },
 });
 
 const getFormattedDate = () => {
@@ -121,13 +127,16 @@ const getFormattedDate = () => {
 
 const formattedDate = getFormattedDate();
 
-// Update the PdfDownload component to better handle all selected questions
-
-// First, ensure we're grouping questions by their section type
+// Group questions by their section type
 const groupQuestionsBySection = (
   questions: Question[],
-  examStructure: ExamStructure
+  examStructure: ExamStructure,
+  isSectionWise: boolean
 ) => {
+  if (!isSectionWise) {
+    return [{ name: "", questionType: "All Questions", questions }];
+  }
+
   // Create a map of all sections from the exam structure
   const sectionMap = examStructure.sections.reduce((acc, section) => {
     acc[section.questionType] = {
@@ -139,7 +148,7 @@ const groupQuestionsBySection = (
 
   // Add each question to its corresponding section
   questions.forEach((question) => {
-    const sectionType = question.sectionTitle || "Other";
+    const sectionType = question.type || "Other";
 
     // If this question type isn't in our structure yet, add it
     if (!sectionMap[sectionType]) {
@@ -149,7 +158,6 @@ const groupQuestionsBySection = (
       sectionMap[sectionType] = {
         name: newSectionName,
         questionType: sectionType,
-        marksPerQuestion: question.marks,
         questions: [],
       };
     }
@@ -157,12 +165,11 @@ const groupQuestionsBySection = (
     sectionMap[sectionType].questions.push(question);
   });
 
-  return Object.values(sectionMap)
-    .filter((section) => section.questions.length > 0)
-    .sort((a, b) => a.questionType.localeCompare(b.questionType, undefined, { numeric: true }));
+  return Object.values(sectionMap).filter(
+    (section) => section.questions.length > 0
+  );
 };
 
-// Then, update the MyDocument component to use this grouping
 const MyDocument = ({
   selectedQuestions,
   examStructure,
@@ -172,11 +179,14 @@ const MyDocument = ({
   subject,
   chapters,
   teacherName,
+  isSectionWise,
 }: PdfDownloadProps) => {
   const groupedSections = groupQuestionsBySection(
     selectedQuestions,
-    examStructure
+    examStructure,
+    isSectionWise
   );
+  const totalMarks = selectedQuestions.reduce((sum, q) => sum + q.marks, 0);
 
   return (
     <Document>
@@ -202,22 +212,24 @@ const MyDocument = ({
 
             <View style={styles.row}>
               <Text style={styles.leftColumn}>Teacher Name: {teacherName}</Text>
-              <Text style={styles.rightColumn}>
-                Total Marks:{" "}
-                {selectedQuestions.reduce((sum, q) => sum + q.marks, 0)}
-              </Text>
+              <Text style={styles.rightColumn}>Total Marks: {totalMarks}</Text>
             </View>
           </View>
 
           {groupedSections.map((section, sectionIndex) => (
             <View key={section.questionType}>
-              <Text style={styles.header}>
-                Section {section.name} ({section.questionType})
-              </Text>
-              {section.questions.map((question: Question, index: number) => (
+              {isSectionWise && (
+                <Text style={styles.sectionHeader}>
+                  Section {section.name} ({section.questionType})
+                </Text>
+              )}
+
+              {section.questions.map((question, index) => (
                 <View key={question.id} style={styles.question}>
                   <Text style={styles.questionNumber}>
-                    {`${sectionIndex + 1}.${index + 1}. `}
+                    {`${isSectionWise ? section.name : ""}${
+                      isSectionWise ? "." : ""
+                    }${index + 1}. `}
                     <DynamicParagraph
                       content={question.question}
                       images={question.question_images || []}
@@ -257,14 +269,19 @@ const MyDocument = ({
 
           {groupedSections.map((section, sectionIndex) => (
             <View key={section.questionType}>
-              <Text style={styles.header}>
-                Section {section.name} ({section.questionType})
-              </Text>
-              {section.questions.map((question: Question, index: number) => (
+              {isSectionWise && (
+                <Text style={styles.sectionHeader}>
+                  Section {section.name} ({section.questionType})
+                </Text>
+              )}
+
+              {section.questions.map((question, index) => (
                 <View key={question.id} style={styles.question}>
-                  <Text style={styles.questionNumber}>{`${sectionIndex + 1}.${
-                    index + 1
-                  }. ${question.question}`}</Text>
+                  <Text style={styles.questionNumber}>
+                    {`${isSectionWise ? section.name : ""}${
+                      isSectionWise ? "." : ""
+                    }${index + 1}. ${question.question}`}
+                  </Text>
 
                   <Text>Answer:</Text>
                   <DynamicParagraph
