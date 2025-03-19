@@ -1,10 +1,9 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-
 import { Button } from "@/components/ui/button";
 import type { Question, ExamStructure } from "@/types";
 import { useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
 
 interface ExamPreviewProps {
   selectedQuestions: Question[];
@@ -19,43 +18,30 @@ export function ExamPreview({
   onGeneratePdf,
   isSectionWise,
 }: ExamPreviewProps) {
-  // Group questions by their section type if section-wise
+  // Group questions by their section ID
   const groupedQuestions = useMemo(() => {
-    if (!isSectionWise) {
-      return { "All Questions": selectedQuestions };
-    }
-
-    const grouped: Record<string, Question[]> = {};
+    const grouped: Record<number, Question[]> = {};
 
     // Initialize groups based on exam structure
-    examStructure.sections.forEach((section) => {
-      grouped[section.questionType] = [];
+    examStructure.sections.forEach((section, index) => {
+      grouped[index] = [];
     });
 
     // Add questions to their respective groups
     selectedQuestions.forEach((question) => {
-      const questionType = question.type || "Other";
+      const sectionId =
+        question.sectionId !== undefined ? question.sectionId : 0;
 
       // If this section doesn't exist yet, create it
-      if (!grouped[questionType]) {
-        grouped[questionType] = [];
+      if (!grouped[sectionId]) {
+        grouped[sectionId] = [];
       }
 
-      grouped[questionType].push(question);
+      grouped[sectionId].push(question);
     });
 
     return grouped;
-  }, [selectedQuestions, examStructure, isSectionWise]);
-
-  // Get section name from exam structure
-  const getSectionName = (questionType: string) => {
-    if (!isSectionWise) return "";
-
-    const section = examStructure.sections.find(
-      (s) => s.questionType === questionType
-    );
-    return section ? section.name : "?";
-  };
+  }, [selectedQuestions, examStructure]);
 
   // Calculate total marks
   const totalSelectedMarks = selectedQuestions.reduce(
@@ -73,14 +59,14 @@ export function ExamPreview({
       </div>
 
       {/* Display each section */}
-      {Object.entries(groupedQuestions).map(
-        ([sectionType, questions]) =>
+      {Object.entries(groupedQuestions).map(([sectionIndex, questions]) => {
+        const section = examStructure.sections[Number.parseInt(sectionIndex)];
+
+        return (
           questions.length > 0 && (
-            <div key={sectionType} className="space-y-4">
+            <div key={sectionIndex} className="space-y-4">
               <h3 className="text-xl font-semibold">
-                {isSectionWise
-                  ? `Section ${getSectionName(sectionType)} (${sectionType})`
-                  : sectionType}
+                Section {section.name}: {section.questionType}
               </h3>
               <ol className="list-decimal list-inside space-y-4">
                 {questions.map((question) => (
@@ -103,9 +89,20 @@ export function ExamPreview({
                   </li>
                 ))}
               </ol>
+
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>
+                  Questions: {questions.length}/{section.totalQuestions}
+                </span>
+                <span>
+                  Marks: {questions.reduce((sum, q) => sum + q.marks, 0)}/
+                  {section.totalMarks}
+                </span>
+              </div>
             </div>
           )
-      )}
+        );
+      })}
 
       <Button onClick={onGeneratePdf}>Generate PDF</Button>
     </div>

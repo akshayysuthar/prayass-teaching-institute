@@ -60,6 +60,7 @@ export interface PdfDownloadProps {
   subject: string;
   chapters: string;
   teacherName: string;
+  isSectionWise: boolean;
 }
 
 // export interface Question {
