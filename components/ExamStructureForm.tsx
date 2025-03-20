@@ -2,11 +2,29 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { ExamStructure } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SectionTitleSelector } from "./SectionTitleSelector";
+
+// Predefined question types
+const QUESTION_TYPES = [
+  "Multiple Choice Questions",
+  "Short Answer Questions",
+  "Long Answer Questions",
+  "Fill in the Blanks",
+  "True or False",
+  "Match the Following",
+];
 
 interface ExamStructureFormProps {
   examStructure: ExamStructure;
@@ -142,7 +160,7 @@ export function ExamStructureForm({
 
     const newSection = {
       name: newSectionName,
-      questionType: `Section ${newSectionName}`,
+      questionType: "Answer the following questions",
       totalMarks: defaultTotalMarks,
       marksPerQuestion: defaultMarksPerQuestion,
       totalQuestions: Math.floor(defaultTotalMarks / defaultMarksPerQuestion),
@@ -204,78 +222,111 @@ export function ExamStructureForm({
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <Label
-                    htmlFor={`sectionTitle-${index}`}
-                    className="text-base font-medium"
-                  >
-                    Section Title (Question Type)
-                  </Label>
-                  <Input
-                    id={`sectionTitle-${index}`}
-                    value={section.questionType}
-                    onChange={(e) =>
-                      handleSectionChange(index, "questionType", e.target.value)
-                    }
-                    placeholder="e.g., Multiple Choice, Short Answer, etc."
-                    className="mt-1 font-medium"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Enter a descriptive title for this section (e.g., "Multiple
-                    Choice Questions", "Short Answer", etc.)
-                  </p>
-                </div>
+              <div className="space-y-4">
+                {/* Section Title Selector */}
+                <SectionTitleSelector
+                  value={section.questionType}
+                  onChange={(value) =>
+                    handleSectionChange(index, "questionType", value)
+                  }
+                />
 
-                <div>
-                  <Label htmlFor={`marksPerQuestion-${index}`}>
-                    Marks Per Question
-                  </Label>
-                  <Input
-                    id={`marksPerQuestion-${index}`}
-                    type="number"
-                    min="1"
-                    value={section.marksPerQuestion}
-                    onChange={(e) =>
-                      handleSectionChange(
-                        index,
-                        "marksPerQuestion",
-                        e.target.value
-                      )
-                    }
-                  />
-                </div>
+                {/* Question Type Selector (if custom types are allowed) */}
+                {allowCustomQuestionTypes && (
+                  <div>
+                    <Label htmlFor={`questionType-${index}`}>
+                      Question Type
+                    </Label>
+                    <Select
+                      value={section.questionType}
+                      onValueChange={(value) =>
+                        handleSectionChange(index, "questionType", value)
+                      }
+                    >
+                      <SelectTrigger id={`questionType-${index}`}>
+                        <SelectValue placeholder="Select question type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {QUESTION_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="custom">Custom</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {section.questionType === "custom" && (
+                      <Input
+                        className="mt-2"
+                        placeholder="Enter custom question type"
+                        value={
+                          section.questionType === "custom"
+                            ? ""
+                            : section.questionType
+                        }
+                        onChange={(e) =>
+                          handleSectionChange(
+                            index,
+                            "questionType",
+                            e.target.value
+                          )
+                        }
+                      />
+                    )}
+                  </div>
+                )}
 
-                <div>
-                  <Label htmlFor={`totalQuestions-${index}`}>
-                    Total Questions
-                  </Label>
-                  <Input
-                    id={`totalQuestions-${index}`}
-                    type="number"
-                    min="1"
-                    value={section.totalQuestions}
-                    onChange={(e) =>
-                      handleSectionChange(
-                        index,
-                        "totalQuestions",
-                        e.target.value
-                      )
-                    }
-                  />
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor={`marksPerQuestion-${index}`}>
+                      Marks Per Question
+                    </Label>
+                    <Input
+                      id={`marksPerQuestion-${index}`}
+                      type="number"
+                      min="1"
+                      value={section.marksPerQuestion}
+                      onChange={(e) =>
+                        handleSectionChange(
+                          index,
+                          "marksPerQuestion",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </div>
 
-                <div>
-                  <Label htmlFor={`totalMarks-${index}`}>Total Marks</Label>
-                  <Input
-                    id={`totalMarks-${index}`}
-                    type="number"
-                    min="1"
-                    value={section.totalMarks}
-                    onChange={(e) =>
-                      handleSectionChange(index, "totalMarks", e.target.value)
-                    }
-                  />
+                  <div>
+                    <Label htmlFor={`totalQuestions-${index}`}>
+                      Total Questions
+                    </Label>
+                    <Input
+                      id={`totalQuestions-${index}`}
+                      type="number"
+                      min="1"
+                      value={section.totalQuestions}
+                      onChange={(e) =>
+                        handleSectionChange(
+                          index,
+                          "totalQuestions",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor={`totalMarks-${index}`}>Total Marks</Label>
+                    <Input
+                      id={`totalMarks-${index}`}
+                      type="number"
+                      min="1"
+                      value={section.totalMarks}
+                      onChange={(e) =>
+                        handleSectionChange(index, "totalMarks", e.target.value)
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>
