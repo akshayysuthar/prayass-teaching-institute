@@ -16,7 +16,7 @@ export function ExamPreview({
   selectedQuestions,
   examStructure,
   onGeneratePdf,
-  isSectionWise,
+  // isSectionWise,
 }: ExamPreviewProps) {
   // Group questions by their section ID
   const groupedQuestions = useMemo(() => {

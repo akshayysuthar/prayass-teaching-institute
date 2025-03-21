@@ -33,7 +33,7 @@ export function ChapterSelector({
   examStructure,
   onExamStructureChange,
   isSectionWise,
-  totalMarks,
+  // totalMarks,
   remainingMarks,
 }: ChapterSelectorProps) {
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
@@ -54,7 +54,7 @@ export function ChapterSelector({
         return;
       }
 
-      const chapterNameMap = data.reduce((acc, subject) => {
+      const chapterNameMap = data.reduce((acc: { [key: string]: string }, subject: { id: string; chapter_name: string }) => {
         acc[subject.id] = subject.chapter_name;
         return acc;
       }, {});
