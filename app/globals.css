@@ -2,6 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+/* globals.css */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  width: 100%;
+  padding-left: 1rem; /* px-4 */
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    padding-left: 1.5rem; /* sm:px-6 */
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-left: 2.5rem; /* lg:px-10 */
+    padding-right: 2.5rem;
+  }
+}
+
+.max-w-7xl {
+  max-width: 80rem; /* Consistent max-width */
+}
+
+/* Prevent layout shifts from dropdowns */
+.overflow-x-hidden {
+  overflow-x: hidden;
+}
+
+/* Ensure dropdowns don’t affect layout */
+select,
+[role="listbox"] {
+  position: relative;
+  z-index: 10;
+}
+
+/* Optional: Stabilize main content */
+main {
+  min-width: 0; /* Prevents flex shrinkage issues */
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
 }

@@ -36,6 +36,7 @@ export interface Content {
 }
 
 export interface SelectedChapter {
+  [x: string]: any;
   id: string;
   name: string;
 }

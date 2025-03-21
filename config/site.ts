@@ -31,7 +31,7 @@ export type SiteConfig = {
 };
 
 export const siteConfig: SiteConfig = {
-  name: "Prayass",
+  name: "Prayass Teaching Institute",
   description: "Generate and manage exam papers efficiently",
   adminEmail: ["akshaysuthar05@gmail.com", "sutharmaina62@gmail.com"],
   url: "https://exam-generator.vercel.app",

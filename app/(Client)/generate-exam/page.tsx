@@ -17,43 +17,39 @@ import { useToast } from "@/hooks/use-toast";
 import { Loading } from "@/components/Loading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { QuestionSelector } from "@/components/QuestionTypeSelector";
+import { QuestionSelector } from "@/components/QuestionTypeSelector"; // Assuming typo; should be QuestionSelector
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { siteConfig } from "@/config/site";
 
 export default function GenerateExamPage() {
-  // Step 1: Content Selection
   const [contents, setContents] = useState<Content[]>([]);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
-
-  // Step 2: Define Exam Structure (merged from original steps 2 and 3)
   const [totalPaperMarks, setTotalPaperMarks] = useState<number>(100);
   const [examStructure, setExamStructure] = useState<ExamStructure>({
     totalMarks: 100,
     sections: [],
   });
-
-  // Step 3: Select Questions
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
   const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>(
     []
   );
-
-  // Current section being edited
   const [currentSectionIndex, setCurrentSectionIndex] = useState<number | null>(
     null
   );
-
-  // Other state
   const [isLoading, setIsLoading] = useState(true);
   const [showPdfDownload, setShowPdfDownload] = useState(false);
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [studentName, setStudentName] = useState<string>(""); // New state for student name
+  const [fontSize, setFontSize] = useState<number>(11); // New state for font size, default 11pt
+
   const { toast } = useToast();
 
-  // Fetch contents (subjects)
   const fetchContents = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -63,20 +59,15 @@ export default function GenerateExamPage() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to fetch contents. Please try again.",
+        description: "Failed to load contents.",
         variant: "destructive",
       });
-      console.error("Error details:", error);
+      console.error("Error:", error);
     } finally {
       setIsLoading(false);
     }
   }, [toast]);
 
-  useEffect(() => {
-    fetchContents();
-  }, [fetchContents]);
-
-  // Fetch subjects for selected content
   const fetchSubjects = useCallback(
     async (contentId: number) => {
       try {
@@ -86,19 +77,17 @@ export default function GenerateExamPage() {
           .eq("content_id", contentId);
         if (error) throw error;
         setSubjects(data || []);
-      } catch (error) {
+      } catch {
         toast({
           title: "Error",
-          description: "Failed to fetch subjects. Please try again.",
+          description: "Failed to load subjects.",
           variant: "destructive",
         });
-        console.error("Error details:", error);
       }
     },
     [toast]
   );
 
-  // Fetch questions for selected content
   const fetchQuestions = useCallback(
     async (contentId: number) => {
       setIsLoading(true);
@@ -109,13 +98,12 @@ export default function GenerateExamPage() {
           .eq("content_id", contentId);
         if (error) throw error;
         setQuestions(data);
-      } catch (error) {
+      } catch {
         toast({
           title: "Error",
-          description: "Failed to fetch questions. Please try again.",
+          description: "Failed to load questions.",
           variant: "destructive",
         });
-        console.error("Error details:", error);
       } finally {
         setIsLoading(false);
       }
@@ -123,38 +111,38 @@ export default function GenerateExamPage() {
     [toast]
   );
 
-  // Handle content selection
+  useEffect(() => {
+    fetchContents();
+  }, [fetchContents]);
+
   const handleContentSelect = useCallback(
     (content: Content) => {
       if (content.id !== selectedContent?.id) {
         setSelectedContent(content);
         setSelectedQuestions([]);
         setSelectedChapters([]);
+        setExamStructure({ totalMarks: totalPaperMarks, sections: [] });
         fetchSubjects(content.id);
         fetchQuestions(content.id);
-        setExamStructure({ totalMarks: totalPaperMarks, sections: [] });
       }
     },
     [selectedContent, fetchSubjects, fetchQuestions, totalPaperMarks]
   );
 
-  // Handle paper marks change
   const handlePaperMarksChange = useCallback((marks: number) => {
-    setTotalPaperMarks(marks);
-    setExamStructure((prev) => ({ ...prev, totalMarks: marks }));
+    const newMarks = Math.max(1, Math.min(100, marks));
+    setTotalPaperMarks(newMarks);
+    setExamStructure((prev) => ({ ...prev, totalMarks: newMarks }));
   }, []);
 
-  // Handle question selection
   const handleQuestionSelect = useCallback((questions: Question[]) => {
     setSelectedQuestions(questions);
   }, []);
 
-  // Handle chapter selection
   const handleChapterSelect = useCallback((chapters: SelectedChapter[]) => {
     setSelectedChapters(chapters);
   }, []);
 
-  // Handle exam structure change
   const handleExamStructureChange = useCallback(
     (newStructure: ExamStructure) => {
       setExamStructure(newStructure);
@@ -162,18 +150,15 @@ export default function GenerateExamPage() {
     []
   );
 
-  // Handle section selection for question assignment
   const handleSectionSelect = useCallback((index: number) => {
     setCurrentSectionIndex(index);
   }, []);
 
-  // Handle PDF generation
   const handleGeneratePdf = useCallback(() => {
     if (selectedQuestions.length === 0) {
       toast({
         title: "Error",
-        description:
-          "Please select at least one question before generating the PDF.",
+        description: "Select at least one question to generate the PDF.",
         variant: "destructive",
       });
       return;
@@ -181,195 +166,248 @@ export default function GenerateExamPage() {
     setShowPdfDownload(true);
   }, [selectedQuestions, toast]);
 
-  // Set step directly (for clickable navigation)
   const setStep = useCallback(
     (step: number) => {
-      let canGoToStep = true;
-
+      if (step < 1 || step > 4) return;
       if (step > 1 && !selectedContent) {
         toast({
-          title: "Required Step",
+          title: "Step Required",
           description: "Please select a content first.",
           variant: "destructive",
         });
-        canGoToStep = false;
+        return;
       }
-
       if (step > 2 && examStructure.sections.length === 0) {
         toast({
-          title: "Required Step",
-          description: "Please define at least one section first.",
+          title: "Step Required",
+          description: "Define at least one section first.",
           variant: "destructive",
         });
-        canGoToStep = false;
+        return;
       }
-
-      if (canGoToStep) {
-        setCurrentStep(step);
-      }
+      setCurrentStep(step);
     },
     [selectedContent, examStructure.sections, toast]
   );
 
-  // Loading state
-  if (isLoading && !contents.length) {
-    return <Loading title="Loading exam generation..." />;
-  }
-
-  // Calculate remaining marks
   const assignedMarks = examStructure.sections.reduce(
     (sum, section) => sum + section.totalMarks,
     0
   );
   const remainingMarks = totalPaperMarks - assignedMarks;
+  const progress = (currentStep / 4) * 100;
 
-  // Step Components
   const contentSelectionStep = (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Step 1: Select Content</h2>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-semibold">1. Select Content</h2>
       <ClassSelector
         contents={contents}
         onSelectContent={handleContentSelect}
         initialContent={selectedContent}
       />
-      {selectedContent && <Button onClick={() => setStep(2)}>Next</Button>}
+      {selectedContent && (
+        <Button onClick={() => setStep(2)} className="w-full sm:w-full">
+          Next <ChevronRight className="ml-2 h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 
   const examStructureStep = (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Step 2: Define Exam Structure</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="paperMarks">Total Paper Marks (1-100)</Label>
-          <Input
-            id="paperMarks"
-            type="number"
-            min="1"
-            max="100"
-            value={totalPaperMarks}
-            onChange={(e) =>
-              handlePaperMarksChange(Number.parseInt(e.target.value) || 0)
-            }
-            className="mt-1"
-          />
-        </div>
-      </div>
-      <div className="flex justify-between items-center">
-        <p className="text-lg">Total Paper Marks: {totalPaperMarks}</p>
-        <Badge variant={remainingMarks >= 0 ? "outline" : "destructive"}>
-          Remaining Marks: {remainingMarks}
-        </Badge>
-      </div>
-      <ExamStructureForm
-        examStructure={examStructure}
-        onExamStructureChange={handleExamStructureChange}
-        totalPaperMarks={totalPaperMarks}
-        allowCustomQuestionTypes={true}
-      />
-      <div className="flex space-x-4">
-        <Button onClick={() => setStep(1)} variant="outline">
-          Previous
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <Button
+          onClick={() => setStep(1)}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          <ChevronLeft className="mr-2 h-4 w-4" /> Previous
         </Button>
         {examStructure.sections.length > 0 && (
-          <Button onClick={() => setStep(3)}>Next</Button>
+          <Button onClick={() => setStep(3)} className="w-full sm:w-auto">
+            Next <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
         )}
       </div>
+      <h2 className="text-2xl font-semibold">2. Define Exam Structure</h2>
+      <Card>
+        <CardContent className="p-4 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="paperMarks">Total Paper Marks</Label>
+              <Input
+                id="paperMarks"
+                type="number"
+                min="1"
+                max="100"
+                value={totalPaperMarks}
+                onChange={(e) =>
+                  handlePaperMarksChange(Number.parseInt(e.target.value) || 1)
+                }
+                className="mt-1"
+              />
+            </div>
+            <div className="flex items-end">
+              <Badge
+                variant={remainingMarks >= 0 ? "outline" : "destructive"}
+                className="w-full justify-center"
+              >
+                Remaining Marks: {remainingMarks}
+              </Badge>
+            </div>
+          </div>
+          <ExamStructureForm
+            examStructure={examStructure}
+            onExamStructureChange={handleExamStructureChange}
+            totalPaperMarks={totalPaperMarks}
+            allowCustomQuestionTypes={true}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 
   const questionSelectionStep = (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Step 3: Select Questions</h2>
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <Button
+          onClick={() => setStep(2)}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+        </Button>
+        {selectedQuestions.length > 0 && (
+          <Button onClick={() => setStep(4)} className="w-full sm:w-auto">
+            Next <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
+        )}
+      </div>
+      <h2 className="text-2xl font-semibold">3. Select Questions</h2>
       {selectedContent && subjects.length > 0 && (
         <Card>
           <CardContent className="p-4">
-            <h3 className="text-lg font-semibold mb-2">Available Subjects</h3>
+            <h3 className="text-lg font-medium mb-3">Available Subjects</h3>
             <div className="flex flex-wrap gap-2">
-              {subjects.map((subject) => (
-                <Badge key={subject.id} variant="outline" className="text-sm">
-                  {subject.subject_name} - Ch. {subject.chapter_no}:{" "}
-                  {subject.chapter_name}
-                </Badge>
-              ))}
+              {subjects
+                .sort((a, b) => a.chapter_no - b.chapter_no)
+                .map((subject) => (
+                  <Badge
+                    key={subject.id}
+                    variant="secondary"
+                    className="text-sm"
+                  >
+                    Ch {subject.chapter_no} - {subject.chapter_name}
+                  </Badge>
+                ))}
             </div>
           </CardContent>
         </Card>
       )}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">
-          First, Select a Section to Add Questions
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {examStructure.sections.map((section, index) => (
-            <Card
-              key={index}
-              className={`cursor-pointer ${
-                currentSectionIndex === index ? "border-2 border-primary" : ""
-              }`}
-              onClick={() => handleSectionSelect(index)}
-            >
-              <CardContent className="p-4">
-                <h4 className="text-lg font-medium">Section {section.name}</h4>
-                <p>
-                  <strong>Title:</strong> {section.questionType}
-                </p>
-                <p>
-                  <strong>Marks Per Question:</strong>{" "}
-                  {section.marksPerQuestion}
-                </p>
-                <p>
-                  <strong>Total Questions:</strong> {section.totalQuestions}
-                </p>
-                <p>
-                  <strong>Total Marks:</strong> {section.totalMarks}
-                </p>
-                <Badge className="mt-2">
-                  {
-                    selectedQuestions.filter((q) => q.sectionId === index)
-                      .length
-                  }{" "}
-                  questions selected
-                </Badge>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-      <div className="space-y-4 mt-6">
-        <h3 className="text-lg font-semibold">
-          Then, Select Questions for the Selected Section
-        </h3>
-        <QuestionSelector
-          questions={questions}
-          onSelectQuestions={handleQuestionSelect}
-          onSelectChapters={handleChapterSelect}
-          examStructure={examStructure}
-          onExamStructureChange={handleExamStructureChange}
-          currentSection={
-            currentSectionIndex !== null
-              ? examStructure.sections[currentSectionIndex]
-              : null
-          }
-          currentSectionIndex={currentSectionIndex}
-          selectedQuestions={selectedQuestions}
-          showAllQuestions={true}
-        />
-      </div>
-      <div className="flex space-x-4">
-        <Button onClick={() => setStep(2)} variant="outline">
-          Previous
-        </Button>
-        {selectedQuestions.length > 0 && (
-          <Button onClick={() => setStep(4)}>Next</Button>
-        )}
-      </div>
+      <Card>
+        <CardContent className="p-4 space-y-4">
+          <h3 className="text-lg font-medium">Select a Section</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {examStructure.sections.map((section, index) => (
+              <Card
+                key={index}
+                className={`cursor-pointer transition-all ${
+                  currentSectionIndex === index
+                    ? "border-2 border-primary shadow-md"
+                    : "hover:shadow-sm"
+                }`}
+                onClick={() => handleSectionSelect(index)}
+              >
+                <CardContent className="p-4">
+                  <h4 className="text-lg font-medium">
+                    Section {section.name}
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    {section.questionType}
+                  </p>
+                  <p className="text-sm">
+                    Marks/Question: {section.marksPerQuestion}
+                  </p>
+                  <p className="text-sm">
+                    Total Questions: {section.totalQuestions}
+                  </p>
+                  <p className="text-sm">Total Marks: {section.totalMarks}</p>
+                  <Badge variant="outline" className="mt-2">
+                    {
+                      selectedQuestions.filter((q) => q.sectionId === index)
+                        .length
+                    }{" "}
+                    selected
+                  </Badge>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      <QuestionSelector
+        questions={questions}
+        onSelectQuestions={handleQuestionSelect}
+        onSelectChapters={handleChapterSelect}
+        examStructure={examStructure}
+        onExamStructureChange={handleExamStructureChange}
+        currentSection={
+          currentSectionIndex !== null
+            ? examStructure.sections[currentSectionIndex]
+            : null
+        }
+        currentSectionIndex={currentSectionIndex}
+        selectedQuestions={selectedQuestions}
+        showAllQuestions={false}
+        onNext={selectedQuestions.length > 0 ? () => setStep(4) : undefined}
+        onPrevious={() => setStep(2)}
+      />
     </div>
   );
 
   const previewAndGenerateStep = (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Step 4: Preview and Generate</h2>
+      <h2 className="text-2xl font-semibold">4. Preview and Generate</h2>
+      <Button
+        onClick={() => setStep(3)}
+        variant="outline"
+        className="w-full sm:w-auto"
+      >
+        <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+      </Button>
+      {/* Student Name Input */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <Label htmlFor="studentName" className="text-sm font-medium">
+          Student Name (Optional)
+        </Label>
+        <Input
+          id="studentName"
+          value={studentName}
+          onChange={(e) => setStudentName(e.target.value)}
+          placeholder="Enter student name"
+          className="w-full sm:w-64"
+        />
+      </div>
+      {/* Font Size Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <Label className="text-sm font-medium">Font Size: {fontSize}pt</Label>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setFontSize((prev) => Math.max(8, prev - 1))} // Min 8pt
+            className="w-10"
+          >
+            -
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setFontSize((prev) => Math.min(16, prev + 1))} // Max 16pt
+            className="w-10"
+          >
+            +
+          </Button>
+        </div>
+      </div>
       <ExamPreview
         selectedQuestions={selectedQuestions}
         examStructure={examStructure}
@@ -380,55 +418,57 @@ export default function GenerateExamPage() {
         <PdfDownload
           selectedQuestions={selectedQuestions}
           examStructure={examStructure}
-          instituteName="Your Institute Name"
+          instituteName={siteConfig.name}
           standard={selectedContent?.class.toString() || ""}
-          studentName="Student Name"
+          studentName={studentName} // Pass student name
           subject={selectedContent?.name || ""}
-          chapters={selectedChapters.map((ch) => ch.name).join(", ")}
-          teacherName="Teacher Name"
+          chapters={selectedChapters.map((ch) => ch.chapterNo).join(", ")} // Pass chapter numbers
+          teacherName={""}
           isSectionWise={true}
+          fontSize={fontSize} // Pass font size
         />
       )}
-      <Button onClick={() => setStep(3)} variant="outline">
-        Previous
-      </Button>
     </div>
   );
 
+  if (isLoading && !contents.length) {
+    return <Loading title="Loading exam generation..." />;
+  }
+
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Generate Exam</h1>
-      <div className="mb-6">
-        <div className="flex justify-between mb-2">
-          {[1, 2, 3, 4].map((step) => (
-            <div
-              key={step}
-              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer ${
-                currentStep === step
-                  ? "bg-primary text-white"
-                  : currentStep > step
-                  ? "bg-green-500 text-white"
-                  : "bg-gray-200"
-              }`}
-              onClick={() => setStep(step)}
-            >
-              {step}
-            </div>
-          ))}
-        </div>
-        <div className="flex justify-between text-sm">
-          <span>Content</span>
-          <span>Structure</span>
-          <span>Questions</span>
-          <span>Preview</span>
-        </div>
-      </div>
-      <div className="space-y-6">
+    <div className="container mx-auto p-2 sm:p-2 max-w-5xl">
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold mb-4">Generate Exam Paper</h1>
+        <Progress value={progress} className="w-full" />
+        <nav className="flex justify-between mt-2 text-sm text-muted-foreground">
+          <span
+            className={currentStep === 1 ? "font-semibold text-primary" : ""}
+          >
+            1. Content
+          </span>
+          <span
+            className={currentStep === 2 ? "font-semibold text-primary" : ""}
+          >
+            2. Structure
+          </span>
+          <span
+            className={currentStep === 3 ? "font-semibold text-primary" : ""}
+          >
+            3. Questions
+          </span>
+          <span
+            className={currentStep === 4 ? "font-semibold text-primary" : ""}
+          >
+            4. Preview
+          </span>
+        </nav>
+      </header>
+      <main className="space-y-4">
         {currentStep === 1 && contentSelectionStep}
         {currentStep === 2 && examStructureStep}
         {currentStep === 3 && questionSelectionStep}
         {currentStep === 4 && previewAndGenerateStep}
-      </div>
+      </main>
     </div>
   );
 }

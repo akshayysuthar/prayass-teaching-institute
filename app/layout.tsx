@@ -17,11 +17,6 @@ export const metadata = {
     shortcut: "/file.png",
     apple: "/file.png",
   },
-  // icons: {
-  //   icon: "/file.png",
-  //   shortcut: "/favicon-16x16.png",
-  //   apple: "/apple-touch-icon.png",
-  // },
 };
 
 export default function RootLayout({
@@ -38,14 +33,16 @@ export default function RootLayout({
           <link rel="icon" href="/favicon.ico" />
           <link rel="apple-touch-icon" href="/icon-192x192.png" />
         </head>
-        <body className="min-h-screen container lg:px-10 px-4 mx-auto bg-background font-sans antialiased">
-          <div className="relative flex min-h-screen flex-col">
-            <Navbar />
-            <main className="flex-1">{children}</main>
+        <body className="min-h-screen bg-background font-sans antialiased">
+          <div className="container mx-auto px-2 sm:px-1 lg:px-10 max-w-7xl">
+            <div className="relative flex min-h-screen flex-col overflow-x-hidden">
+              <Navbar />
+              <main className="flex-1 py-4 ">{children}</main>
+            </div>
+            <Toaster />
+            <ErrorHandler />
+            <Analytics />
           </div>
-          <Toaster />
-          <ErrorHandler />
-          <Analytics />
         </body>
       </html>
     </ClerkProvider>

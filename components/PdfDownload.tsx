@@ -11,116 +11,121 @@ import {
 import type { PdfDownloadProps, Question, ExamStructure } from "@/types";
 import { DynamicParagraph } from "./DynamicParagraph";
 
-const styles = StyleSheet.create({
-  page: {
-    flexDirection: "column",
-    backgroundColor: "#FFFFFF",
-    padding: 40, // Increased padding for better spacing
-    fontFamily: "Helvetica",
-  },
-  section: {
-    margin: 10,
-    padding: 10,
-    flexGrow: 1,
-  },
-  headerContainer: {
-    marginBottom: 25,
-    borderBottomWidth: 1,
-    borderBottomColor: "#000",
-    paddingBottom: 10,
-  },
-  row: {
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-    width: "100%",
-  },
-  header: {
-    fontSize: 18,
-    fontWeight: "bold",
-    textDecoration: "underline",
-    textAlign: "center",
-  },
-  date: {
-    fontSize: 12,
-    color: "#555",
-    textAlign: "right",
-  },
-  leftColumn: {
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  rightColumn: {
-    fontSize: 12,
-    textAlign: "right",
-    fontWeight: "bold",
-  },
-  sectionHeader: {
-    fontSize: 14,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginTop: 15,
-    marginBottom: 10,
-    backgroundColor: "#f0f0f0",
-    padding: 5,
-  },
-  question: {
-    fontSize: 11,
-    marginBottom: 8,
-    width: "100%",
-  },
-  questionRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8,
-  },
-  questionContent: {
-    flex: 1,
-    marginRight: 10,
-  },
-  marks: {
-    width: 60,
-    textAlign: "right",
-    fontSize: 11,
-  },
-  questionNumber: {
-    fontWeight: "bold",
-  },
-  optionsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 5,
-    marginBottom: 10,
-  },
-  option: {
-    marginRight: 15,
-    marginBottom: 5,
-    padding: 5,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 4,
-    backgroundColor: "#fafafa",
-  },
-  optionText: {
-    fontSize: 11,
-  },
-  Footer: {
-    textAlign: "center",
-    fontSize: 10,
-    color: "#666",
-    marginTop: 20,
-  },
-  pageNumber: {
-    position: "absolute",
-    fontSize: 9,
-    bottom: 15,
-    right: 20,
-    color: "grey",
-  },
-});
+interface PdfDownloadPropsExtended extends PdfDownloadProps {
+  fontSize: number; // Added for dynamic font size
+}
+
+const createStyles = (fontSize: number) =>
+  StyleSheet.create({
+    page: {
+      flexDirection: "column",
+      backgroundColor: "#FFFFFF",
+      padding: 40,
+      fontFamily: "Helvetica",
+    },
+    section: {
+      margin: 10,
+      padding: 10,
+      flexGrow: 1,
+    },
+    headerContainer: {
+      marginBottom: 25,
+      borderBottomWidth: 1,
+      borderBottomColor: "#000",
+      paddingBottom: 10,
+    },
+    row: {
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6,
+      width: "100%",
+    },
+    header: {
+      fontSize: fontSize + 7, // Adjusted based on input
+      fontWeight: "bold",
+      textDecoration: "underline",
+      textAlign: "center",
+    },
+    date: {
+      fontSize: fontSize,
+      color: "#555",
+      textAlign: "right",
+    },
+    leftColumn: {
+      fontSize: fontSize,
+      fontWeight: "bold",
+    },
+    rightColumn: {
+      fontSize: fontSize,
+      textAlign: "right",
+      fontWeight: "bold",
+    },
+    sectionHeader: {
+      fontSize: fontSize + 3,
+      fontWeight: "bold",
+      textAlign: "center",
+      marginTop: 15,
+      marginBottom: 10,
+      backgroundColor: "#f0f0f0",
+      padding: 5,
+    },
+    question: {
+      fontSize: fontSize,
+      marginBottom: 8,
+      width: "100%",
+    },
+    questionRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 8,
+    },
+    questionContent: {
+      flex: 1,
+      marginRight: 10,
+    },
+    marks: {
+      width: 60,
+      textAlign: "right",
+      fontSize: fontSize,
+    },
+    questionNumber: {
+      fontWeight: "bold",
+    },
+    optionsRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      marginTop: 5,
+      marginBottom: 10,
+    },
+    option: {
+      marginRight: 15,
+      marginBottom: 5,
+      padding: 5,
+      borderWidth: 1,
+      borderColor: "#ddd",
+      borderRadius: 4,
+      backgroundColor: "#fafafa",
+    },
+    optionText: {
+      fontSize: fontSize,
+    },
+    Footer: {
+      textAlign: "center",
+      fontSize: fontSize - 1,
+      color: "#666",
+      marginTop: 20,
+    },
+    pageNumber: {
+      position: "absolute",
+      fontSize: fontSize - 2,
+      bottom: 15,
+      right: 20,
+      color: "grey",
+    },
+  });
 
 const getFormattedDate = () => {
   if (typeof window !== "undefined") {
@@ -137,13 +142,7 @@ const groupQuestionsBySection = (
   isSectionWise: boolean
 ) => {
   if (!isSectionWise) {
-    return [
-      {
-        name: "",
-        questionType: "All Questions",
-        questions,
-      },
-    ];
+    return [{ name: "", questionType: "All Questions", questions }];
   }
 
   const grouped: Array<{
@@ -151,7 +150,6 @@ const groupQuestionsBySection = (
     questionType: string;
     questions: (Question & { sectionId: number })[];
   }> = [];
-
   examStructure.sections.forEach((section, index) => {
     const sectionQuestions = questions.filter((q) => q.sectionId === index);
     if (sectionQuestions.length > 0) {
@@ -162,7 +160,6 @@ const groupQuestionsBySection = (
       });
     }
   });
-
   return grouped;
 };
 
@@ -176,14 +173,15 @@ const MyDocument = ({
   chapters,
   teacherName,
   isSectionWise,
-}: PdfDownloadProps) => {
+  fontSize,
+}: PdfDownloadPropsExtended) => {
+  const styles = createStyles(fontSize);
   const groupedSections = groupQuestionsBySection(
     selectedQuestions as (Question & { sectionId: number })[],
     examStructure,
     isSectionWise
   );
   const totalMarks = selectedQuestions.reduce((sum, q) => sum + q.marks, 0);
-
   let globalQuestionNumber = 0;
 
   return (
@@ -198,7 +196,9 @@ const MyDocument = ({
             </View>
             <View style={styles.row}>
               <Text style={styles.leftColumn}>Chapter: {chapters}</Text>
-              <Text style={styles.rightColumn}>Student: {studentName}</Text>
+              <Text style={styles.rightColumn}>
+                Student: {studentName || "N/A"}
+              </Text>
             </View>
             <View style={styles.row}>
               <Text style={styles.leftColumn}>Teacher: {teacherName}</Text>
@@ -222,8 +222,15 @@ const MyDocument = ({
                   <View key={question.id} style={styles.question}>
                     <View style={styles.questionRow}>
                       <View style={styles.questionContent}>
-                        <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-                          <Text style={styles.questionNumber}>{globalQuestionNumber}. </Text>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "flex-start",
+                          }}
+                        >
+                          <Text style={styles.questionNumber}>
+                            {globalQuestionNumber}.{" "}
+                          </Text>
                           <DynamicParagraph
                             content={question.question}
                             images={question.question_images || []}
@@ -232,15 +239,21 @@ const MyDocument = ({
                         </View>
                         {question.type === "MCQ" && question.options && (
                           <View style={styles.optionsRow}>
-                            {Object.entries(question.options).map(([key, value]) => (
-                              <View key={key} style={styles.option}>
-                                <Text style={styles.optionText}>{key}) {value}</Text>
-                              </View>
-                            ))}
+                            {Object.entries(question.options).map(
+                              ([key, value]) => (
+                                <View key={key} style={styles.option}>
+                                  <Text style={styles.optionText}>
+                                    {key}) {value}
+                                  </Text>
+                                </View>
+                              )
+                            )}
                           </View>
                         )}
                       </View>
-                      <Text style={styles.marks}>{`(${question.marks} marks)`}</Text>
+                      <Text
+                        style={styles.marks}
+                      >{`(${question.marks} marks)`}</Text>
                     </View>
                   </View>
                 );
@@ -251,7 +264,9 @@ const MyDocument = ({
         <Text style={styles.Footer}>All The Best!</Text>
         <Text
           style={styles.pageNumber}
-          render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
+          render={({ pageNumber, totalPages }) =>
+            `${pageNumber} / ${totalPages}`
+          }
           fixed
         />
       </Page>
@@ -275,7 +290,9 @@ const MyDocument = ({
                   1;
                 return (
                   <View key={question.id} style={styles.question}>
-                    <Text style={styles.questionNumber}>{questionNumber}. </Text>
+                    <Text style={styles.questionNumber}>
+                      {questionNumber}.{" "}
+                    </Text>
                     <Text>{question.question}</Text>
                     <Text>Answer:</Text>
                     <DynamicParagraph
@@ -296,7 +313,9 @@ const MyDocument = ({
         </View>
         <Text
           style={styles.pageNumber}
-          render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
+          render={({ pageNumber, totalPages }) =>
+            `${pageNumber} / ${totalPages}`
+          }
           fixed
         />
       </Page>
@@ -304,7 +323,7 @@ const MyDocument = ({
   );
 };
 
-export function PdfDownload(props: PdfDownloadProps) {
+export function PdfDownload(props: PdfDownloadPropsExtended) {
   return (
     <div className="space-y-4">
       <PDFViewer width="100%" height={600}>
