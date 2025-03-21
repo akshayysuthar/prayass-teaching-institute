@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Navbar } from "@/components/Navbar";
 import { siteConfig } from "@/config/site";
 import { ErrorHandler } from "@/components/ErrorHandler";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata = {
   title: {
@@ -44,6 +45,7 @@ export default function RootLayout({
           </div>
           <Toaster />
           <ErrorHandler />
+          <Analytics />
         </body>
       </html>
     </ClerkProvider>
