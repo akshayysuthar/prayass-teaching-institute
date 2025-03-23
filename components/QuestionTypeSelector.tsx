@@ -121,10 +121,10 @@ export function QuestionSelector({
   }, [questions, searchTerm, showAllQuestions]);
 
   /** Utility function to safely get section title */
-  const getSectionTitle = (q: Question) =>
-    ("sectionTitle" in q ? (q as any).sectionTitle : undefined) ||
-    ("section_title" in q ? (q as any).section_title : undefined) ||
-    "Uncategorized";
+  const getSectionTitle = (q: Question): string => {
+    const qWithSectionTitle = q as { sectionTitle?: string; section_title?: string };
+    return qWithSectionTitle.sectionTitle || qWithSectionTitle.section_title || "Uncategorized";
+  };
 
   const groupedQuestions = useMemo(() => {
     const grouped = filteredQuestions.reduce(
