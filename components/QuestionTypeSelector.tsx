@@ -16,9 +16,7 @@ import { supabase } from "@/utils/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 interface SelectedChapter {
   id: string;
@@ -36,8 +34,6 @@ interface QuestionSelectorProps {
   currentSectionIndex: number | null;
   selectedQuestions: Question[];
   showAllQuestions: boolean;
-  onNext?: () => void; // Added for navigation
-  onPrevious?: () => void; // Added for navigation
 }
 
 export function QuestionSelector({
@@ -50,15 +46,23 @@ export function QuestionSelector({
   currentSectionIndex,
   selectedQuestions,
   showAllQuestions,
-  onNext,
-  onPrevious,
 }: QuestionSelectorProps) {
   const [chapterData, setChapterData] = useState<
     Record<string, { name: string; chapterNo: number }>
   >({});
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedChapters, setExpandedChapters] = useState<string[]>([]);
-  const [expandedTypes, setExpandedTypes] = useState<string[]>([]);
+  const [expandedMarks, setExpandedMarks] = useState<Record<string, string[]>>(
+    {}
+  );
+  const [expandedTypes, setExpandedTypes] = useState<Record<string, string[]>>(
+    {}
+  );
+  const [expandedSectionTitles, setExpandedSectionTitles] = useState<
+    Record<string, string[]>
+  >({});
+  const [loadedChapters, setLoadedChapters] = useState<string[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [viewMode, setViewMode] = useState<"chapter" | "type">("chapter");
   const { toast } = useToast();
 
@@ -116,12 +120,45 @@ export function QuestionSelector({
     );
   }, [questions, searchTerm, showAllQuestions]);
 
+  /** Utility function to safely get section title */
+  const getSectionTitle = (q: Question) =>
+    ("sectionTitle" in q ? (q as any).sectionTitle : undefined) ||
+    ("section_title" in q ? (q as any).section_title : undefined) ||
+    "Uncategorized";
+
   const groupedQuestions = useMemo(() => {
     const grouped = filteredQuestions.reduce(
-      (acc: Record<string, Question[]>, q) => {
+      (
+        acc: Record<
+          string,
+          {
+            marks: Record<string, Question[]>;
+            types: Record<string, Question[]>;
+            sectionTitles: Record<string, Question[]>;
+          }
+        >,
+        q
+      ) => {
         const chapterId = q.subject_id.toString();
-        acc[chapterId] = acc[chapterId] || [];
-        acc[chapterId].push(q);
+        acc[chapterId] = acc[chapterId] || {
+          marks: {},
+          types: {},
+          sectionTitles: {},
+        };
+
+        const markKey = `${q.marks}`;
+        acc[chapterId].marks[markKey] = acc[chapterId].marks[markKey] || [];
+        acc[chapterId].marks[markKey].push(q);
+
+        const typeKey = q.type || "Other";
+        acc[chapterId].types[typeKey] = acc[chapterId].types[typeKey] || [];
+        acc[chapterId].types[typeKey].push(q);
+
+        const sectionTitleKey = getSectionTitle(q);
+        acc[chapterId].sectionTitles[sectionTitleKey] =
+          acc[chapterId].sectionTitles[sectionTitleKey] || [];
+        acc[chapterId].sectionTitles[sectionTitleKey].push(q);
+
         return acc;
       },
       {}
@@ -248,11 +285,8 @@ export function QuestionSelector({
         ? prev.filter((id) => id !== chapterId)
         : [...prev, chapterId]
     );
-  }, []);
-
-  const toggleType = useCallback((type: string) => {
-    setExpandedTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    setLoadedChapters((prev) =>
+      prev.includes(chapterId) ? prev : [...prev, chapterId]
     );
   }, []);
 
@@ -263,10 +297,11 @@ export function QuestionSelector({
       <div className="flex flex-wrap gap-2 mt-2">
         {imageArray.map((img, idx) => (
           <Image
+            loading="lazy"
             key={idx}
             src={img || "/placeholder.svg"}
             alt={`Question image ${idx + 1}`}
-            width={150}
+            width={350}
             height={150}
             className="object-contain max-w-full h-auto rounded-md"
           />
@@ -275,9 +310,47 @@ export function QuestionSelector({
     );
   }, []);
 
+  const renderQuestion = (question: Question) => {
+    const sectionTitle = getSectionTitle(question);
+    return (
+      <div
+        className={cn(
+          "flex items-start gap-3 border-b pb-1 p-2 mt-1 rounded-lg last:border-b-0 transition-colors",
+          sectionQuestions.some((q) => q.id === question.id) && "bg-green-100"
+        )}
+        key={question.id}
+      >
+        <Checkbox
+          id={`q-${question.id}-s-${currentSectionIndex}`}
+          checked={sectionQuestions.some((q) => q.id === question.id)}
+          onCheckedChange={() => handleQuestionChange(question)}
+          disabled={currentSectionIndex === null}
+          className="mt-1 w-5 h-5"
+        />
+        <Label
+          htmlFor={`q-${question.id}-s-${currentSectionIndex}`}
+          className={cn(
+            "flex-1 flex flex-col gap-1 text-sm",
+            currentSectionIndex === null && "opacity-50"
+          )}
+        >
+          <span className="leading-relaxed">
+            {question.question}{" "}
+            <span className="text-muted-foreground">
+              ({question.marks} Marks)
+            </span>
+          </span>
+          {renderImages(question.question_images || undefined)}
+          <span className="text-xs text-muted-foreground">
+            {question.type || "General"} - {sectionTitle}
+          </span>
+        </Label>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-2 p-2 max-w-4xl mx-auto">
-      {/* Header */}
+    <div className="space-y-2 p-1 max-w-full mx-auto">
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h3 className="text-lg font-semibold truncate max-w-full">
           {currentSection
@@ -296,7 +369,6 @@ export function QuestionSelector({
         )}
       </header>
 
-      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
@@ -308,103 +380,136 @@ export function QuestionSelector({
         />
       </div>
 
-      {/* Tabs */}
-      <Tabs
-        value={viewMode}
-        onValueChange={(value) => setViewMode(value as "chapter" | "type")}
-        className="w-full"
-      >
-        <TabsList className="grid grid-cols-2 w-full">
-          <TabsTrigger value="chapter" className="text-sm py-2">
-            Chapters
-          </TabsTrigger>
-          <TabsTrigger value="type" className="text-sm py-2">
-            Types
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* Question List */}
-      <div className="space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 relative">
-        {/* Process Bar (Background Animation) */}
+      <div className="space-y-2 max-h-[80vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 relative">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100 to-transparent animate-pulse opacity-20 pointer-events-none" />
         {viewMode === "chapter" ? (
           Object.entries(groupedQuestions).length > 0 ? (
-            Object.entries(groupedQuestions).map(
-              ([chapterId, chapterQuestions]) => (
-                <Accordion
-                  type="single"
-                  collapsible
-                  key={chapterId}
-                  value={expandedChapters.includes(chapterId) ? chapterId : ""}
-                  className="border rounded-md bg-white"
-                >
-                  <AccordionItem value={chapterId}>
-                    <AccordionTrigger
-                      onClick={() => toggleChapter(chapterId)}
-                      className="text-left px-4 py-3 hover:bg-gray-50"
-                    >
-                      <h4 className="text-base font-medium truncate">
-                        Ch. {chapterData[chapterId]?.chapterNo || chapterId}:{" "}
-                        {chapterData[chapterId]?.name || `Chapter ${chapterId}`}{" "}
-                        ({chapterQuestions.length})
-                      </h4>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 py-2">
-                      <div className="space-y-3">
-                        {chapterQuestions.map((question) => (
-                          <div
-                            className={cn(
-                              "flex items-start gap-3 border-b pb-3 last:border-b-0 transition-colors",
-                              sectionQuestions.some(
-                                (q) => q.id === question.id
-                              ) && "bg-green-100"
-                            )}
-                            key={question.id}
-                          >
-                            <Checkbox
-                              id={`q-${question.id}-s-${currentSectionIndex}`}
-                              checked={sectionQuestions.some(
-                                (q) => q.id === question.id
-                              )}
-                              onCheckedChange={() =>
-                                handleQuestionChange(question)
-                              }
-                              disabled={currentSectionIndex === null}
-                              className="mt-1 w-5 h-5"
-                            />
-                            <Label
-                              htmlFor={`q-${question.id}-s-${currentSectionIndex}`}
-                              className={`flex-1 flex flex-col gap-2 text-sm ${
-                                currentSectionIndex === null ? "opacity-50" : ""
-                              }`}
-                            >
-                              <span className="leading-relaxed">
-                                {question.question}{" "}
-                                <span className="text-muted-foreground">
-                                  ({question.marks}m)
-                                </span>
-                              </span>
-                              {renderImages(
-                                question.question_images || undefined
-                              )}
-                              <span className="text-xs text-muted-foreground">
-                                Type: {question.type || "General"}
-                              </span>
-                            </Label>
-                          </div>
-                        ))}
+            Object.entries(groupedQuestions).map(([chapterId, groups]) => (
+              <Accordion
+                type="single"
+                collapsible
+                key={chapterId}
+                value={expandedChapters.includes(chapterId) ? chapterId : ""}
+                className="border rounded-md bg-white"
+              >
+                <AccordionItem value={chapterId}>
+                  <AccordionTrigger
+                    onClick={() => toggleChapter(chapterId)}
+                    className="text-left px-4 py-3 hover:bg-gray-50"
+                  >
+                    <h4 className="text-base font-medium truncate">
+                      Ch. {chapterData[chapterId]?.chapterNo || chapterId}:{" "}
+                      {chapterData[chapterId]?.name || `Chapter ${chapterId}`} (
+                      {Object.values(groups.marks).flat().length})
+                    </h4>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 py-2">
+                    {loadedChapters.includes(chapterId) ? (
+                      <div className="space-y-4">
+                        <Accordion
+                          type="multiple"
+                          value={expandedMarks[chapterId] || []}
+                          onValueChange={(newValue) =>
+                            setExpandedMarks((prev) => ({
+                              ...prev,
+                              [chapterId]: newValue,
+                            }))
+                          }
+                          className="space-y-2"
+                        >
+                          {Object.entries(groups.marks)
+                            .sort(([a], [b]) => Number(a) - Number(b))
+                            .map(([mark, markQuestions]) => {
+                              const itemValue = `${chapterId}-mark-${mark}`;
+                              return (
+                                <AccordionItem value={itemValue} key={mark}>
+                                  <AccordionTrigger className="text-sm py-2 hover:bg-gray-50">
+                                    {mark} Mark{Number(mark) !== 1 ? "s" : ""} (
+                                    {markQuestions.length})
+                                  </AccordionTrigger>
+                                  <AccordionContent className="px-2 py-1">
+                                    {markQuestions.map(renderQuestion)}
+                                  </AccordionContent>
+                                </AccordionItem>
+                              );
+                            })}
+                        </Accordion>
+
+                        <Accordion
+                          type="multiple"
+                          value={expandedTypes[chapterId] || []}
+                          onValueChange={(newValue) =>
+                            setExpandedTypes((prev) => ({
+                              ...prev,
+                              [chapterId]: newValue,
+                            }))
+                          }
+                          className="space-y-2"
+                        >
+                          {Object.entries(groups.types).map(
+                            ([type, typeQuestions]) => {
+                              const itemValue = `${chapterId}-type-${type}`;
+                              return (
+                                <AccordionItem value={itemValue} key={type}>
+                                  <AccordionTrigger className="text-sm py-2 hover:bg-gray-50">
+                                    {type} ({typeQuestions.length})
+                                  </AccordionTrigger>
+                                  <AccordionContent className="px-2 py-1">
+                                    {typeQuestions.map(renderQuestion)}
+                                  </AccordionContent>
+                                </AccordionItem>
+                              );
+                            }
+                          )}
+                        </Accordion>
+
+                        <Accordion
+                          type="multiple"
+                          value={expandedSectionTitles[chapterId] || []}
+                          onValueChange={(newValue) =>
+                            setExpandedSectionTitles((prev) => ({
+                              ...prev,
+                              [chapterId]: newValue,
+                            }))
+                          }
+                          className="space-y-2"
+                        >
+                          {Object.entries(groups.sectionTitles).map(
+                            ([sectionTitle, sectionTitleQuestions]) => {
+                              const itemValue = `${chapterId}-section-${sectionTitle}`;
+                              return (
+                                <AccordionItem
+                                  value={itemValue}
+                                  key={sectionTitle}
+                                >
+                                  <AccordionTrigger className="text-sm py-2 hover:bg-gray-50">
+                                    {sectionTitle} (
+                                    {sectionTitleQuestions.length})
+                                  </AccordionTrigger>
+                                  <AccordionContent className="px-2 py-1">
+                                    {sectionTitleQuestions.map(renderQuestion)}
+                                  </AccordionContent>
+                                </AccordionItem>
+                              );
+                            }
+                          )}
+                        </Accordion>
+
                         {!currentSection && (
                           <p className="text-sm text-muted-foreground italic">
                             Select a section to choose questions.
                           </p>
                         )}
                       </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              )
-            )
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Loading questions...
+                      </p>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            ))
           ) : (
             <p className="text-sm text-muted-foreground">
               No chapters available.
@@ -416,12 +521,19 @@ export function QuestionSelector({
               type="single"
               collapsible
               key={type}
-              value={expandedTypes.includes(type) ? type : ""}
+              value={expandedTypes["global"]?.includes(type) ? type : ""}
               className="border rounded-md bg-white"
             >
               <AccordionItem value={type}>
                 <AccordionTrigger
-                  onClick={() => toggleType(type)}
+                  onClick={() =>
+                    setExpandedTypes((prev) => ({
+                      ...prev,
+                      global: prev.global?.includes(type)
+                        ? prev.global.filter((t) => t !== type)
+                        : [...(prev.global || []), type],
+                    }))
+                  }
                   className="text-left px-4 py-3 hover:bg-gray-50"
                 >
                   <h4 className="text-base font-medium truncate">
@@ -430,48 +542,7 @@ export function QuestionSelector({
                 </AccordionTrigger>
                 <AccordionContent className="px-4 py-2">
                   <div className="space-y-3">
-                    {typeQuestions.map((question) => (
-                      <div
-                        className={cn(
-                          "flex items-start gap-3 border-b pb-3 last:border-b-0 transition-colors",
-                          sectionQuestions.some((q) => q.id === question.id) &&
-                            "bg-green-100"
-                        )}
-                        key={question.id}
-                      >
-                        <Checkbox
-                          id={`qt-${question.id}-s-${currentSectionIndex}`}
-                          checked={sectionQuestions.some(
-                            (q) => q.id === question.id
-                          )}
-                          onCheckedChange={() => handleQuestionChange(question)}
-                          disabled={currentSectionIndex === null}
-                          className="mt-1 w-5 h-5"
-                        />
-                        <Label
-                          htmlFor={`qt-${question.id}-s-${currentSectionIndex}`}
-                          className={`flex-1 flex flex-col gap-2 text-sm ${
-                            currentSectionIndex === null ? "opacity-50" : ""
-                          }`}
-                        >
-                          <span className="leading-relaxed">
-                            {question.question}{" "}
-                            <span className="text-muted-foreground">
-                              ({question.marks}m)
-                            </span>
-                          </span>
-                          {renderImages(question.question_images || undefined)}
-                          <span className="text-xs text-muted-foreground">
-                            Ch.{" "}
-                            {chapterData[question.subject_id]?.chapterNo ||
-                              question.subject_id}
-                            :{" "}
-                            {chapterData[question.subject_id]?.name ||
-                              question.subject_id}
-                          </span>
-                        </Label>
-                      </div>
-                    ))}
+                    {typeQuestions.map(renderQuestion)}
                     {!currentSection && (
                       <p className="text-sm text-muted-foreground italic">
                         Select a section to choose questions.
@@ -485,26 +556,6 @@ export function QuestionSelector({
         ) : (
           <p className="text-sm text-muted-foreground">No types available.</p>
         )}
-      </div>
-
-      {/* Navigation Buttons Below Process Bar */}
-      <div className="flex justify-between mt-4">
-        <Button
-          variant="outline"
-          onClick={onPrevious}
-          disabled={!onPrevious}
-          className="w-24"
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          onClick={onNext}
-          disabled={!onNext}
-          className="w-24"
-        >
-          Next
-        </Button>
       </div>
 
       {filteredQuestions.length === 0 && (

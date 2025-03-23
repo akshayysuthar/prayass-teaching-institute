@@ -55,12 +55,6 @@ export const siteConfig: SiteConfig = {
       disabled: "",
     },
     {
-      title: "Question Bank",
-      href: "/question-bank",
-      icon: BookOpen,
-      disabled: "",
-    },
-    {
       title: "Manage Content",
       href: "/manage-content",
       icon: Settings,

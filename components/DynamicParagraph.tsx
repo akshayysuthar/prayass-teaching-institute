@@ -6,6 +6,7 @@ interface DynamicParagraphProps {
   images: string[];
   isPdf?: boolean;
   isAnswerKey?: boolean;
+  fontFamily?: string;
 }
 
 const styles = StyleSheet.create({
@@ -17,7 +18,7 @@ const styles = StyleSheet.create({
     marginVertical: 1,
     marginLeft: 0,
     alignSelf: "flex-start",
-    width: 400, // Default for questions
+    width: 400,
     maxHeight: 80,
     objectFit: "contain",
   },
@@ -25,7 +26,7 @@ const styles = StyleSheet.create({
     marginVertical: 1,
     marginLeft: 0,
     alignSelf: "flex-start",
-    width: 700, // Priority for image-only in questions
+    width: 700,
     maxHeight: 150,
     objectFit: "contain",
   },
@@ -33,7 +34,7 @@ const styles = StyleSheet.create({
     marginVertical: 1,
     marginLeft: 0,
     alignSelf: "flex-start",
-    width: 700, // Default for answer key
+    width: 700,
     maxHeight: 120,
     objectFit: "contain",
   },
@@ -41,7 +42,7 @@ const styles = StyleSheet.create({
     marginVertical: 1,
     marginLeft: 0,
     alignSelf: "flex-start",
-    width: 750, // Priority for image-only in answer key
+    width: 750,
     maxHeight: 200,
     objectFit: "contain",
   },
@@ -53,14 +54,30 @@ const styles = StyleSheet.create({
     maxHeight: 60,
     objectFit: "contain",
   },
+  imageMixed: {
+    marginVertical: 1,
+    marginLeft: 0,
+    alignSelf: "flex-start",
+    width: 300,
+    maxHeight: 60,
+    objectFit: "contain",
+  },
+  answerImageMixed: {
+    marginVertical: 1,
+    marginLeft: 0,
+    alignSelf: "flex-start",
+    width: 400,
+    maxHeight: 80,
+    objectFit: "contain",
+  },
   errorText: {
     color: "#ff0000",
     fontSize: 10,
     marginVertical: 8,
   },
   imageRow: {
-    flexDirection: "row", // Display images in a row for questions
-    flexWrap: "wrap", // Wrap to next line if needed
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginVertical: 1,
   },
 });
@@ -70,6 +87,7 @@ export const DynamicParagraph: React.FC<DynamicParagraphProps> = ({
   images,
   isPdf = true,
   isAnswerKey = false,
+  fontFamily,
 }) => {
   const parts = content.split(
     /(\[img\d+(?:\s+width=\d+)?(?:\s+height=\d+)?\])/g
@@ -78,7 +96,7 @@ export const DynamicParagraph: React.FC<DynamicParagraphProps> = ({
     parts.length === 1 &&
     parts[0].match(/\[img\d+(?:\s+width=\d+)?(?:\s+height=\d+)?\]/);
 
-  const renderImages = (imageIndices: number[]) => {
+  const renderImages = (imageIndices: number[], isMixed: boolean) => {
     return imageIndices.map((imgIndex, idx) => {
       if (!images[imgIndex]) {
         return (
@@ -87,24 +105,29 @@ export const DynamicParagraph: React.FC<DynamicParagraphProps> = ({
           </Text>
         );
       }
-
       const imgSrc = images[imgIndex];
       const isSmallImage = imgSrc.includes("small");
-      const baseStyle = isSmallImage
-        ? styles.smallImage
-        : isAnswerKey
-        ? isImageOnly && isPdf
-          ? styles.answerImagePriority
-          : styles.answerImageDefault
-        : isImageOnly && isPdf
-        ? styles.imagePriority
-        : styles.imageDefault;
-
-      const imageStyle = {
-        ...baseStyle,
-        marginRight: isAnswerKey ? 0 : 10, // Space between images in row for questions
-      };
-
+      let baseStyle;
+      if (isSmallImage) {
+        baseStyle = styles.smallImage;
+      } else if (isAnswerKey) {
+        if (isImageOnly && isPdf) {
+          baseStyle = styles.answerImagePriority;
+        } else if (isMixed) {
+          baseStyle = styles.answerImageMixed;
+        } else {
+          baseStyle = styles.answerImageDefault;
+        }
+      } else {
+        if (isImageOnly && isPdf) {
+          baseStyle = styles.imagePriority;
+        } else if (isMixed) {
+          baseStyle = styles.imageMixed;
+        } else {
+          baseStyle = styles.imageDefault;
+        }
+      }
+      const imageStyle = { ...baseStyle, marginRight: isAnswerKey ? 0 : 10 };
       return <Image key={idx} style={imageStyle} src={imgSrc} />;
     });
   };
@@ -119,26 +142,40 @@ export const DynamicParagraph: React.FC<DynamicParagraphProps> = ({
       imageIndices.push(imgIndex);
     } else if (part.trim()) {
       if (imageIndices.length > 0) {
+        const isMixed = parts
+          .slice(index)
+          .some(
+            (p) =>
+              p.trim() &&
+              !p.match(/\[img\d+(?:\s+width=\d+)?(?:\s+height=\d+)?\]/)
+          );
         const imageContainer = isAnswerKey ? (
-          <View key={`images-${index}`}>{renderImages(imageIndices)}</View>
+          <View key={`images-${index}`}>
+            {renderImages(imageIndices, isMixed)}
+          </View>
         ) : (
           <View key={`images-${index}`} style={styles.imageRow}>
-            {renderImages(imageIndices)}
+            {renderImages(imageIndices, isMixed)}
           </View>
         );
         elements.push(imageContainer);
         imageIndices = [];
       }
-      elements.push(<Text key={index}>{part}</Text>);
+      elements.push(
+        <Text key={index} style={{ fontFamily: fontFamily || "NotoSans" }}>
+          {part}
+        </Text>
+      );
     }
   });
 
   if (imageIndices.length > 0) {
+    const isMixed = false;
     const imageContainer = isAnswerKey ? (
-      <View key={`images-end`}>{renderImages(imageIndices)}</View>
+      <View key={`images-end`}>{renderImages(imageIndices, isMixed)}</View>
     ) : (
       <View key={`images-end`} style={styles.imageRow}>
-        {renderImages(imageIndices)}
+        {renderImages(imageIndices, isMixed)}
       </View>
     );
     elements.push(imageContainer);

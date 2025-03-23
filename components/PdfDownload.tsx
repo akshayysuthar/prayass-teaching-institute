@@ -7,43 +7,79 @@ import {
   StyleSheet,
   PDFViewer,
   PDFDownloadLink,
+  Font,
 } from "@react-pdf/renderer";
 import type { PdfDownloadProps, Question, ExamStructure } from "@/types";
 import { DynamicParagraph } from "./DynamicParagraph";
 
-interface PdfDownloadPropsExtended extends PdfDownloadProps {
-  fontSize: number; // Added for dynamic font size
+// Register both fonts
+try {
+  Font.register({
+    family: "NotoSans",
+    src: "/fonts/NotoSans-Regular.ttf",
+  });
+  Font.register({
+    family: "NotoSans",
+    src: "/fonts/NotoSans-Bold.ttf",
+    fontWeight: "bold",
+  });
+  Font.register({
+    family: "NotoSansGujarati",
+    src: "/fonts/NotoSansGujarati-Regular.ttf",
+  });
+  Font.register({
+    family: "NotoSansGujarati",
+    src: "/fonts/NotoSansGujarati-Bold.ttf",
+    fontWeight: "bold",
+  });
+  console.log("Fonts registered successfully");
+} catch (error) {
+  console.error("Font registration failed:", error);
 }
 
-const createStyles = (fontSize: number) =>
-  StyleSheet.create({
+interface PdfDownloadPropsExtended extends PdfDownloadProps {
+  fontSize: number;
+}
+
+// Helper function to determine font based on subject
+const getFontFamily = (subject: string) => {
+  return subject.toLowerCase().includes("gujarati")
+    ? "NotoSansGujarati"
+    : "NotoSans";
+};
+
+const createStyles = (fontSize: number, subject: string) => {
+  const fontFamily = getFontFamily(subject);
+  return StyleSheet.create({
     page: {
       flexDirection: "column",
       backgroundColor: "#FFFFFF",
-      padding: 40,
-      fontFamily: "Helvetica",
+      padding: 5,
+      fontFamily: "NotoSans", // Default for non-question text
+      borderWidth: 1,
+      borderColor: "#000",
     },
     section: {
-      margin: 10,
-      padding: 10,
+      margin: 5,
+      padding: 5,
       flexGrow: 1,
     },
     headerContainer: {
-      marginBottom: 25,
+      marginBottom: 5,
       borderBottomWidth: 1,
       borderBottomColor: "#000",
-      paddingBottom: 10,
+      paddingBottom: 5,
     },
     row: {
       display: "flex",
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 6,
+      marginBottom: 4,
       width: "100%",
     },
     header: {
-      fontSize: fontSize + 7, // Adjusted based on input
+      fontSize: fontSize + 7,
       fontWeight: "bold",
       textDecoration: "underline",
       textAlign: "center",
@@ -66,25 +102,26 @@ const createStyles = (fontSize: number) =>
       fontSize: fontSize + 3,
       fontWeight: "bold",
       textAlign: "center",
-      marginTop: 15,
-      marginBottom: 10,
+      marginTop: 5,
+      marginBottom: 5,
       backgroundColor: "#f0f0f0",
-      padding: 5,
+      padding: 3,
     },
     question: {
       fontSize: fontSize,
-      marginBottom: 8,
+      marginBottom: 1,
       width: "100%",
     },
     questionRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "flex-start",
-      marginBottom: 8,
+      marginBottom: 2,
     },
     questionContent: {
       flex: 1,
-      marginRight: 10,
+      marginRight: 8,
+      fontFamily, // Apply conditionally to question content
     },
     marks: {
       width: 60,
@@ -97,13 +134,13 @@ const createStyles = (fontSize: number) =>
     optionsRow: {
       flexDirection: "row",
       flexWrap: "wrap",
-      marginTop: 5,
-      marginBottom: 10,
+      marginTop: 3,
+      marginBottom: 6,
     },
     option: {
-      marginRight: 15,
-      marginBottom: 5,
-      padding: 5,
+      marginRight: 10,
+      marginBottom: 3,
+      padding: 3,
       borderWidth: 1,
       borderColor: "#ddd",
       borderRadius: 4,
@@ -116,16 +153,17 @@ const createStyles = (fontSize: number) =>
       textAlign: "center",
       fontSize: fontSize - 1,
       color: "#666",
-      marginTop: 20,
+      marginTop: 15,
     },
     pageNumber: {
       position: "absolute",
       fontSize: fontSize - 2,
-      bottom: 15,
-      right: 20,
+      bottom: 10,
+      right: 15,
       color: "grey",
     },
   });
+};
 
 const getFormattedDate = () => {
   if (typeof window !== "undefined") {
@@ -175,7 +213,7 @@ const MyDocument = ({
   isSectionWise,
   fontSize,
 }: PdfDownloadPropsExtended) => {
-  const styles = createStyles(fontSize);
+  const styles = createStyles(fontSize, subject);
   const groupedSections = groupQuestionsBySection(
     selectedQuestions as (Question & { sectionId: number })[],
     examStructure,
@@ -183,11 +221,13 @@ const MyDocument = ({
   );
   const totalMarks = selectedQuestions.reduce((sum, q) => sum + q.marks, 0);
   let globalQuestionNumber = 0;
+  const fontFamily = getFontFamily(subject);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.section}>
+          {/* Header unchanged */}
           <View style={styles.headerContainer}>
             <Text style={styles.header}>{instituteName}</Text>
             <View style={styles.row}>
@@ -235,6 +275,7 @@ const MyDocument = ({
                             content={question.question}
                             images={question.question_images || []}
                             isPdf={true}
+                            fontFamily={fontFamily}
                           />
                         </View>
                         {question.type === "MCQ" && question.options && (
@@ -293,7 +334,7 @@ const MyDocument = ({
                     <Text style={styles.questionNumber}>
                       {questionNumber}.{" "}
                     </Text>
-                    <Text>{question.question}</Text>
+                    <Text style={{ fontFamily }}>{question.question}</Text>
                     <Text>Answer:</Text>
                     <DynamicParagraph
                       content={
@@ -304,6 +345,7 @@ const MyDocument = ({
                       images={question.answer_images || []}
                       isPdf={true}
                       isAnswerKey={true}
+                      fontFamily={fontFamily}
                     />
                   </View>
                 );
@@ -322,7 +364,6 @@ const MyDocument = ({
     </Document>
   );
 };
-
 export function PdfDownload(props: PdfDownloadPropsExtended) {
   return (
     <div className="space-y-4">

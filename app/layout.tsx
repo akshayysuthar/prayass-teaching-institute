@@ -34,10 +34,10 @@ export default function RootLayout({
           <link rel="apple-touch-icon" href="/icon-192x192.png" />
         </head>
         <body className="min-h-screen bg-background font-sans antialiased">
-          <div className="container mx-auto px-2 sm:px-1 lg:px-10 max-w-7xl">
+          <div className="mx-auto px-2 sm:px-1 lg:px-10 max-w-7xl">
             <div className="relative flex min-h-screen flex-col overflow-x-hidden">
               <Navbar />
-              <main className="flex-1 py-4 ">{children}</main>
+              <main className="flex-1 ">{children}</main>
             </div>
             <Toaster />
             <ErrorHandler />

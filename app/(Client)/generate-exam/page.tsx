@@ -359,8 +359,8 @@ export default function GenerateExamPage() {
         currentSectionIndex={currentSectionIndex}
         selectedQuestions={selectedQuestions}
         showAllQuestions={false}
-        onNext={selectedQuestions.length > 0 ? () => setStep(4) : undefined}
-        onPrevious={() => setStep(2)}
+        // onNext={selectedQuestions.length > 0 ? () => setStep(4) : undefined}
+        // onPrevious={() => setStep(2)}
       />
     </div>
   );
