@@ -145,18 +145,30 @@ export default function GenerateExamPage() {
     [toast]
   );
 
+  const isBrowser = typeof window !== "undefined";
+
+  // Load initial state from localStorage only on client-side mount
   useEffect(() => {
-    fetchContents();
-    const savedStep = localStorage.getItem("currentStep");
-    if (savedStep) setCurrentStep(Number(savedStep));
-    const savedContent = localStorage.getItem("selectedContent");
-    if (savedContent) {
-      const content = JSON.parse(savedContent);
-      setSelectedContent(content);
-      fetchSubjects(content.id);
-      fetchQuestions(content.id);
+    if (isBrowser) {
+      const savedStructure = localStorage.getItem("examStructure");
+      if (savedStructure) setExamStructure(JSON.parse(savedStructure));
+
+      const savedQuestions = localStorage.getItem("selectedQuestions");
+      if (savedQuestions) setSelectedQuestions(JSON.parse(savedQuestions));
+
+      const savedStep = localStorage.getItem("currentStep");
+      if (savedStep) setCurrentStep(Number(savedStep));
+
+      const savedContent = localStorage.getItem("selectedContent");
+      if (savedContent) {
+        const content = JSON.parse(savedContent);
+        setSelectedContent(content);
+        fetchSubjects(content.id);
+        fetchQuestions(content.id);
+      }
     }
-  }, [fetchContents, fetchSubjects, fetchQuestions]);
+    fetchContents();
+  }, [fetchContents, fetchSubjects, fetchQuestions, isBrowser]);
 
   useEffect(() => {
     localStorage.setItem("examStructure", JSON.stringify(examStructure));

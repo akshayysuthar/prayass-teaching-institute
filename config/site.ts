@@ -96,10 +96,10 @@ export const siteConfig: SiteConfig = {
     themeColor: "#f7ce5b",
   },
   theme: {
-    background: "#FFFFFF", // cornsilk
-    secondary: "#2667FF", // tea_green
-    primary: "#3B28CC", // beige
-    accent: "#87BFFF", // buff
-    text: "#000000", // buff-100 (darkened for contrast)
+    background: "#FFFFFF",
+    secondary: "#2667FF", 
+    primary: "#3B28CC",
+    accent: "#87BFFF", 
+    text: "#000000", 
   },
 };
