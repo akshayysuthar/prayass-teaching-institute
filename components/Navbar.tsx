@@ -6,12 +6,7 @@ import { useUser, UserButton, SignInButton } from "@clerk/nextjs";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import {
-  Sheet,
-  SheetContent,
-  // SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -26,8 +21,16 @@ export function Navbar() {
   const isAdmin =
     user?.emailAddresses[0]?.emailAddress &&
     siteConfig.adminEmail.includes(user.emailAddresses[0].emailAddress);
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header
+      className="sticky top-0 z-50 w-full border-b"
+      style={{
+        backgroundColor: siteConfig.theme.primary, // beige
+        borderColor: siteConfig.theme.accent, // buff
+        color: siteConfig.theme.text, // buff-100
+      }}
+    >
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -36,6 +39,7 @@ export function Navbar() {
               className="hidden font-bold sm:inline-block"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
+              style={{ color: siteConfig.theme.accent }} // buff
             >
               {siteConfig.name}
             </motion.span>
@@ -48,11 +52,17 @@ export function Navbar() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
+                      "flex items-center gap-2 text-sm font-medium transition-colors",
                       pathname === item.href
-                        ? "text-primary"
-                        : "text-muted-foreground"
+                        ? "text-accent" // buff
+                        : "text-text hover:text-accent" // text -> buff on hover
                     )}
+                    style={{
+                      color:
+                        pathname === item.href
+                          ? siteConfig.theme.accent
+                          : siteConfig.theme.text,
+                    }}
                   >
                     <item.icon className="h-4 w-4" />
                     {item.title}
@@ -68,13 +78,21 @@ export function Navbar() {
               <Button
                 variant="ghost"
                 className="mr-2 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
+                style={{ color: siteConfig.theme.text }} // buff-100
               >
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle Menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="pr-0">
-              <DialogTitle className="font-bold text-2xl">
+            <SheetContent
+              side="left"
+              className="pr-0"
+              style={{ backgroundColor: siteConfig.theme.primary }} // beige
+            >
+              <DialogTitle
+                className="font-bold text-2xl"
+                style={{ color: siteConfig.theme.accent }} // buff
+              >
                 {siteConfig.name}
               </DialogTitle>
               <MobileNav setOpen={setOpen} />
@@ -82,7 +100,12 @@ export function Navbar() {
           </Sheet>
           <Link href="/" className="flex items-center space-x-2">
             <Image src="/file.png" alt="Logo" width={24} height={24} />
-            <span className="font-bold text-lg">{siteConfig.name}</span>
+            <span
+              className="font-bold text-lg"
+              style={{ color: siteConfig.theme.accent }} // buff
+            >
+              {siteConfig.name}
+            </span>
           </Link>
         </div>
 
@@ -90,14 +113,26 @@ export function Navbar() {
           <div className="flex items-center space-x-4">
             {user ? (
               <>
-                <span className="text-sm text-muted-foreground hidden sm:inline">
+                <span
+                  className="text-sm hidden sm:inline"
+                  style={{ color: siteConfig.theme.text }} // buff-100
+                >
                   Welcome, {user.fullName}
                 </span>
                 <UserButton afterSignOutUrl="/" />
               </>
             ) : (
               <SignInButton mode="modal">
-                <Button variant="outline">Sign In</Button>
+                <Button
+                  variant="outline"
+                  style={{
+                    borderColor: siteConfig.theme.secondary, // tea_green
+                    color: siteConfig.theme.text, // buff-100
+                  }}
+                  className="hover:bg-secondary hover:text-text" // tea_green on hover
+                >
+                  Sign In
+                </Button>
               </SignInButton>
             )}
           </div>
@@ -135,7 +170,15 @@ function MobileNav({ setOpen }: { setOpen: (open: boolean) => void }) {
       {!user && (
         <div className="mt-6 px-6">
           <SignInButton mode="modal">
-            <Button className="w-full">Sign In</Button>
+            <Button
+              className="w-full"
+              style={{
+                backgroundColor: siteConfig.theme.secondary, // tea_green
+                color: siteConfig.theme.text, // buff-100
+              }}
+            >
+              Sign In
+            </Button>
           </SignInButton>
         </div>
       )}
@@ -164,10 +207,13 @@ function MobileLink({
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-3 text-foreground/70 transition-colors hover:text-foreground",
-        isActive && "text-foreground font-semibold"
+        "flex items-center gap-3 text-sm font-medium transition-colors",
+        isActive ? "text-accent font-semibold" : "text-text hover:text-accent" // buff on active/hover
       )}
       onClick={onClick}
+      style={{
+        color: isActive ? siteConfig.theme.accent : siteConfig.theme.text,
+      }}
     >
       <Icon className="h-5 w-5" />
       {children}

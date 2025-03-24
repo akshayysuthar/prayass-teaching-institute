@@ -12,15 +12,8 @@ export type SiteConfig = {
     icon?: any;
     adminOnly?: boolean;
   }[];
-  footerLinks: {
-    title: string;
-    href: string;
-  }[];
-  metadata: {
-    title: string;
-    description: string;
-    keywords: string[];
-  };
+  footerLinks: { title: string; href: string }[];
+  metadata: { title: string; description: string; keywords: string[] };
   pwa: {
     name: string;
     shortName: string;
@@ -28,20 +21,22 @@ export type SiteConfig = {
     backgroundColor: string;
     themeColor: string;
   };
+  theme: {
+    background: string;
+    primary: string;
+    secondary: string;
+    accent: string;
+    text: string;
+  };
 };
 
 export const siteConfig: SiteConfig = {
   name: "Prayass Teaching Institute",
   description: "Generate and manage exam papers efficiently",
   adminEmail: ["akshaysuthar05@gmail.com", "sutharmaina62@gmail.com"],
-  url: "https://exam-generator.vercel.app",
+  url: "https://prayass-teaching-institute.vercel.app/",
   navLinks: [
-    {
-      title: "Home",
-      href: "/",
-      disabled: "",
-      icon: Home,
-    },
+    { title: "Home", href: "/", disabled: "", icon: Home },
     {
       title: "Add Question",
       href: "/add-questions",
@@ -58,7 +53,6 @@ export const siteConfig: SiteConfig = {
       title: "Manage Content",
       href: "/manage-content",
       icon: Settings,
-      // adminOnly: true,
       disabled: "",
     },
     {
@@ -69,7 +63,7 @@ export const siteConfig: SiteConfig = {
       disabled: "",
     },
     {
-      title: "bilingual questions",
+      title: "Bilingual Questions",
       href: "/bilingual-questions",
       icon: Settings,
       adminOnly: true,
@@ -77,18 +71,9 @@ export const siteConfig: SiteConfig = {
     },
   ],
   footerLinks: [
-    {
-      title: "Privacy Policy",
-      href: "/privacy",
-    },
-    {
-      title: "Terms of Service",
-      href: "/terms",
-    },
-    {
-      title: "Contact",
-      href: "/contact",
-    },
+    { title: "Privacy Policy", href: "/privacy" },
+    { title: "Terms of Service", href: "/terms" },
+    { title: "Contact", href: "/contact" },
   ],
   metadata: {
     title: "Prayass Teaching Institute - Create Professional Exam Papers",
@@ -107,7 +92,14 @@ export const siteConfig: SiteConfig = {
     name: "Exam Paper Generator",
     shortName: "ExamGen",
     description: "Generate and manage exam papers",
-    backgroundColor: "#ffffff",
-    themeColor: "#000000",
+    backgroundColor: "#f9f7ed",
+    themeColor: "#f7ce5b",
+  },
+  theme: {
+    background: "#FFFFFF", // cornsilk
+    secondary: "#2667FF", // tea_green
+    primary: "#3B28CC", // beige
+    accent: "#87BFFF", // buff
+    text: "#000000", // buff-100 (darkened for contrast)
   },
 };

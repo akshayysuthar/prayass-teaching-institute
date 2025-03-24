@@ -26,6 +26,8 @@ export interface Question {
 }
 
 export interface Content {
+  subject_name: any;
+  subject: any;
   id: number;
   name: string;
   board: string;
@@ -42,6 +44,7 @@ export interface SelectedChapter {
 }
 
 export interface ExamStructure {
+  subject: any;
   totalMarks: number;
   sections: ExamSection[];
 }
@@ -62,6 +65,7 @@ export interface PdfDownloadProps {
   chapters: string;
   teacherName: string;
   isSectionWise: boolean;
+  format: "exam" | "examWithAnswer" | "material" | null;
 }
 
 // export interface Question {

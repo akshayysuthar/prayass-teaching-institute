@@ -122,8 +122,15 @@ export function QuestionSelector({
 
   /** Utility function to safely get section title */
   const getSectionTitle = (q: Question): string => {
-    const qWithSectionTitle = q as { sectionTitle?: string; section_title?: string };
-    return qWithSectionTitle.sectionTitle || qWithSectionTitle.section_title || "Uncategorized";
+    const qWithSectionTitle = q as {
+      sectionTitle?: string;
+      section_title?: string;
+    };
+    return (
+      qWithSectionTitle.sectionTitle ||
+      qWithSectionTitle.section_title ||
+      "Uncategorized"
+    );
   };
 
   const groupedQuestions = useMemo(() => {
