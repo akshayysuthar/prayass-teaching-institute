@@ -21,13 +21,13 @@ export type SiteConfig = {
     backgroundColor: string;
     themeColor: string;
   };
-  theme: {
-    background: string;
-    primary: string;
-    secondary: string;
-    accent: string;
-    text: string;
-  };
+  // theme: {
+  //   background: string;
+  //   primary: string;
+  //   secondary: string;
+  //   accent: string;
+  //   text: string;
+  // };
 };
 
 export const siteConfig: SiteConfig = {
@@ -95,11 +95,11 @@ export const siteConfig: SiteConfig = {
     backgroundColor: "#f9f7ed",
     themeColor: "#f7ce5b",
   },
-  theme: {
-    background: "#FFFFFF",
-    secondary: "#2667FF", 
-    primary: "#3B28CC",
-    accent: "#87BFFF", 
-    text: "#000000", 
-  },
+  // theme: {
+  //   background: "#FFFFFF",
+  //   secondary: "#2667FF", 
+  //   primary: "#3B28CC",
+  //   accent: "#87BFFF", 
+  //   text: "#000000", 
+  // },
 };

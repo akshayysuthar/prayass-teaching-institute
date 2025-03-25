@@ -35,30 +35,22 @@ export default function GenerateExamPage() {
   const [contents, setContents] = useState<Content[]>([]);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [totalPaperMarks, setTotalPaperMarks] = useState<number>(100);
-  const [examStructure, setExamStructure] = useState<ExamStructure>(() => {
-    const savedStructure = localStorage.getItem("examStructure");
-    return savedStructure
-      ? JSON.parse(savedStructure)
-      : {
-          subject: null,
-          totalMarks: 100,
-          sections: [
-            {
-              name: "A",
-              questionType: "MCQ",
-              totalQuestions: 5,
-              marksPerQuestion: 2,
-              totalMarks: 10,
-            },
-          ],
-        };
+  const [examStructure, setExamStructure] = useState<ExamStructure>({
+    subject: null,
+    totalMarks: 100,
+    sections: [
+      {
+        name: "A",
+        questionType: "MCQ",
+        totalQuestions: 5,
+        marksPerQuestion: 2,
+        totalMarks: 10,
+      },
+    ],
   });
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [selectedQuestions, setSelectedQuestions] = useState<Question[]>(() => {
-    const savedQuestions = localStorage.getItem("selectedQuestions");
-    return savedQuestions ? JSON.parse(savedQuestions) : [];
-  });
+  const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
   const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>(
     []
   );
@@ -83,6 +75,7 @@ export default function GenerateExamPage() {
 
   const { user } = useUser();
   const { toast } = useToast();
+  const isBrowser = typeof window !== "undefined";
 
   const fetchContents = useCallback(async () => {
     setIsLoading(true);
@@ -145,8 +138,6 @@ export default function GenerateExamPage() {
     [toast]
   );
 
-  const isBrowser = typeof window !== "undefined";
-
   // Load initial state from localStorage only on client-side mount
   useEffect(() => {
     if (isBrowser) {
@@ -170,16 +161,29 @@ export default function GenerateExamPage() {
     fetchContents();
   }, [fetchContents, fetchSubjects, fetchQuestions, isBrowser]);
 
+  // Save state to localStorage on change
   useEffect(() => {
-    localStorage.setItem("examStructure", JSON.stringify(examStructure));
-    localStorage.setItem(
-      "selectedQuestions",
-      JSON.stringify(selectedQuestions)
-    );
-    localStorage.setItem("currentStep", currentStep.toString());
-    if (selectedContent)
-      localStorage.setItem("selectedContent", JSON.stringify(selectedContent));
-  }, [examStructure, selectedQuestions, currentStep, selectedContent]);
+    if (isBrowser) {
+      localStorage.setItem("examStructure", JSON.stringify(examStructure));
+      localStorage.setItem(
+        "selectedQuestions",
+        JSON.stringify(selectedQuestions)
+      );
+      localStorage.setItem("currentStep", currentStep.toString());
+      if (selectedContent) {
+        localStorage.setItem(
+          "selectedContent",
+          JSON.stringify(selectedContent)
+        );
+      }
+    }
+  }, [
+    examStructure,
+    selectedQuestions,
+    currentStep,
+    selectedContent,
+    isBrowser,
+  ]);
 
   const handleContentSelect = useCallback(
     (content: Content) => {
@@ -280,10 +284,7 @@ export default function GenerateExamPage() {
 
   const contentSelectionStep = (
     <div className="space-y-6">
-      <h2
-        className="text-2xl font-semibold"
-        style={{ color: siteConfig.theme.primary }}
-      >
+      <h2 className="text-2xl font-semibold text-indigo-600">
         1. Select Content
       </h2>
       <ClassSelector
@@ -294,11 +295,7 @@ export default function GenerateExamPage() {
       {selectedContent && (
         <Button
           onClick={() => setStep(2)}
-          style={{
-            backgroundColor: siteConfig.theme.secondary,
-            color: siteConfig.theme.text,
-          }}
-          className="w-full hover:bg-opacity-90"
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
         >
           Next <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
@@ -312,41 +309,27 @@ export default function GenerateExamPage() {
         <Button
           onClick={() => setStep(1)}
           variant="outline"
-          style={{
-            borderColor: siteConfig.theme.accent,
-            color: siteConfig.theme.text,
-          }}
-          className="w-full sm:w-auto"
+          className="w-full sm:w-auto border-indigo-600 text-indigo-600 hover:bg-indigo-50"
         >
           <ChevronLeft className="mr-2 h-4 w-4" /> Previous
         </Button>
         {examStructure.sections.length > 0 && (
           <Button
             onClick={() => setStep(3)}
-            style={{
-              backgroundColor: siteConfig.theme.secondary,
-              color: siteConfig.theme.text,
-            }}
-            className="w-full sm:w-auto hover:bg-opacity-90"
+            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white"
           >
             Next <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
         )}
       </div>
-      <h2
-        className="text-2xl font-semibold"
-        style={{ color: siteConfig.theme.primary }}
-      >
+      <h2 className="text-2xl font-semibold text-indigo-600">
         2. Define Exam Structure
       </h2>
-      <Card style={{ backgroundColor: siteConfig.theme.background }}>
+      <Card className="bg-white shadow-md">
         <CardContent className="p-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label
-                htmlFor="paperMarks"
-                style={{ color: siteConfig.theme.text }}
-              >
+              <Label htmlFor="paperMarks" className="text-gray-700">
                 Total Paper Marks
               </Label>
               <Input
@@ -358,21 +341,15 @@ export default function GenerateExamPage() {
                 onChange={(e) =>
                   handlePaperMarksChange(Number.parseInt(e.target.value) || 1)
                 }
-                style={{
-                  borderColor: siteConfig.theme.accent,
-                  color: siteConfig.theme.text,
-                }}
-                className="mt-1"
+                className="mt-1 border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
               />
             </div>
             <div className="flex items-end">
               <Badge
                 variant={remainingMarks >= 0 ? "outline" : "destructive"}
-                style={{
-                  borderColor: siteConfig.theme.accent,
-                  color: siteConfig.theme.text,
-                }}
-                className="w-full justify-center"
+                className={`w-full justify-center ${
+                  remainingMarks >= 0 ? "border-indigo-600 text-indigo-600" : ""
+                }`}
               >
                 Remaining Marks: {remainingMarks}
               </Badge>
@@ -395,40 +372,26 @@ export default function GenerateExamPage() {
         <Button
           onClick={() => setStep(2)}
           variant="outline"
-          style={{
-            borderColor: siteConfig.theme.accent,
-            color: siteConfig.theme.text,
-          }}
-          className="w-full sm:w-auto"
+          className="w-full sm:w-auto border-indigo-600 text-indigo-600 hover:bg-indigo-50"
         >
           <ChevronLeft className="mr-2 h-4 w-4" /> Previous
         </Button>
         {selectedQuestions.length > 0 && (
           <Button
             onClick={() => setStep(4)}
-            style={{
-              backgroundColor: siteConfig.theme.secondary,
-              color: siteConfig.theme.text,
-            }}
-            className="w-full sm:w-auto hover:bg-opacity-90"
+            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white"
           >
             Next <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
         )}
       </div>
-      <h2
-        className="text-2xl font-semibold"
-        style={{ color: siteConfig.theme.primary }}
-      >
+      <h2 className="text-2xl font-semibold text-indigo-600">
         3. Select Questions
       </h2>
       {selectedContent && subjects.length > 0 && (
-        <Card style={{ backgroundColor: siteConfig.theme.background }}>
+        <Card className="bg-white shadow-md">
           <CardContent className="p-4">
-            <h3
-              className="text-lg font-medium mb-3"
-              style={{ color: siteConfig.theme.primary }}
-            >
+            <h3 className="text-lg font-medium text-indigo-600 mb-3">
               Available Subjects
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -438,11 +401,7 @@ export default function GenerateExamPage() {
                   <Badge
                     key={subject.id}
                     variant="secondary"
-                    style={{
-                      backgroundColor: siteConfig.theme.secondary,
-                      color: siteConfig.theme.text,
-                    }}
-                    className="text-sm"
+                    className="bg-indigo-100 text-indigo-800"
                   >
                     Ch {subject.chapter_no} - {subject.chapter_name}
                   </Badge>
@@ -451,12 +410,9 @@ export default function GenerateExamPage() {
           </CardContent>
         </Card>
       )}
-      <Card style={{ backgroundColor: siteConfig.theme.background }}>
+      <Card className="bg-white shadow-md">
         <CardContent className="p-4 space-y-4">
-          <h3
-            className="text-lg font-medium"
-            style={{ color: siteConfig.theme.primary }}
-          >
+          <h3 className="text-lg font-medium text-indigo-600">
             Select a Section
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -465,55 +421,30 @@ export default function GenerateExamPage() {
                 key={index}
                 className={`cursor-pointer transition-all ${
                   currentSectionIndex === index
-                    ? "border-2 shadow-md"
-                    : "hover:shadow-sm"
+                    ? "border-2 border-indigo-600 shadow-md"
+                    : "hover:shadow-sm border border-gray-200"
                 }`}
-                style={{
-                  borderColor:
-                    currentSectionIndex === index
-                      ? siteConfig.theme.primary
-                      : siteConfig.theme.accent,
-                }}
                 onClick={() => handleSectionSelect(index)}
               >
                 <CardContent className="p-4">
-                  <h4
-                    className="text-lg font-medium"
-                    style={{ color: siteConfig.theme.primary }}
-                  >
+                  <h4 className="text-lg font-medium text-indigo-600">
                     Section {section.name}
                   </h4>
-                  <p
-                    className="text-sm"
-                    style={{ color: siteConfig.theme.text }}
-                  >
+                  <p className="text-sm text-gray-600">
                     {section.questionType}
                   </p>
-                  <p
-                    className="text-sm"
-                    style={{ color: siteConfig.theme.text }}
-                  >
+                  <p className="text-sm text-gray-600">
                     Marks/Question: {section.marksPerQuestion}
                   </p>
-                  <p
-                    className="text-sm"
-                    style={{ color: siteConfig.theme.text }}
-                  >
+                  <p className="text-sm text-gray-600">
                     Total Questions: {section.totalQuestions}
                   </p>
-                  <p
-                    className="text-sm"
-                    style={{ color: siteConfig.theme.text }}
-                  >
+                  <p className="text-sm text-gray-600">
                     Total Marks: {section.totalMarks}
                   </p>
                   <Badge
                     variant="outline"
-                    style={{
-                      borderColor: siteConfig.theme.accent,
-                      color: siteConfig.theme.text,
-                    }}
-                    className="mt-2"
+                    className="mt-2 border-indigo-600 text-indigo-600"
                   >
                     {
                       selectedQuestions.filter((q) => q.sectionId === index)
@@ -547,28 +478,20 @@ export default function GenerateExamPage() {
 
   const previewAndGenerateStep = (
     <div className="space-y-6">
-      <h2
-        className="text-2xl font-semibold"
-        style={{ color: siteConfig.theme.primary }}
-      >
+      <h2 className="text-2xl font-semibold text-indigo-600">
         4. Preview and Generate
       </h2>
       <Button
         onClick={() => setStep(3)}
         variant="outline"
-        style={{
-          borderColor: siteConfig.theme.accent,
-          color: siteConfig.theme.text,
-        }}
-        className="w-full sm:w-auto"
+        className="w-full sm:w-auto border-indigo-600 text-indigo-600 hover:bg-indigo-50"
       >
         <ChevronLeft className="mr-2 h-4 w-4" /> Previous
       </Button>
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
         <Label
           htmlFor="studentName"
-          className="text-sm font-medium"
-          style={{ color: siteConfig.theme.text }}
+          className="text-sm font-medium text-gray-700"
         >
           Student Name (Optional)
         </Label>
@@ -577,18 +500,13 @@ export default function GenerateExamPage() {
           value={studentName}
           onChange={(e) => setStudentName(e.target.value)}
           placeholder="Enter student name"
-          style={{
-            borderColor: siteConfig.theme.accent,
-            color: siteConfig.theme.text,
-          }}
-          className="w-full sm:w-64"
+          className="w-full sm:w-64 border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
         />
       </div>
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
         <Label
           htmlFor="schoolName"
-          className="text-sm font-medium"
-          style={{ color: siteConfig.theme.text }}
+          className="text-sm font-medium text-gray-700"
         >
           School Name (Optional)
         </Label>
@@ -597,22 +515,14 @@ export default function GenerateExamPage() {
           value={schoolName}
           onChange={(e) => setSchoolName(e.target.value)}
           placeholder="Enter school name"
-          style={{
-            borderColor: siteConfig.theme.accent,
-            color: siteConfig.theme.text,
-          }}
-          className="w-full sm:w-64"
+          className="w-full sm:w-64 border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
         />
       </div>
       <div className="space-y-4">
         <Button
           onClick={() => setShowPdfSettings(!showPdfSettings)}
           variant="outline"
-          style={{
-            borderColor: siteConfig.theme.accent,
-            color: siteConfig.theme.text,
-          }}
-          className="w-full sm:w-auto flex items-center justify-center"
+          className="w-full sm:w-auto border-indigo-600 text-indigo-600 hover:bg-indigo-50 flex items-center justify-center"
         >
           {showPdfSettings ? "Hide PDF Settings" : "Show PDF Settings"}
           {showPdfSettings ? (
@@ -624,10 +534,7 @@ export default function GenerateExamPage() {
         {showPdfSettings && (
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label
-                htmlFor="fontSize"
-                style={{ color: siteConfig.theme.text }}
-              >
+              <Label htmlFor="fontSize" className="text-gray-700">
                 Font Size (pt)
               </Label>
               <Input
@@ -637,17 +544,11 @@ export default function GenerateExamPage() {
                 onChange={(e) => setFontSize(Number(e.target.value))}
                 min={8}
                 max={20}
-                style={{
-                  borderColor: siteConfig.theme.accent,
-                  color: siteConfig.theme.text,
-                }}
+                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <Label
-                htmlFor="pagePadding"
-                style={{ color: siteConfig.theme.text }}
-              >
+              <Label htmlFor="pagePadding" className="text-gray-700">
                 Page Padding (pt)
               </Label>
               <Input
@@ -657,17 +558,11 @@ export default function GenerateExamPage() {
                 onChange={(e) => setPagePadding(Number(e.target.value))}
                 min={0}
                 max={50}
-                style={{
-                  borderColor: siteConfig.theme.accent,
-                  color: siteConfig.theme.text,
-                }}
+                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <Label
-                htmlFor="sectionMargin"
-                style={{ color: siteConfig.theme.text }}
-              >
+              <Label htmlFor="sectionMargin" className="text-gray-700">
                 Section Margin (pt)
               </Label>
               <Input
@@ -677,17 +572,11 @@ export default function GenerateExamPage() {
                 onChange={(e) => setSectionMargin(Number(e.target.value))}
                 min={0}
                 max={50}
-                style={{
-                  borderColor: siteConfig.theme.accent,
-                  color: siteConfig.theme.text,
-                }}
+                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <Label
-                htmlFor="sectionPadding"
-                style={{ color: siteConfig.theme.text }}
-              >
+              <Label htmlFor="sectionPadding" className="text-gray-700">
                 Section Padding (pt)
               </Label>
               <Input
@@ -697,17 +586,11 @@ export default function GenerateExamPage() {
                 onChange={(e) => setSectionPadding(Number(e.target.value))}
                 min={0}
                 max={50}
-                style={{
-                  borderColor: siteConfig.theme.accent,
-                  color: siteConfig.theme.text,
-                }}
+                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <Label
-                htmlFor="questionSpacing"
-                style={{ color: siteConfig.theme.text }}
-              >
+              <Label htmlFor="questionSpacing" className="text-gray-700">
                 Question Spacing (pt)
               </Label>
               <Input
@@ -717,17 +600,11 @@ export default function GenerateExamPage() {
                 onChange={(e) => setQuestionSpacing(Number(e.target.value))}
                 min={0}
                 max={50}
-                style={{
-                  borderColor: siteConfig.theme.accent,
-                  color: siteConfig.theme.text,
-                }}
+                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <Label
-                htmlFor="questionLeftMargin"
-                style={{ color: siteConfig.theme.text }}
-              >
+              <Label htmlFor="questionLeftMargin" className="text-gray-700">
                 Question Left Margin (pt)
               </Label>
               <Input
@@ -737,10 +614,7 @@ export default function GenerateExamPage() {
                 onChange={(e) => setQuestionLeftMargin(Number(e.target.value))}
                 min={0}
                 max={50}
-                style={{
-                  borderColor: siteConfig.theme.accent,
-                  color: siteConfig.theme.text,
-                }}
+                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
               />
             </div>
           </div>
@@ -780,70 +654,30 @@ export default function GenerateExamPage() {
     return <Loading title="Loading exam generation..." />;
 
   return (
-    <div
-      className="container mx-auto p-2 sm:p-2 max-w-5xl"
-      style={{ backgroundColor: siteConfig.theme.background }}
-    >
+    <div className="container mx-auto p-2 sm:p-2 max-w-5xl bg-gray-50">
       <header className="mb-6">
-        <h1
-          className="text-3xl font-bold mb-4"
-          style={{ color: siteConfig.theme.primary }}
-        >
+        <h1 className="text-3xl font-bold mb-4 text-indigo-600">
           Generate Exam Paper
         </h1>
-        <Progress
-          value={progress}
-          style={{
-            backgroundColor: siteConfig.theme.accent,
-            color: siteConfig.theme.primary,
-          }}
-          className="w-full"
-        />
-        <nav
-          className="flex justify-between mt-2 text-sm"
-          style={{ color: siteConfig.theme.text }}
-        >
+        <Progress value={progress} className="w-full bg-indigo-200" />
+        <nav className="flex justify-between mt-2 text-sm text-gray-600">
           <span
-            className={currentStep === 1 ? "font-semibold" : ""}
-            style={{
-              color:
-                currentStep === 1
-                  ? siteConfig.theme.primary
-                  : siteConfig.theme.text,
-            }}
+            className={currentStep === 1 ? "font-semibold text-indigo-600" : ""}
           >
             1. Content
           </span>
           <span
-            className={currentStep === 2 ? "font-semibold" : ""}
-            style={{
-              color:
-                currentStep === 2
-                  ? siteConfig.theme.primary
-                  : siteConfig.theme.text,
-            }}
+            className={currentStep === 2 ? "font-semibold text-indigo-600" : ""}
           >
             2. Structure
           </span>
           <span
-            className={currentStep === 3 ? "font-semibold" : ""}
-            style={{
-              color:
-                currentStep === 3
-                  ? siteConfig.theme.primary
-                  : siteConfig.theme.text,
-            }}
+            className={currentStep === 3 ? "font-semibold text-indigo-600" : ""}
           >
             3. Questions
           </span>
           <span
-            className={currentStep === 4 ? "font-semibold" : ""}
-            style={{
-              color:
-                currentStep === 4
-                  ? siteConfig.theme.primary
-                  : siteConfig.theme.text,
-            }}
+            className={currentStep === 4 ? "font-semibold text-indigo-600" : ""}
           >
             4. Preview
           </span>

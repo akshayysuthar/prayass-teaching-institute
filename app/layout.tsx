@@ -34,13 +34,7 @@ export default function RootLayout({
           <link rel="icon" href="/favicon.ico" />
           <link rel="apple-touch-icon" href="/icon-192x192.png" />
         </head>
-        <body
-          style={{
-            backgroundColor: siteConfig.theme.background,
-            color: siteConfig.theme.text,
-          }}
-          className="min-h-screen bg-background font-sans antialiased"
-        >
+        <body className="min-h-screen bg-background font-sans antialiased">
           <div className="mx-auto sm:px-1 lg:px-10 max-w-7xl">
             <div className="relative flex min-h-screen flex-col overflow-x-hidden">
               <Navbar />
