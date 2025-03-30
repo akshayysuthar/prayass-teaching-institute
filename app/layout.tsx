@@ -38,7 +38,7 @@ export default function RootLayout({
           <div className="mx-auto sm:px-1 lg:px-10 max-w-7xl">
             <div className="relative flex min-h-screen flex-col overflow-x-hidden">
               <Navbar />
-              <main className="flex-1 ">{children}</main>
+              <main className="flex-1 h-screen ">{children}</main>
             </div>
             <Toaster />
             <ErrorHandler />

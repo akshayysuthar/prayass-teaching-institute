@@ -35,6 +35,9 @@ export interface Content {
   code: string;
   class: number;
   created_at: string;
+  status: boolean;
+  locked?: string;
+  semester: string;
 }
 
 export interface SelectedChapter {
@@ -99,7 +102,6 @@ export interface Content {
   code: string;
   class: number;
   created_at: string;
-  locked?: string;
 }
 
 export interface Subject {
@@ -112,6 +114,7 @@ export interface Subject {
   created_at: string;
   // type is not actually in the database, so we'll make it optional
   type?: string;
+  status: boolean;
 }
 
 export interface SelectedChapter {

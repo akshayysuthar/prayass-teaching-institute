@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { ClassSelector } from "@/components/ClassSelector";
-import { ExamStructureForm } from "@/components/ExamStructureForm";
 import { ExamPreview } from "@/components/ExamPreview";
 import { PdfDownload } from "@/components/PdfDownload";
 import { supabase } from "@/utils/supabase/client";
@@ -27,35 +27,23 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
+  AlertCircle,
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { useUser } from "@clerk/nextjs";
 
 export default function GenerateExamPage() {
+  const searchParams = useSearchParams();
+  const contentIdParam = searchParams.get("contentId");
+
   const [contents, setContents] = useState<Content[]>([]);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [totalPaperMarks, setTotalPaperMarks] = useState<number>(100);
-  const [examStructure, setExamStructure] = useState<ExamStructure>({
-    subject: null,
-    totalMarks: 100,
-    sections: [
-      {
-        name: "A",
-        questionType: "MCQ",
-        totalQuestions: 5,
-        marksPerQuestion: 2,
-        totalMarks: 10,
-      },
-    ],
-  });
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
   const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>(
     []
-  );
-  const [currentSectionIndex, setCurrentSectionIndex] = useState<number | null>(
-    null
   );
   const [isLoading, setIsLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -72,6 +60,11 @@ export default function GenerateExamPage() {
   const [questionSpacing, setQuestionSpacing] = useState<number>(10);
   const [questionLeftMargin, setQuestionLeftMargin] = useState<number>(10);
   const [showPdfSettings, setShowPdfSettings] = useState<boolean>(false);
+  const [examStructure, setExamStructure] = useState<ExamStructure>({
+    subject: null,
+    totalMarks: 100,
+    sections: [],
+  });
 
   const { user } = useUser();
   const { toast } = useToast();
@@ -83,6 +76,18 @@ export default function GenerateExamPage() {
       const { data, error } = await supabase.from("contents").select("*");
       if (error) throw error;
       setContents(data);
+
+      // If contentId is provided in URL, select that content
+      if (contentIdParam && data) {
+        const contentId = parseInt(contentIdParam);
+        const content = data.find((c) => c.id === contentId);
+        if (content) {
+          setSelectedContent(content);
+          fetchSubjects(contentId);
+          fetchQuestions(contentId);
+          setCurrentStep(2); // Skip to question selection
+        }
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -93,7 +98,7 @@ export default function GenerateExamPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, contentIdParam]);
 
   const fetchSubjects = useCallback(
     async (contentId: number) => {
@@ -124,7 +129,17 @@ export default function GenerateExamPage() {
           .select("*")
           .eq("content_id", contentId);
         if (error) throw error;
-        setQuestions(data);
+
+        // Process questions to use question_gu when main question is empty
+        const processedQuestions = data.map((q) => ({
+          ...q,
+          question: q.question || q.question_gu || "",
+          answer: q.answer || q.answer_gu || {},
+          question_images: q.question_images || q.question_images_gu || null,
+          answer_images: q.answer_images || q.answer_images_gu || null,
+        }));
+
+        setQuestions(processedQuestions);
       } catch {
         toast({
           title: "Error",
@@ -141,17 +156,11 @@ export default function GenerateExamPage() {
   // Load initial state from localStorage only on client-side mount
   useEffect(() => {
     if (isBrowser) {
-      const savedStructure = localStorage.getItem("examStructure");
-      if (savedStructure) setExamStructure(JSON.parse(savedStructure));
-
       const savedQuestions = localStorage.getItem("selectedQuestions");
       if (savedQuestions) setSelectedQuestions(JSON.parse(savedQuestions));
 
-      const savedStep = localStorage.getItem("currentStep");
-      if (savedStep) setCurrentStep(Number(savedStep));
-
       const savedContent = localStorage.getItem("selectedContent");
-      if (savedContent) {
+      if (savedContent && !contentIdParam) {
         const content = JSON.parse(savedContent);
         setSelectedContent(content);
         fetchSubjects(content.id);
@@ -159,17 +168,15 @@ export default function GenerateExamPage() {
       }
     }
     fetchContents();
-  }, [fetchContents, fetchSubjects, fetchQuestions, isBrowser]);
+  }, [fetchContents, fetchSubjects, fetchQuestions, isBrowser, contentIdParam]);
 
   // Save state to localStorage on change
   useEffect(() => {
     if (isBrowser) {
-      localStorage.setItem("examStructure", JSON.stringify(examStructure));
       localStorage.setItem(
         "selectedQuestions",
         JSON.stringify(selectedQuestions)
       );
-      localStorage.setItem("currentStep", currentStep.toString());
       if (selectedContent) {
         localStorage.setItem(
           "selectedContent",
@@ -177,13 +184,112 @@ export default function GenerateExamPage() {
         );
       }
     }
-  }, [
-    examStructure,
-    selectedQuestions,
-    currentStep,
-    selectedContent,
-    isBrowser,
-  ]);
+  }, [selectedQuestions, selectedContent, isBrowser]);
+
+  // Generate exam structure based on selected questions
+  useEffect(() => {
+    if (selectedQuestions.length > 0) {
+      // Group questions by marks
+      // const questionsByMarks = selectedQuestions.reduce((acc, q) => {
+      //   const marks = q.marks;
+      //   if (!acc[marks]) acc[marks] = [];
+      //   acc[marks].push(q);
+      //   return acc;
+      // }, {} as Record<number, Question[]>);
+
+      // Create sections based on marks
+      const sections = [];
+
+      // Section A: MCQs and 1 mark questions
+      const mcqsAndOneMarks = selectedQuestions.filter(
+        (q) => q.type === "MCQ" || q.marks === 1
+      );
+      if (mcqsAndOneMarks.length > 0) {
+        sections.push({
+          name: "A",
+          questionType: "MCQ/Short Answer",
+          totalQuestions: mcqsAndOneMarks.length,
+          marksPerQuestion: 1,
+          totalMarks: mcqsAndOneMarks.reduce((sum, q) => sum + q.marks, 0),
+          questions: mcqsAndOneMarks,
+        });
+      }
+
+      // Section B: 2 marks questions
+      const twoMarksQuestions = selectedQuestions.filter((q) => q.marks === 2);
+      if (twoMarksQuestions.length > 0) {
+        sections.push({
+          name: "B",
+          questionType: "Short Answer",
+          totalQuestions: twoMarksQuestions.length,
+          marksPerQuestion: 2,
+          totalMarks: twoMarksQuestions.length * 2,
+          questions: twoMarksQuestions,
+        });
+      }
+
+      // Section C: 3 marks questions
+      const threeMarksQuestions = selectedQuestions.filter(
+        (q) => q.marks === 3
+      );
+      if (threeMarksQuestions.length > 0) {
+        sections.push({
+          name: "C",
+          questionType: "Medium Answer",
+          totalQuestions: threeMarksQuestions.length,
+          marksPerQuestion: 3,
+          totalMarks: threeMarksQuestions.length * 3,
+          questions: threeMarksQuestions,
+        });
+      }
+
+      // Section D: 4 marks questions
+      const fourMarksQuestions = selectedQuestions.filter((q) => q.marks === 4);
+      if (fourMarksQuestions.length > 0) {
+        sections.push({
+          name: "D",
+          questionType: "Long Answer",
+          totalQuestions: fourMarksQuestions.length,
+          marksPerQuestion: 4,
+          totalMarks: fourMarksQuestions.length * 4,
+          questions: fourMarksQuestions,
+        });
+      }
+
+      // Section E: 5 marks questions
+      const fiveMarksQuestions = selectedQuestions.filter((q) => q.marks === 5);
+      if (fiveMarksQuestions.length > 0) {
+        sections.push({
+          name: "E",
+          questionType: "Long Answer",
+          totalQuestions: fiveMarksQuestions.length,
+          marksPerQuestion: 5,
+          totalMarks: fiveMarksQuestions.length * 5,
+          questions: fiveMarksQuestions,
+        });
+      }
+
+      // Calculate total marks
+      const totalMarks = sections.reduce(
+        (sum, section) => sum + section.totalMarks,
+        0
+      );
+
+      setExamStructure({
+        subject: selectedContent?.name || null,
+        totalMarks: totalMarks,
+        sections: sections,
+      });
+
+      setTotalPaperMarks(totalMarks);
+    } else {
+      setExamStructure({
+        subject: selectedContent?.name || null,
+        totalMarks: 0,
+        sections: [],
+      });
+    }
+  }, [selectedQuestions, selectedContent]);
 
   const handleContentSelect = useCallback(
     (content: Content) => {
@@ -191,29 +297,13 @@ export default function GenerateExamPage() {
         setSelectedContent(content);
         setSelectedQuestions([]);
         setSelectedChapters([]);
-        setExamStructure({
-          subject: content.name,
-          totalMarks: totalPaperMarks,
-          sections: examStructure.sections,
-        });
         fetchSubjects(content.id);
         fetchQuestions(content.id);
+        setCurrentStep(2); // Skip to question selection
       }
     },
-    [
-      selectedContent,
-      fetchSubjects,
-      fetchQuestions,
-      totalPaperMarks,
-      examStructure.sections,
-    ]
+    [selectedContent, fetchSubjects, fetchQuestions]
   );
-
-  const handlePaperMarksChange = useCallback((marks: number) => {
-    const newMarks = Math.max(1, Math.min(100, marks));
-    setTotalPaperMarks(newMarks);
-    setExamStructure((prev) => ({ ...prev, totalMarks: newMarks }));
-  }, []);
 
   const handleQuestionSelect = useCallback((questions: Question[]) => {
     setSelectedQuestions(questions);
@@ -221,17 +311,6 @@ export default function GenerateExamPage() {
 
   const handleChapterSelect = useCallback((chapters: SelectedChapter[]) => {
     setSelectedChapters(chapters);
-  }, []);
-
-  const handleExamStructureChange = useCallback(
-    (newStructure: ExamStructure) => {
-      setExamStructure(newStructure);
-    },
-    []
-  );
-
-  const handleSectionSelect = useCallback((index: number) => {
-    setCurrentSectionIndex(index);
   }, []);
 
   const handleGeneratePdf = useCallback(
@@ -252,7 +331,7 @@ export default function GenerateExamPage() {
 
   const setStep = useCallback(
     (step: number) => {
-      if (step < 1 || step > 4) return;
+      if (step < 1 || step > 3) return;
       if (step > 1 && !selectedContent) {
         toast({
           title: "Step Required",
@@ -261,30 +340,16 @@ export default function GenerateExamPage() {
         });
         return;
       }
-      if (step > 2 && examStructure.sections.length === 0) {
-        toast({
-          title: "Step Required",
-          description: "Define at least one section first.",
-          variant: "destructive",
-        });
-        return;
-      }
-      if (step === 3 && currentSectionIndex === null) setCurrentSectionIndex(0);
       setCurrentStep(step);
     },
-    [selectedContent, examStructure.sections, toast, currentSectionIndex]
+    [selectedContent, toast]
   );
 
-  const assignedMarks = examStructure.sections.reduce(
-    (sum, section) => sum + section.totalMarks,
-    0
-  );
-  const remainingMarks = totalPaperMarks - assignedMarks;
-  const progress = (currentStep / 4) * 100;
+  const progress = (currentStep / 3) * 100;
 
   const contentSelectionStep = (
     <div className="space-y-6">
-      <h2 className="text-2xl font-semibold text-indigo-600">
+      <h2 className="text-2xl font-semibold text-blue-600">
         1. Select Content
       </h2>
       <ClassSelector
@@ -295,7 +360,7 @@ export default function GenerateExamPage() {
       {selectedContent && (
         <Button
           onClick={() => setStep(2)}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
         >
           Next <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
@@ -303,95 +368,33 @@ export default function GenerateExamPage() {
     </div>
   );
 
-  const examStructureStep = (
+  const questionSelectionStep = (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <Button
           onClick={() => setStep(1)}
           variant="outline"
-          className="w-full sm:w-auto border-indigo-600 text-indigo-600 hover:bg-indigo-50"
-        >
-          <ChevronLeft className="mr-2 h-4 w-4" /> Previous
-        </Button>
-        {examStructure.sections.length > 0 && (
-          <Button
-            onClick={() => setStep(3)}
-            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white"
-          >
-            Next <ChevronRight className="ml-2 h-4 w-4" />
-          </Button>
-        )}
-      </div>
-      <h2 className="text-2xl font-semibold text-indigo-600">
-        2. Define Exam Structure
-      </h2>
-      <Card className="bg-white shadow-md">
-        <CardContent className="p-4 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="paperMarks" className="text-gray-700">
-                Total Paper Marks
-              </Label>
-              <Input
-                id="paperMarks"
-                type="number"
-                min="0"
-                max="80"
-                value={totalPaperMarks}
-                onChange={(e) =>
-                  handlePaperMarksChange(Number.parseInt(e.target.value) || 1)
-                }
-                className="mt-1 border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div className="flex items-end">
-              <Badge
-                variant={remainingMarks >= 0 ? "outline" : "destructive"}
-                className={`w-full justify-center ${
-                  remainingMarks >= 0 ? "border-indigo-600 text-indigo-600" : ""
-                }`}
-              >
-                Remaining Marks: {remainingMarks}
-              </Badge>
-            </div>
-          </div>
-          <ExamStructureForm
-            examStructure={examStructure}
-            onExamStructureChange={handleExamStructureChange}
-            totalPaperMarks={totalPaperMarks}
-            allowCustomQuestionTypes={true}
-          />
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const questionSelectionStep = (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <Button
-          onClick={() => setStep(2)}
-          variant="outline"
-          className="w-full sm:w-auto border-indigo-600 text-indigo-600 hover:bg-indigo-50"
+          className="w-full sm:w-auto border-blue-600 text-blue-600 hover:bg-blue-50"
         >
           <ChevronLeft className="mr-2 h-4 w-4" /> Previous
         </Button>
         {selectedQuestions.length > 0 && (
           <Button
-            onClick={() => setStep(4)}
-            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white"
+            onClick={() => setStep(3)}
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
           >
             Next <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
         )}
       </div>
-      <h2 className="text-2xl font-semibold text-indigo-600">
-        3. Select Questions
+      <h2 className="text-2xl font-semibold text-blue-600">
+        2. Select Questions
       </h2>
+
       {selectedContent && subjects.length > 0 && (
         <Card className="bg-white shadow-md">
           <CardContent className="p-4">
-            <h3 className="text-lg font-medium text-indigo-600 mb-3">
+            <h3 className="text-lg font-medium text-blue-600 mb-3">
               Available Subjects
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -401,93 +404,107 @@ export default function GenerateExamPage() {
                   <Badge
                     key={subject.id}
                     variant="secondary"
-                    className="bg-indigo-100 text-indigo-800"
+                    className={`${
+                      subject.status
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
                   >
                     Ch {subject.chapter_no} - {subject.chapter_name}
+                    {subject.status ? (
+                      <span className="ml-1 text-green-600">✓</span>
+                    ) : (
+                      <span className="ml-1 text-red-600">✗</span>
+                    )}
                   </Badge>
                 ))}
             </div>
           </CardContent>
         </Card>
       )}
-      <Card className="bg-white shadow-md">
-        <CardContent className="p-4 space-y-4">
-          <h3 className="text-lg font-medium text-indigo-600">
-            Select a Section
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {examStructure.sections.map((section, index) => (
-              <Card
-                key={index}
-                className={`cursor-pointer transition-all ${
-                  currentSectionIndex === index
-                    ? "border-2 border-indigo-600 shadow-md"
-                    : "hover:shadow-sm border border-gray-200"
-                }`}
-                onClick={() => handleSectionSelect(index)}
-              >
-                <CardContent className="p-4">
-                  <h4 className="text-lg font-medium text-indigo-600">
-                    Section {section.name}
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    {section.questionType}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Marks/Question: {section.marksPerQuestion}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Total Questions: {section.totalQuestions}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Total Marks: {section.totalMarks}
-                  </p>
-                  <Badge
-                    variant="outline"
-                    className="mt-2 border-indigo-600 text-indigo-600"
-                  >
-                    {
-                      selectedQuestions.filter((q) => q.sectionId === index)
-                        .length
-                    }{" "}
-                    selected
-                  </Badge>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+
+      {selectedQuestions.length > 0 && (
+        <Card className="bg-white shadow-md mb-4">
+          <CardContent className="p-4">
+            <h3 className="text-lg font-medium text-blue-600 mb-2">
+              Selected Questions Summary
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <div className="bg-gray-50 p-2 rounded">
+                <p className="text-sm font-medium">Total Questions</p>
+                <p className="text-xl font-bold">{selectedQuestions.length}</p>
+              </div>
+              <div className="bg-gray-50 p-2 rounded">
+                <p className="text-sm font-medium">Total Marks</p>
+                <p className="text-xl font-bold">{totalPaperMarks}</p>
+              </div>
+              <div className="bg-gray-50 p-2 rounded">
+                <p className="text-sm font-medium">Sections</p>
+                <p className="text-xl font-bold">
+                  {examStructure.sections.length}
+                </p>
+              </div>
+              <div className="bg-gray-50 p-2 rounded col-span-2">
+                <p className="text-sm font-medium">Marks Distribution</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {[1, 2, 3, 4, 5].map((mark) => {
+                    const count = selectedQuestions.filter(
+                      (q) => q.marks === mark
+                    ).length;
+                    return count > 0 ? (
+                      <Badge
+                        key={mark}
+                        variant="outline"
+                        className="bg-blue-50"
+                      >
+                        {mark} mark: {count}
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <QuestionSelector
         questions={questions}
         onSelectQuestions={handleQuestionSelect}
         onSelectChapters={handleChapterSelect}
-        examStructure={examStructure}
-        onExamStructureChange={handleExamStructureChange}
-        currentSection={
-          currentSectionIndex !== null
-            ? examStructure.sections[currentSectionIndex]
-            : null
-        }
-        currentSectionIndex={currentSectionIndex}
         selectedQuestions={selectedQuestions}
-        showAllQuestions={false}
+
       />
     </div>
   );
 
   const previewAndGenerateStep = (
     <div className="space-y-6">
-      <h2 className="text-2xl font-semibold text-indigo-600">
-        4. Preview and Generate
+      <h2 className="text-2xl font-semibold text-blue-600">
+        3. Preview and Generate
       </h2>
       <Button
-        onClick={() => setStep(3)}
+        onClick={() => setStep(2)}
         variant="outline"
-        className="w-full sm:w-auto border-indigo-600 text-indigo-600 hover:bg-indigo-50"
+        className="w-full sm:w-auto border-blue-600 text-blue-600 hover:bg-blue-50"
       >
         <ChevronLeft className="mr-2 h-4 w-4" /> Previous
       </Button>
+
+      {examStructure.sections.length === 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5" />
+          <div>
+            <h4 className="font-medium text-yellow-800">
+              No questions selected
+            </h4>
+            <p className="text-sm text-yellow-700">
+              Please go back and select questions to generate an exam paper.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
         <Label
           htmlFor="studentName"
@@ -500,7 +517,7 @@ export default function GenerateExamPage() {
           value={studentName}
           onChange={(e) => setStudentName(e.target.value)}
           placeholder="Enter student name"
-          className="w-full sm:w-64 border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
+          className="w-full sm:w-64 border-blue-300 focus:border-blue-500 focus:ring-blue-500"
         />
       </div>
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
@@ -515,14 +532,14 @@ export default function GenerateExamPage() {
           value={schoolName}
           onChange={(e) => setSchoolName(e.target.value)}
           placeholder="Enter school name"
-          className="w-full sm:w-64 border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
+          className="w-full sm:w-64 border-blue-300 focus:border-blue-500 focus:ring-blue-500"
         />
       </div>
       <div className="space-y-4">
         <Button
           onClick={() => setShowPdfSettings(!showPdfSettings)}
           variant="outline"
-          className="w-full sm:w-auto border-indigo-600 text-indigo-600 hover:bg-indigo-50 flex items-center justify-center"
+          className="w-full sm:w-auto border-blue-600 text-blue-600 hover:bg-blue-50 flex items-center justify-center"
         >
           {showPdfSettings ? "Hide PDF Settings" : "Show PDF Settings"}
           {showPdfSettings ? (
@@ -544,7 +561,7 @@ export default function GenerateExamPage() {
                 onChange={(e) => setFontSize(Number(e.target.value))}
                 min={8}
                 max={20}
-                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
+                className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -558,7 +575,7 @@ export default function GenerateExamPage() {
                 onChange={(e) => setPagePadding(Number(e.target.value))}
                 min={0}
                 max={50}
-                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
+                className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -572,7 +589,7 @@ export default function GenerateExamPage() {
                 onChange={(e) => setSectionMargin(Number(e.target.value))}
                 min={0}
                 max={50}
-                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
+                className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -586,7 +603,7 @@ export default function GenerateExamPage() {
                 onChange={(e) => setSectionPadding(Number(e.target.value))}
                 min={0}
                 max={50}
-                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
+                className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -600,7 +617,7 @@ export default function GenerateExamPage() {
                 onChange={(e) => setQuestionSpacing(Number(e.target.value))}
                 min={0}
                 max={50}
-                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
+                className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -614,38 +631,43 @@ export default function GenerateExamPage() {
                 onChange={(e) => setQuestionLeftMargin(Number(e.target.value))}
                 min={0}
                 max={50}
-                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
+                className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
           </div>
         )}
       </div>
-      <ExamPreview
-        selectedQuestions={selectedQuestions}
-        examStructure={examStructure}
-        onGeneratePdf={handleGeneratePdf}
-        isSectionWise={true}
-      />
-      {showPdfDownload && (
-        <PdfDownload
-          format={pdfFormat!}
-          selectedQuestions={selectedQuestions}
-          examStructure={examStructure}
-          instituteName={siteConfig.name}
-          standard={selectedContent?.class.toString() || ""}
-          schoolName={schoolName}
-          studentName={studentName}
-          subject={selectedContent?.name || ""}
-          chapters={selectedChapters.map((ch) => ch.chapterNo).join(", ")}
-          teacherName={user?.fullName || "User"}
-          isSectionWise={true}
-          fontSize={fontSize}
-          pagePadding={pagePadding}
-          sectionMargin={sectionMargin}
-          sectionPadding={sectionPadding}
-          questionSpacing={questionSpacing}
-          questionLeftMargin={questionLeftMargin}
-        />
+
+      {examStructure.sections.length > 0 && (
+        <>
+          <ExamPreview
+            selectedQuestions={selectedQuestions}
+            examStructure={examStructure}
+            onGeneratePdf={handleGeneratePdf}
+            isSectionWise={true}
+          />
+          {showPdfDownload && (
+            <PdfDownload
+              format={pdfFormat!}
+              selectedQuestions={selectedQuestions}
+              examStructure={examStructure}
+              instituteName={siteConfig.name}
+              standard={selectedContent?.class.toString() || ""}
+              schoolName={schoolName}
+              studentName={studentName}
+              subject={selectedContent?.name || ""}
+              chapters={selectedChapters.map((ch) => ch.chapterNo).join(", ")}
+              teacherName={user?.fullName || "User"}
+              isSectionWise={true}
+              fontSize={fontSize}
+              pagePadding={pagePadding}
+              sectionMargin={sectionMargin}
+              sectionPadding={sectionPadding}
+              questionSpacing={questionSpacing}
+              questionLeftMargin={questionLeftMargin}
+            />
+          )}
+        </>
       )}
     </div>
   );
@@ -656,38 +678,32 @@ export default function GenerateExamPage() {
   return (
     <div className="container mx-auto p-2 sm:p-2 max-w-5xl bg-gray-50">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold mb-4 text-indigo-600">
+        <h1 className="text-3xl font-bold mb-4 text-blue-600">
           Generate Exam Paper
         </h1>
-        <Progress value={progress} className="w-full bg-indigo-200" />
+        <Progress value={progress} className="w-full bg-blue-200" />
         <nav className="flex justify-between mt-2 text-sm text-gray-600">
           <span
-            className={currentStep === 1 ? "font-semibold text-indigo-600" : ""}
+            className={currentStep === 1 ? "font-semibold text-blue-600" : ""}
           >
             1. Content
           </span>
           <span
-            className={currentStep === 2 ? "font-semibold text-indigo-600" : ""}
+            className={currentStep === 2 ? "font-semibold text-blue-600" : ""}
           >
-            2. Structure
+            2. Questions
           </span>
           <span
-            className={currentStep === 3 ? "font-semibold text-indigo-600" : ""}
+            className={currentStep === 3 ? "font-semibold text-blue-600" : ""}
           >
-            3. Questions
-          </span>
-          <span
-            className={currentStep === 4 ? "font-semibold text-indigo-600" : ""}
-          >
-            4. Preview
+            3. Preview
           </span>
         </nav>
       </header>
       <main className="space-y-4">
         {currentStep === 1 && contentSelectionStep}
-        {currentStep === 2 && examStructureStep}
-        {currentStep === 3 && questionSelectionStep}
-        {currentStep === 4 && previewAndGenerateStep}
+        {currentStep === 2 && questionSelectionStep}
+        {currentStep === 3 && previewAndGenerateStep}
       </main>
     </div>
   );

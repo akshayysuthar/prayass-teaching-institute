@@ -8,17 +8,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  FileText,
-  PlusCircle,
-  Settings,
-  BookOpen,
-  User,
-  ChevronRight,
-} from "lucide-react";
+import { FileText, BookOpen, User } from "lucide-react";
+import { supabase } from "@/utils/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+type Content = {
+  id: number;
+  name: string;
+  class: number;
+  medium: string;
+  semester: string;
+  created_at: string;
+};
 
 export default function Home() {
   const { user } = useUser();
+  const { toast } = useToast();
   const isAdmin =
     user &&
     siteConfig.adminEmail.includes(
@@ -33,11 +38,10 @@ export default function Home() {
     semester: "",
   });
 
-  // Recent History State (mock data for now)
-  const [recentHistory] = useState([
-    { id: 1, title: "Math Exam - Std 10", date: "2025-03-20" },
-    { id: 2, title: "Science Exam - Std 9", date: "2025-03-18" },
-  ]);
+  // Content State
+  const [contents, setContents] = useState<Content[]>([]);
+  const [filteredContents, setFilteredContents] = useState<Content[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -45,13 +49,66 @@ export default function Home() {
       const savedPrefs = localStorage.getItem("examPreferences");
       if (savedPrefs) setPreferences(JSON.parse(savedPrefs));
     }
+    fetchContents();
   }, [isBrowser]);
+
+  // Fetch contents from database
+  const fetchContents = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.from("contents").select("*");
+      if (error) throw error;
+      setContents(data || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load contents.",
+        variant: "destructive",
+      });
+      console.error("Error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Filter contents based on preferences
+  useEffect(() => {
+    if (contents.length > 0) {
+      let filtered = [...contents];
+
+      if (preferences.medium) {
+        filtered = filtered.filter(
+          (content) =>
+            content.medium.toLowerCase() === preferences.medium.toLowerCase()
+        );
+      }
+
+      if (preferences.standard) {
+        filtered = filtered.filter(
+          (content) => content.class.toString() === preferences.standard
+        );
+      }
+
+      if (preferences.semester) {
+        filtered = filtered.filter(
+          (content) =>
+            content.semester.toLowerCase() ===
+            preferences.semester.toLowerCase()
+        );
+      }
+
+      setFilteredContents(filtered);
+    }
+  }, [contents, preferences]);
 
   // Save preferences to localStorage
   const savePreferences = () => {
     if (isBrowser) {
       localStorage.setItem("examPreferences", JSON.stringify(preferences));
-      alert("Preferences saved!");
+      toast({
+        title: "Success",
+        description: "Preferences saved successfully!",
+      });
     }
   };
 
@@ -64,97 +121,28 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}
-        <section className="text-center py-16 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white rounded-lg shadow-lg">
-          <h1 className="text-5xl font-extrabold mb-4">
+        <section className="text-center py-12 bg-blue-600 text-white rounded-lg shadow-lg mb-8">
+          <h1 className="text-4xl font-bold mb-4">
             Welcome {user ? `${user.fullName}` : "Guest"} to {siteConfig.name}
           </h1>
           <p className="text-lg mb-6 max-w-2xl mx-auto">
-            {siteConfig.description} Create, manage, and generate exam papers
-            with ease.
+            Create, manage, and generate exam papers with ease.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Button asChild variant="secondary" size="lg">
-              <Link href="/generate-exam" className="flex items-center">
-                <FileText className="mr-2 h-5 w-5" /> Generate Paper
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/add-questions" className="flex items-center">
-                <PlusCircle className="mr-2 h-5 w-5" /> Add New Question
-              </Link>
-            </Button>
-          </div>
-        </section>
-
-        {/* Quick Links */}
-        <section className="mt-12">
-          <h2 className="text-3xl font-semibold text-gray-800 mb-6 text-center">
-            Quick Links
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center text-indigo-600">
-                  <FileText className="mr-2 h-6 w-6" /> Generate Exam Paper
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">
-                  Create custom exam papers quickly and efficiently.
-                </p>
-                <Button asChild variant="link" className="p-0">
-                  <Link href="/generate-exam">
-                    Start Now <ChevronRight className="ml-1 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center text-indigo-600">
-                  <PlusCircle className="mr-2 h-6 w-6" /> Add Questions
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">
-                  Contribute to the question bank with new content.
-                </p>
-                <Button asChild variant="link" className="p-0">
-                  <Link href="/add-questions">
-                    Add Now <ChevronRight className="ml-1 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center text-indigo-600">
-                  <BookOpen className="mr-2 h-6 w-6" /> Exam Generator
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">
-                  Explore manual or auto-generation options.
-                </p>
-                <Button asChild variant="link" className="p-0">
-                  <Link href="/generate-exam?auto=true">
-                    Generate <ChevronRight className="ml-1 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+          <Button asChild variant="secondary" size="lg">
+            <Link href="/generate-exam" className="flex items-center">
+              <FileText className="mr-2 h-5 w-5" /> Generate Paper
+            </Link>
+          </Button>
         </section>
 
         {/* Preferences Section */}
-        <section className="mt-12">
+        <section className="mb-8">
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl font-semibold text-gray-800 flex items-center">
-                <User className="mr-2 h-6 w-6 text-indigo-600" /> Your
-                Preferences
+              <CardTitle className="text-2xl font-semibold text-blue-600 flex items-center">
+                <User className="mr-2 h-6 w-6" /> Your Preferences
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -204,7 +192,7 @@ export default function Home() {
               </div>
               <Button
                 onClick={savePreferences}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 Save Preferences
               </Button>
@@ -212,58 +200,78 @@ export default function Home() {
           </Card>
         </section>
 
-        {/* Exam Paper Generator Section */}
-        <section className="mt-12">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl font-semibold text-gray-800 flex items-center">
-                <FileText className="mr-2 h-6 w-6 text-indigo-600" /> Exam Paper
-                Generator
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <Button
-                  asChild
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+        {/* Available Content Section */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold text-blue-600 mb-4">
+            Available Content
+          </h2>
+          {isLoading ? (
+            <div className="text-center py-8">Loading content...</div>
+          ) : filteredContents.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredContents.map((content) => (
+                <Card
+                  key={content.id}
+                  className="hover:shadow-md transition-shadow"
                 >
-                  <Link href="/generate-exam">Manually Generate</Link>
-                </Button>
-                <Button
-                  asChild
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                >
-                  <Link href="/generate-exam?auto=true">Auto Generate</Link>
-                </Button>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                  Recent History
-                </h3>
-                {recentHistory.length > 0 ? (
-                  <ul className="space-y-2">
-                    {recentHistory.map((item) => (
-                      <li key={item.id} className="text-sm text-gray-600">
-                        {item.title} - {item.date}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-600">No recent exams generated.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-blue-600">
+                      <BookOpen className="mr-2 h-6 w-6" /> {content.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 mb-4">
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Standard:</span>{" "}
+                        {content.class}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Medium:</span>{" "}
+                        {content.medium}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Semester:</span>{" "}
+                        {content.semester}
+                      </p>
+                    </div>
+                    <Button
+                      asChild
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Link href={`/generate-exam?contentId=${content.id}`}>
+                        Generate Exam
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="bg-white p-6 text-center">
+              <p className="text-gray-600 mb-4">
+                No content matches your preferences. Try adjusting your filters
+                or browse all available content.
+              </p>
+              <Button
+                onClick={() =>
+                  setPreferences({ medium: "", standard: "", semester: "" })
+                }
+                variant="outline"
+                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+              >
+                Clear Filters
+              </Button>
+            </Card>
+          )}
         </section>
 
         {/* Content Management Section (Admin Only) */}
         {isAdmin && (
-          <section className="mt-12">
+          <section className="mb-8">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl font-semibold text-gray-800 flex items-center">
-                  <Settings className="mr-2 h-6 w-6 text-indigo-600" /> Content
-                  Management
+                <CardTitle className="text-2xl font-semibold text-blue-600">
+                  Content Management
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -273,19 +281,19 @@ export default function Home() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button
                     asChild
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Link href="/manage-content#content">Manage Content</Link>
                   </Button>
                   <Button
                     asChild
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Link href="/manage-content#chapters">Manage Chapters</Link>
                   </Button>
                   <Button
                     asChild
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Link href="/manage-content#questions">
                       Manage Questions
