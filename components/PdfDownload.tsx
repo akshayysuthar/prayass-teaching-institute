@@ -11,6 +11,7 @@ import {
 } from "@react-pdf/renderer";
 import type { PdfDownloadProps, Question, ExamStructure } from "@/types";
 import { DynamicParagraph } from "./DynamicParagraph";
+import { siteConfig } from "@/config/site";
 
 // Register fonts
 try {
@@ -35,14 +36,10 @@ try {
 }
 
 interface PdfDownloadPropsExtended extends PdfDownloadProps {
-  fontSize: number;
   format: "exam" | "examWithAnswer" | "material";
-  pagePadding?: number;
-  sectionMargin?: number;
-  sectionPadding?: number;
-  questionSpacing?: number;
-  questionLeftMargin?: number;
   schoolName?: string;
+  testTitle?: string;
+  examTime?: string;
 }
 
 const getFontFamily = (subject: string) => {
@@ -51,30 +48,36 @@ const getFontFamily = (subject: string) => {
     : "NotoSans";
 };
 
-const createStyles = (
-  fontSize: number,
-  subject: string,
-  pagePadding: number = 5,
-  sectionMargin: number = 5,
-  sectionPadding: number = 5,
-  questionSpacing: number = 10,
-  questionLeftMargin: number = 10
-) => {
+const createStyles = (subject: string) => {
   const fontFamily = getFontFamily(subject);
   return StyleSheet.create({
     page: {
       flexDirection: "column",
       backgroundColor: "#FFFFFF",
-      padding: pagePadding,
+      padding: 5, // change to 5 and don't change it
       fontFamily: "NotoSans",
-      borderColor: "#000",
+      position: "relative",
     },
-    section: { margin: sectionMargin, padding: sectionPadding, flexGrow: 1 },
+    section: {
+      margin: 10,
+      padding: 10,
+      flexGrow: 1,
+    },
+    watermark: {
+      position: "absolute",
+      top: "45%",
+      left: "10%",
+      opacity: 0.08,
+      transform: "rotate(-30deg)",
+      fontSize: 40,
+      color: "#000",
+      zIndex: -1,
+    },
     headerContainer: {
-      marginBottom: sectionMargin,
+      marginBottom: 5, // keep don't change it
       borderBottomWidth: 1,
       borderBottomColor: "#000",
-      paddingBottom: sectionPadding,
+      paddingBottom: 10,
     },
     row: {
       display: "flex",
@@ -85,46 +88,69 @@ const createStyles = (
       width: "100%",
     },
     header: {
-      fontSize: fontSize + 7,
+      fontSize: 18,
       fontWeight: "bold",
-      textDecoration: "underline",
       textAlign: "center",
+      marginBottom: 10,
     },
-    date: { fontSize: fontSize, color: "#555", textAlign: "right" },
-    leftColumn: { fontSize: fontSize, fontWeight: "bold" },
-    rightColumn: { fontSize: fontSize, textAlign: "right", fontWeight: "bold" },
+    subHeader: {
+      fontSize: 14,
+      textAlign: "center",
+      marginBottom: 15,
+    },
+    date: {
+      fontSize: 10,
+      color: "#555",
+      textAlign: "right",
+    },
+    leftColumn: {
+      fontSize: 10,
+      fontWeight: "bold",
+    },
+    rightColumn: {
+      fontSize: 10,
+      textAlign: "left",
+      fontWeight: "bold",
+    },
     sectionHeader: {
-      fontSize: fontSize + 3,
+      fontSize: 14,
       fontWeight: "bold",
       textAlign: "center",
-      marginTop: sectionMargin,
-      marginBottom: sectionMargin,
+      marginTop: 10,
+      marginBottom: 10,
       backgroundColor: "#f0f0f0",
-      padding: sectionPadding,
+      padding: 5,
     },
     question: {
-      fontSize: fontSize,
-      marginBottom: questionSpacing,
+      fontSize: 11,
+      marginBottom: 2,
       width: "100%",
     },
     questionRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "flex-start",
-      marginBottom: questionSpacing,
+      marginBottom: 1,
     },
     questionContent: {
       flex: 1,
-      marginLeft: questionLeftMargin,
+      marginLeft: 10,
       marginRight: 8,
       fontFamily,
     },
-    marks: { width: 60, textAlign: "right", fontSize: fontSize },
-    questionNumber: { fontWeight: "bold" },
+    marks: {
+      width: 60,
+      textAlign: "right",
+      fontSize: 10,
+      fontWeight: "bold",
+    },
+    questionNumber: {
+      fontWeight: "bold",
+    },
     optionsRow: {
       flexDirection: "row",
       flexWrap: "wrap",
-      marginTop: 5, // Increased to give space for images
+      marginTop: 5,
       marginBottom: 5,
     },
     option: {
@@ -136,16 +162,18 @@ const createStyles = (
       borderRadius: 4,
       backgroundColor: "#fafafa",
     },
-    optionText: { fontSize: fontSize },
+    optionText: {
+      fontSize: 10,
+    },
     footer: {
       textAlign: "center",
-      fontSize: fontSize - 1,
+      fontSize: 9,
       color: "#666",
       marginTop: 15,
     },
     pageNumber: {
       position: "absolute",
-      fontSize: fontSize - 2,
+      fontSize: 8,
       bottom: 10,
       right: 15,
       color: "grey",
@@ -172,27 +200,74 @@ const formatChapters = (questions: Question[], chapters: string) => {
 };
 
 const groupQuestionsBySection = (
-  questions: (Question & { sectionId: number })[],
+  questions: Question[],
   examStructure: ExamStructure,
   isSectionWise: boolean
 ) => {
   if (!isSectionWise)
     return [{ name: "", questionType: "All Questions", questions }];
+
+  // Group questions by marks
+  const questionsByMarks: Record<number, Question[]> = {};
+  questions.forEach((q) => {
+    if (!questionsByMarks[q.marks]) questionsByMarks[q.marks] = [];
+    questionsByMarks[q.marks].push(q);
+  });
+
   const grouped: Array<{
     name: string;
     questionType: string;
-    questions: (Question & { sectionId: number })[];
+    questions: Question[];
   }> = [];
-  examStructure.sections.forEach((section, index) => {
-    const sectionQuestions = questions.filter((q) => q.sectionId === index);
-    if (sectionQuestions.length > 0) {
-      grouped.push({
-        name: section.name,
-        questionType: section.questionType,
-        questions: sectionQuestions,
-      });
-    }
-  });
+
+  // Section A: MCQs and 1 mark questions
+  const mcqsAndOneMarks = questions.filter(
+    (q) => q.type === "MCQ" || q.marks === 1
+  );
+  if (mcqsAndOneMarks.length > 0) {
+    grouped.push({
+      name: "A",
+      questionType: "MCQ/Short Answer",
+      questions: mcqsAndOneMarks,
+    });
+  }
+
+  // Section B: 2 marks questions
+  if (questionsByMarks[2] && questionsByMarks[2].length > 0) {
+    grouped.push({
+      name: "B",
+      questionType: "Short Answer",
+      questions: questionsByMarks[2],
+    });
+  }
+
+  // Section C: 3 marks questions
+  if (questionsByMarks[3] && questionsByMarks[3].length > 0) {
+    grouped.push({
+      name: "C",
+      questionType: "Medium Answer",
+      questions: questionsByMarks[3],
+    });
+  }
+
+  // Section D: 4 marks questions
+  if (questionsByMarks[4] && questionsByMarks[4].length > 0) {
+    grouped.push({
+      name: "D",
+      questionType: "Long Answer",
+      questions: questionsByMarks[4],
+    });
+  }
+
+  // Section E: 5 marks questions
+  if (questionsByMarks[5] && questionsByMarks[5].length > 0) {
+    grouped.push({
+      name: "E",
+      questionType: "Long Answer",
+      questions: questionsByMarks[5],
+    });
+  }
+
   return grouped;
 };
 
@@ -205,27 +280,15 @@ const MyDocument = ({
   studentName,
   subject,
   chapters,
-  teacherName,
+
   isSectionWise,
-  fontSize,
   format,
-  pagePadding = 5,
-  sectionMargin = 5,
-  sectionPadding = 5,
-  questionSpacing = 10,
-  questionLeftMargin = 10,
+  testTitle = "Unit Test",
+  examTime = "1 hour",
 }: PdfDownloadPropsExtended) => {
-  const styles = createStyles(
-    fontSize,
-    subject,
-    pagePadding,
-    sectionMargin,
-    sectionPadding,
-    questionSpacing,
-    questionLeftMargin
-  );
+  const styles = createStyles(subject);
   const groupedSections = groupQuestionsBySection(
-    selectedQuestions as (Question & { sectionId: number })[],
+    selectedQuestions,
     examStructure,
     isSectionWise
   );
@@ -236,37 +299,41 @@ const MyDocument = ({
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-      <Text style={styles.header}>{instituteName}</Text>
+      <Text style={styles.header}>{instituteName || siteConfig.name}</Text>
+      <Text style={styles.subHeader}>{testTitle}</Text>
       <View style={styles.row}>
         <Text style={styles.leftColumn}>
-          STD: {standard} & {schoolName || ""}
+          STD: {standard} {schoolName ? `- ${schoolName}` : ""}
         </Text>
         <Text style={styles.rightColumn}>Subject: {subject}</Text>
       </View>
       <View style={styles.row}>
         <Text style={styles.leftColumn}>Chapter: {formattedChapters}</Text>
-        <Text style={styles.rightColumn}>Student: {studentName || ""}</Text>
+        <Text style={styles.rightColumn}>Total Marks: {totalMarks}</Text>
       </View>
       <View style={styles.row}>
-        <Text style={styles.leftColumn}>Teacher: {teacherName}</Text>
-        <Text style={styles.rightColumn}>Marks: {totalMarks}</Text>
+        <Text style={styles.leftColumn}>Date: {formattedDate}</Text>
+        <Text style={styles.rightColumn}>Time: {examTime}</Text>
       </View>
-      <View style={styles.row}>
-        <Text style={styles.date}>{formattedDate}</Text>
-      </View>
+      {studentName && (
+        <View style={styles.row}>
+          <Text style={styles.leftColumn}>Student: {studentName}</Text>
+        </View>
+      )}
     </View>
   );
 
-  const renderQuestion = (question: Question) => {
-    globalQuestionNumber++;
+  const renderQuestion = (
+    question: Question,
+    sectionIndex: number,
+    questionIndex: number
+  ) => {
     return (
       <View key={question.id} style={styles.question}>
         <View style={styles.questionRow}>
           <View style={styles.questionContent}>
             <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-              <Text style={styles.questionNumber}>
-                {globalQuestionNumber}.{" "}
-              </Text>
+              <Text style={styles.questionNumber}>{questionIndex + 1}. </Text>
               <DynamicParagraph
                 content={question.question}
                 images={question.question_images || []}
@@ -292,20 +359,21 @@ const MyDocument = ({
     );
   };
 
-  let globalQuestionNumber = 0;
-
   const renderQuestionsPage = () => (
     <Page size="A4" style={styles.page}>
+      <Text style={styles.watermark}>{siteConfig.name}</Text>
       <View style={styles.section}>
         {renderHeader()}
-        {groupedSections.map((section) => (
-          <View key={section.questionType}>
+        {groupedSections.map((section, sectionIndex) => (
+          <View key={section.name || sectionIndex}>
             {isSectionWise && (
               <Text style={styles.sectionHeader}>
                 Section {section.name} ({section.questionType})
               </Text>
             )}
-            {section.questions.map(renderQuestion)}
+            {section.questions.map((question, questionIndex) =>
+              renderQuestion(question, sectionIndex, questionIndex)
+            )}
           </View>
         ))}
       </View>
@@ -320,25 +388,25 @@ const MyDocument = ({
 
   const renderAnswerKeyPage = () => (
     <Page size="A4" style={styles.page}>
+      <Text style={styles.watermark}>{siteConfig.name}</Text>
       <View style={styles.section}>
         <Text style={styles.header}>Answer Key</Text>
+        <Text style={styles.subHeader}>
+          {subject} - {testTitle}
+        </Text>
         {groupedSections.map((section, sectionIndex) => (
-          <View key={section.questionType}>
+          <View key={section.name || sectionIndex}>
             {isSectionWise && (
               <Text style={styles.sectionHeader}>
                 Section {section.name} ({section.questionType})
               </Text>
             )}
-            {section.questions.map((question, index) => {
-              const questionNumber =
-                groupedSections
-                  .slice(0, sectionIndex)
-                  .reduce((sum, sec) => sum + sec.questions.length, 0) +
-                index +
-                1;
+            {section.questions.map((question, questionIndex) => {
               return (
                 <View key={question.id} style={styles.question}>
-                  <Text style={styles.questionNumber}>{questionNumber}. </Text>
+                  <Text style={styles.questionNumber}>
+                    {questionIndex + 1}.{" "}
+                  </Text>
                   <Text style={{ fontFamily }}>{question.question}</Text>
                   <Text>Answer:</Text>
                   <DynamicParagraph
@@ -368,17 +436,17 @@ const MyDocument = ({
 
   const renderMaterialPage = () => (
     <Page size="A4" style={styles.page}>
+      <Text style={styles.watermark}>{siteConfig.name}</Text>
       <View style={styles.section}>
         {renderHeader()}
-        {groupedSections.map((section) => (
-          <View key={section.questionType}>
+        {groupedSections.map((section, sectionIndex) => (
+          <View key={section.name || sectionIndex}>
             {isSectionWise && (
               <Text style={styles.sectionHeader}>
                 Section {section.name} ({section.questionType})
               </Text>
             )}
-            {section.questions.map((question) => {
-              globalQuestionNumber++;
+            {section.questions.map((question, questionIndex) => {
               return (
                 <View key={question.id} style={styles.question}>
                   <View style={styles.questionRow}>
@@ -390,7 +458,7 @@ const MyDocument = ({
                         }}
                       >
                         <Text style={styles.questionNumber}>
-                          {globalQuestionNumber}.{" "}
+                          {questionIndex + 1}.{" "}
                         </Text>
                         <DynamicParagraph
                           content={question.question}

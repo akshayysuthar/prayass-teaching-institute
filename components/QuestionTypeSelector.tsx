@@ -9,13 +9,15 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import type { Question } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Plus, Minus, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface SelectedChapter {
   id: string;
@@ -37,19 +39,10 @@ export function QuestionSelector({
   selectedQuestions,
 }: QuestionSelectorProps) {
   const [chapterData, setChapterData] = useState<
-    Record<string, { name: string; chapterNo: number }>
+    Record<string, { name: string; chapterNo: number; status: boolean }>
   >({});
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedChapters, setExpandedChapters] = useState<string[]>([]);
-  const [expandedMarks, setExpandedMarks] = useState<Record<string, string[]>>(
-    {}
-  );
-  const [expandedTypes, setExpandedTypes] = useState<Record<string, string[]>>(
-    {}
-  );
-  const [expandedSectionTitles, setExpandedSectionTitles] = useState<
-    Record<string, string[]>
-  >({});
   const [loadedChapters, setLoadedChapters] = useState<string[]>([]);
   const { toast } = useToast();
 
@@ -60,17 +53,24 @@ export function QuestionSelector({
 
       const { data, error } = await supabase
         .from("subjects")
-        .select("id, chapter_name, chapter_no")
+        .select("id, chapter_name, chapter_no, status")
         .in("id", subjectIds);
 
       if (error) throw new Error(`Failed to fetch chapters: ${error.message}`);
 
       const chapterMap = data.reduce(
         (
-          acc: Record<string, { name: string; chapterNo: number }>,
-          { id, chapter_name, chapter_no }
+          acc: Record<
+            string,
+            { name: string; chapterNo: number; status: boolean }
+          >,
+          { id, chapter_name, chapter_no, status }
         ) => {
-          acc[id] = { name: chapter_name, chapterNo: chapter_no };
+          acc[id] = {
+            name: chapter_name,
+            chapterNo: chapter_no,
+            status: status || false,
+          };
           return acc;
         },
         {}
@@ -102,10 +102,18 @@ export function QuestionSelector({
   const filteredQuestions = useMemo(() => {
     const lowerSearch = searchTerm.toLowerCase();
     return searchTerm
-      ? questions.filter((q) => q.question.toLowerCase().includes(lowerSearch))
+      ? questions.filter((q) => {
+          const questionText = (
+            q.question ||
+            q.question_gu ||
+            ""
+          ).toLowerCase();
+          return questionText.includes(lowerSearch);
+        })
       : questions;
   }, [questions, searchTerm]);
 
+  /** Utility function to safely get section title */
   const getSectionTitle = (q: Question): string => {
     const qWithSectionTitle = q as {
       sectionTitle?: string;
@@ -166,12 +174,15 @@ export function QuestionSelector({
   const handleQuestionChange = useCallback(
     (question: Question) => {
       const isSelected = selectedQuestions.some((q) => q.id === question.id);
+
       if (isSelected) {
+        // Remove question
         const updatedQuestions = selectedQuestions.filter(
           (q) => q.id !== question.id
         );
         onSelectQuestions(updatedQuestions);
       } else {
+        // Add question
         onSelectQuestions([...selectedQuestions, question]);
       }
     },
@@ -189,7 +200,45 @@ export function QuestionSelector({
     );
   }, []);
 
-  const renderImages = useCallback((images?: string | string[]) => {
+  const handleUpdateMarks = useCallback(
+    async (question: Question, increment: boolean) => {
+      const newMarks = increment
+        ? Math.min(5, question.marks + 1)
+        : Math.max(1, question.marks - 1);
+
+      try {
+        const { error } = await supabase
+          .from("questions")
+          .update({ marks: newMarks })
+          .eq("id", question.id);
+
+        if (error) throw error;
+
+        // Update local state if the question is selected
+        if (selectedQuestions.some((q) => q.id === question.id)) {
+          const updatedQuestions = selectedQuestions.map((q) =>
+            q.id === question.id ? { ...q, marks: newMarks } : q
+          );
+          onSelectQuestions(updatedQuestions);
+        }
+
+        toast({
+          title: "Marks Updated",
+          description: `Question marks updated to ${newMarks}`,
+        });
+      } catch (error) {
+        console.error("Error updating marks:", error);
+        toast({
+          title: "Error",
+          description: "Failed to update question marks",
+          variant: "destructive",
+        });
+      }
+    },
+    [selectedQuestions, onSelectQuestions, toast]
+  );
+
+  const renderImages = useCallback((images?: string | string[] | null) => {
     if (!images) return null;
     const imageArray = Array.isArray(images) ? images : [images];
     return (
@@ -210,18 +259,20 @@ export function QuestionSelector({
   }, []);
 
   const renderQuestion = (question: Question) => {
+    const isSelected = selectedQuestions.some((q) => q.id === question.id);
     const sectionTitle = getSectionTitle(question);
+
     return (
       <div
         className={cn(
           "flex items-start gap-3 border-b pb-1 p-2 mt-1 rounded-lg last:border-b-0 transition-colors",
-          selectedQuestions.some((q) => q.id === question.id) && "bg-green-100"
+          isSelected && "bg-blue-50"
         )}
         key={question.id}
       >
         <Checkbox
           id={`q-${question.id}`}
-          checked={selectedQuestions.some((q) => q.id === question.id)}
+          checked={isSelected}
           onCheckedChange={() => handleQuestionChange(question)}
           className="mt-1 w-5 h-5"
         />
@@ -230,22 +281,52 @@ export function QuestionSelector({
           className="flex-1 flex flex-col gap-1 text-sm"
         >
           <span className="leading-relaxed">
-            {question.question}{" "}
-            <span className="text-muted-foreground">
-              ({question.marks} Marks)
+            {question.question || question.question_gu || "No question text"}
+          </span>
+          {renderImages(
+            question.question_images || question.question_images_gu
+          )}
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-xs text-muted-foreground">
+              {question.type || "General"} - {sectionTitle}
             </span>
-          </span>
-          {renderImages(question.question_images || undefined)}
-          <span className="text-xs text-muted-foreground">
-            {question.type || "General"} - {sectionTitle}
-          </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-6 w-6 rounded-full"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleUpdateMarks(question, false);
+                }}
+              >
+                <Minus className="h-3 w-3" />
+              </Button>
+              <span className="text-sm font-medium">
+                {question.marks} Marks
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-6 w-6 rounded-full"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleUpdateMarks(question, true);
+                }}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
         </Label>
       </div>
     );
   };
 
   return (
-    <div className="space-y-2 p-1 max-w-full mx-auto">
+    <div className="space-y-4">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
@@ -256,8 +337,7 @@ export function QuestionSelector({
         />
       </div>
 
-      <div className="space-y-2 max-h-[80vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100 to-transparent animate-pulse opacity-20 pointer-events-none" />
+      <div className="space-y-4">
         {Object.entries(groupedQuestions).length > 0 ? (
           Object.entries(groupedQuestions).map(([chapterId, groups]) => (
             <Accordion
@@ -272,24 +352,27 @@ export function QuestionSelector({
                   onClick={() => toggleChapter(chapterId)}
                   className="text-left px-4 py-3 hover:bg-gray-50"
                 >
-                  <h4 className="text-base font-medium truncate">
-                    Ch. {chapterData[chapterId]?.chapterNo || chapterId}:{" "}
-                    {chapterData[chapterId]?.name || `Chapter ${chapterId}`} (
-                    {Object.values(groups.marks).flat().length})
-                  </h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-base font-medium truncate">
+                      Ch. {chapterData[chapterId]?.chapterNo || chapterId}:{" "}
+                      {chapterData[chapterId]?.name || `Chapter ${chapterId}`} (
+                      {Object.values(groups.marks).flat().length})
+                    </h4>
+                    {chapterData[chapterId]?.status ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <X className="h-4 w-4 text-red-600" />
+                    )}
+                  </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 py-2">
                   {loadedChapters.includes(chapterId) ? (
                     <div className="space-y-4">
                       <Accordion
                         type="multiple"
-                        value={expandedMarks[chapterId] || []}
-                        onValueChange={(newValue) =>
-                          setExpandedMarks((prev) => ({
-                            ...prev,
-                            [chapterId]: newValue,
-                          }))
-                        }
+                        value={Object.keys(groups.marks).map(
+                          (mark) => `${chapterId}-mark-${mark}`
+                        )}
                         className="space-y-2"
                       >
                         {Object.entries(groups.marks)
@@ -309,66 +392,6 @@ export function QuestionSelector({
                             );
                           })}
                       </Accordion>
-
-                      <Accordion
-                        type="multiple"
-                        value={expandedTypes[chapterId] || []}
-                        onValueChange={(newValue) =>
-                          setExpandedTypes((prev) => ({
-                            ...prev,
-                            [chapterId]: newValue,
-                          }))
-                        }
-                        className="space-y-2"
-                      >
-                        {Object.entries(groups.types).map(
-                          ([type, typeQuestions]) => {
-                            const itemValue = `${chapterId}-type-${type}`;
-                            return (
-                              <AccordionItem value={itemValue} key={type}>
-                                <AccordionTrigger className="text-sm py-2 hover:bg-gray-50">
-                                  {type} ({typeQuestions.length})
-                                </AccordionTrigger>
-                                <AccordionContent className="px-2 py-1">
-                                  {typeQuestions.map(renderQuestion)}
-                                </AccordionContent>
-                              </AccordionItem>
-                            );
-                          }
-                        )}
-                      </Accordion>
-
-                      <Accordion
-                        type="multiple"
-                        value={expandedSectionTitles[chapterId] || []}
-                        onValueChange={(newValue) =>
-                          setExpandedSectionTitles((prev) => ({
-                            ...prev,
-                            [chapterId]: newValue,
-                          }))
-                        }
-                        className="space-y-2"
-                      >
-                        {Object.entries(groups.sectionTitles).map(
-                          ([sectionTitle, sectionTitleQuestions]) => {
-                            const itemValue = `${chapterId}-section-${sectionTitle}`;
-                            return (
-                              <AccordionItem
-                                value={itemValue}
-                                key={sectionTitle}
-                              >
-                                <AccordionTrigger className="text-sm py-2 hover:bg-gray-50">
-                                  {sectionTitle} ({sectionTitleQuestions.length}
-                                  )
-                                </AccordionTrigger>
-                                <AccordionContent className="px-2 py-1">
-                                  {sectionTitleQuestions.map(renderQuestion)}
-                                </AccordionContent>
-                              </AccordionItem>
-                            );
-                          }
-                        )}
-                      </Accordion>
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">
@@ -380,17 +403,38 @@ export function QuestionSelector({
             </Accordion>
           ))
         ) : (
-          <p className="text-sm text-muted-foreground">
-            No chapters available.
+          <p className="text-sm text-muted-foreground text-center p-4 border border-dashed rounded-md">
+            No questions available for this content.
           </p>
         )}
       </div>
 
-      {filteredQuestions.length === 0 && (
+      {filteredQuestions.length === 0 && searchTerm && (
         <div className="text-center p-4 border border-dashed rounded-md">
           <p className="text-sm text-muted-foreground">
             No questions match your search.
           </p>
+        </div>
+      )}
+
+      {selectedQuestions.length > 0 && (
+        <div className="bg-blue-50 p-4 rounded-md">
+          <h3 className="text-sm font-medium text-blue-700 mb-2">
+            Selected Questions ({selectedQuestions.length})
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {[1, 2, 3, 4, 5].map((mark) => {
+              const count = selectedQuestions.filter(
+                (q) => q.marks === mark
+              ).length;
+              if (count === 0) return null;
+              return (
+                <Badge key={mark} className="bg-blue-100 text-blue-800">
+                  {mark} mark: {count} (Total: {mark * count})
+                </Badge>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

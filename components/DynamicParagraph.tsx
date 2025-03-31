@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     color: "#555",
   },
   imageDefault: {
-    width: 250, // Reduced to fit multiple in a row
+    width: 200, // Reduced to fit multiple in a row
     maxHeight: 100,
     objectFit: "contain",
   },

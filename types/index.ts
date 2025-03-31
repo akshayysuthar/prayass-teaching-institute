@@ -146,6 +146,7 @@ export interface PdfDownloadProps {
   chapters: string;
   teacherName: string;
   examStructure: ExamStructure;
+  chapterNumber: string; // Added
 }
 
 export interface SubjectData {
@@ -266,4 +267,18 @@ export interface ExamSection {
 export interface ExamStructure {
   totalMarks: number;
   sections: ExamSection[];
+}
+
+export interface ExamHistoryItem {
+  id: number;
+  contentId: number;
+  contentName: string;
+  standard: string;
+  medium: string;
+  semester: string;
+  totalQuestions: number;
+  totalMarks: number;
+  selectedQuestionIds: string[];
+  timestamp: number;
+  chapters?: string;
 }

@@ -5,12 +5,17 @@ import Image from "next/image";
 import { useUser, UserButton, SignInButton } from "@clerk/nextjs";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
-import { Menu, FileText, PlusCircle, Settings } from "lucide-react";
+import { Menu } from "lucide-react";
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
@@ -35,68 +40,40 @@ export function Navbar() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="pr-0 bg-white">
+              <SheetTitle></SheetTitle>
               <div className="flex items-center gap-2 mb-8">
                 <Image src="/file.png" alt="Logo" width={32} height={32} />
-                <span className="font-bold text-xl text-blue-700">
+                <span className="font-bold text-xl text-blue-600">
                   {siteConfig.name}
                 </span>
               </div>
               <ScrollArea className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
                 <div className="flex flex-col gap-6">
-                  <Link
-                    href="/"
-                    className={cn(
-                      "flex items-center gap-2 text-base font-medium transition-colors",
-                      pathname === "/"
-                        ? "text-blue-600"
-                        : "text-black hover:text-blue-600"
-                    )}
-                    onClick={() => setOpen(false)}
-                  >
-                    <FileText className="h-5 w-5" />
-                    Home
-                  </Link>
-                  <Link
-                    href="/generate-exam"
-                    className={cn(
-                      "flex items-center gap-2 text-base font-medium transition-colors",
-                      pathname === "/generate-exam"
-                        ? "text-blue-600"
-                        : "text-black hover:text-blue-600"
-                    )}
-                    onClick={() => setOpen(false)}
-                  >
-                    <FileText className="h-5 w-5" />
-                    Generate Exam
-                  </Link>
-                  <Link
-                    href="/add-questions"
-                    className={cn(
-                      "flex items-center gap-2 text-base font-medium transition-colors",
-                      pathname === "/add-questions"
-                        ? "text-blue-600"
-                        : "text-black hover:text-blue-600"
-                    )}
-                    onClick={() => setOpen(false)}
-                  >
-                    <PlusCircle className="h-5 w-5" />
-                    Add Questions
-                  </Link>
-                  {isAdmin && (
-                    <Link
-                      href="/manage-content"
-                      className={cn(
-                        "flex items-center gap-2 text-base font-medium transition-colors",
-                        pathname === "/manage-content"
-                          ? "text-blue-600"
-                          : "text-black hover:text-blue-600"
-                      )}
-                      onClick={() => setOpen(false)}
-                    >
-                      <Settings className="h-5 w-5" />
-                      Manage Content
-                    </Link>
-                  )}
+                  {siteConfig.navLinks.map((link) => {
+                    // Skip admin-only links for non-admin users
+                    if (link.adminOnly && !isAdmin) return null;
+                    // Skip disabled links
+                    if (link.disabled) return null;
+
+                    const Icon = link.icon;
+
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className={cn(
+                          "flex items-center gap-2 text-base font-medium transition-colors",
+                          pathname === link.href
+                            ? "text-blue-600"
+                            : "text-black hover:text-blue-600"
+                        )}
+                        onClick={() => setOpen(false)}
+                      >
+                        {Icon && <Icon className="h-5 w-5" />}
+                        {link.title}
+                      </Link>
+                    );
+                  })}
                 </div>
               </ScrollArea>
             </SheetContent>
@@ -110,56 +87,30 @@ export function Navbar() {
         </div>
 
         <nav className="hidden md:flex items-center space-x-6">
-          <Link
-            href="/"
-            className={cn(
-              "flex items-center gap-2 text-base font-medium transition-colors",
-              pathname === "/"
-                ? "text-blue-600"
-                : "text-black hover:text-blue-600"
-            )}
-          >
-            <FileText className="h-5 w-5" />
-            Home
-          </Link>
-          <Link
-            href="/generate-exam"
-            className={cn(
-              "flex items-center gap-2 text-base font-medium transition-colors",
-              pathname === "/generate-exam"
-                ? "text-blue-600"
-                : "text-black hover:text-blue-600"
-            )}
-          >
-            <FileText className="h-5 w-5" />
-            Generate Exam
-          </Link>
-          <Link
-            href="/add-questions"
-            className={cn(
-              "flex items-center gap-2 text-base font-medium transition-colors",
-              pathname === "/add-questions"
-                ? "text-blue-600"
-                : "text-black hover:text-blue-600"
-            )}
-          >
-            <PlusCircle className="h-5 w-5" />
-            Add Questions
-          </Link>
-          {isAdmin && (
-            <Link
-              href="/manage-content"
-              className={cn(
-                "flex items-center gap-2 text-base font-medium transition-colors",
-                pathname === "/manage-content"
-                  ? "text-blue-600"
-                  : "text-black hover:text-blue-600"
-              )}
-            >
-              <Settings className="h-5 w-5" />
-              Manage Content
-            </Link>
-          )}
+          {siteConfig.navLinks.map((link) => {
+            // Skip admin-only links for non-admin users
+            if (link.adminOnly && !isAdmin) return null;
+            // Skip disabled links
+            if (link.disabled) return null;
+
+            const Icon = link.icon;
+
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "flex items-center gap-2 text-base font-medium transition-colors",
+                  pathname === link.href
+                    ? "text-blue-600"
+                    : "text-black hover:text-blue-600"
+                )}
+              >
+                {Icon && <Icon className="h-5 w-5" />}
+                {link.title}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="flex items-center gap-4">

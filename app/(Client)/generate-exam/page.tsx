@@ -22,15 +22,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  ChevronUp,
-  AlertCircle,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { useUser } from "@clerk/nextjs";
+import { useExamHistory } from "@/components/ExamHistory";
 
 export default function GenerateExamPage() {
   const searchParams = useSearchParams();
@@ -49,22 +44,20 @@ export default function GenerateExamPage() {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [studentName, setStudentName] = useState<string>("");
   const [schoolName, setSchoolName] = useState<string>("");
-  const [fontSize, setFontSize] = useState<number>(10);
+  const [testTitle, setTestTitle] = useState<string>("Unit Test");
+  const [examTime, setExamTime] = useState<string>("1 hour");
   const [showPdfDownload, setShowPdfDownload] = useState(false);
   const [pdfFormat, setPdfFormat] = useState<
     "exam" | "examWithAnswer" | "material" | null
   >(null);
-  const [pagePadding, setPagePadding] = useState<number>(5);
-  const [sectionMargin, setSectionMargin] = useState<number>(5);
-  const [sectionPadding, setSectionPadding] = useState<number>(5);
-  const [questionSpacing, setQuestionSpacing] = useState<number>(10);
-  const [questionLeftMargin, setQuestionLeftMargin] = useState<number>(10);
-  const [showPdfSettings, setShowPdfSettings] = useState<boolean>(false);
   const [examStructure, setExamStructure] = useState<ExamStructure>({
     subject: null,
     totalMarks: 100,
     sections: [],
   });
+  const [historyId, setHistoryId] = useState<string | null>(null);
+  const { saveExamToHistory, getExamHistory } = useExamHistory();
+  const [chapterNo, setChapterNo] = useState<string>("");
 
   const { user } = useUser();
   const { toast } = useToast();
@@ -75,18 +68,25 @@ export default function GenerateExamPage() {
     try {
       const { data, error } = await supabase.from("contents").select("*");
       if (error) throw error;
-      setContents(data);
+      console.log("Fetched contents:", data);
+      setContents(data || []);
 
-      // If contentId is provided in URL, select that content
       if (contentIdParam && data) {
-        const contentId = parseInt(contentIdParam);
+        const contentId = Number.parseInt(contentIdParam);
         const content = data.find((c) => c.id === contentId);
         if (content) {
           setSelectedContent(content);
-          fetchSubjects(contentId);
-          fetchQuestions(contentId);
-          setCurrentStep(2); // Skip to question selection
+          await fetchSubjects(contentId);
+          await fetchQuestions(contentId);
+          setCurrentStep(2);
+        } else {
+          console.log(`No content found for ID ${contentId}`);
         }
+      } else {
+        console.log(
+          "No contentIdParam provided, all contents fetched for selection"
+        );
+        // Step 1 is already default, so no need to setCurrentStep(1)
       }
     } catch (error) {
       toast({
@@ -130,7 +130,6 @@ export default function GenerateExamPage() {
           .eq("content_id", contentId);
         if (error) throw error;
 
-        // Process questions to use question_gu when main question is empty
         const processedQuestions = data.map((q) => ({
           ...q,
           question: q.question || q.question_gu || "",
@@ -140,12 +139,14 @@ export default function GenerateExamPage() {
         }));
 
         setQuestions(processedQuestions);
+        return processedQuestions; // Return for direct use
       } catch {
         toast({
           title: "Error",
           description: "Failed to load questions.",
           variant: "destructive",
         });
+        return [];
       } finally {
         setIsLoading(false);
       }
@@ -155,20 +156,48 @@ export default function GenerateExamPage() {
 
   // Load initial state from localStorage only on client-side mount
   useEffect(() => {
-    if (isBrowser) {
+    if (!isBrowser) return;
+
+    const loadInitialData = async () => {
       const savedQuestions = localStorage.getItem("selectedQuestions");
       if (savedQuestions) setSelectedQuestions(JSON.parse(savedQuestions));
 
       const savedContent = localStorage.getItem("selectedContent");
-      if (savedContent && !contentIdParam) {
+      const historyIdParam = searchParams.get("historyId");
+      const contentId = contentIdParam ? Number.parseInt(contentIdParam) : null;
+
+      if (historyIdParam) {
+        setHistoryId(historyIdParam);
+        const history = getExamHistory();
+        const historyItem = history.find((item) => item.id === historyIdParam);
+
+        if (historyItem && historyItem.contentId) {
+          await fetchContents();
+          if (historyItem.selectedQuestionIds?.length > 0) {
+            const fetchedQuestions = await fetchQuestions(
+              historyItem.contentId
+            );
+            const historyQuestions = fetchedQuestions.filter((q) =>
+              historyItem.selectedQuestionIds.includes(q.id)
+            );
+            if (historyQuestions.length > 0) {
+              setSelectedQuestions(historyQuestions);
+              setCurrentStep(3);
+            }
+          }
+        }
+      } else if (savedContent && !contentId) {
         const content = JSON.parse(savedContent);
         setSelectedContent(content);
-        fetchSubjects(content.id);
-        fetchQuestions(content.id);
+        await fetchSubjects(content.id);
+        await fetchQuestions(content.id);
+      } else {
+        await fetchContents(); // Default fetch on mount
       }
-    }
-    fetchContents();
-  }, [fetchContents, fetchSubjects, fetchQuestions, isBrowser, contentIdParam]);
+    };
+
+    loadInitialData();
+  }, [searchParams, contentIdParam]); // Only URL params as triggers
 
   // Save state to localStorage on change
   useEffect(() => {
@@ -323,10 +352,18 @@ export default function GenerateExamPage() {
         });
         return;
       }
+      if (!chapterNo.trim()) {
+        toast({
+          title: "Error",
+          description: "Chapter number is required.",
+          variant: "destructive",
+        });
+        return;
+      }
       setPdfFormat(format);
       setShowPdfDownload(true);
     },
-    [selectedQuestions, toast]
+    [selectedQuestions, chapterNo, toast]
   );
 
   const setStep = useCallback(
@@ -346,6 +383,8 @@ export default function GenerateExamPage() {
   );
 
   const progress = (currentStep / 3) * 100;
+  // console.log("Rendering with contents:", contents, ); // Debug here
+  console.log("History:", historyId); // Debug here
 
   const contentSelectionStep = (
     <div className="space-y-6">
@@ -367,6 +406,41 @@ export default function GenerateExamPage() {
       )}
     </div>
   );
+
+  const saveToHistory = useCallback(() => {
+    if (!selectedContent || selectedQuestions.length === 0) {
+      toast({
+        title: "Error",
+        description: "Select content and questions to save to history.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const chaptersString = selectedChapters
+      .map((ch) => ch.chapterNo)
+      .sort((a, b) => a - b)
+      .join(", ");
+
+    saveExamToHistory({
+      contentId: selectedContent.id,
+      contentName: selectedContent.name,
+      standard: selectedContent.class.toString(),
+      medium: selectedContent.medium,
+      semester: selectedContent.semester,
+      totalQuestions: selectedQuestions.length,
+      totalMarks: totalPaperMarks,
+      selectedQuestionIds: selectedQuestions.map((q) => Number(q.id)),
+      chapters: chaptersString,
+    });
+  }, [
+    selectedContent,
+    selectedQuestions,
+    selectedChapters,
+    totalPaperMarks,
+    saveExamToHistory,
+    toast,
+  ]);
 
   const questionSelectionStep = (
     <div className="space-y-6">
@@ -473,7 +547,6 @@ export default function GenerateExamPage() {
         onSelectQuestions={handleQuestionSelect}
         onSelectChapters={handleChapterSelect}
         selectedQuestions={selectedQuestions}
-
       />
     </div>
   );
@@ -505,137 +578,83 @@ export default function GenerateExamPage() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        <Label
-          htmlFor="studentName"
-          className="text-sm font-medium text-gray-700"
-        >
-          Student Name (Optional)
-        </Label>
-        <Input
-          id="studentName"
-          value={studentName}
-          onChange={(e) => setStudentName(e.target.value)}
-          placeholder="Enter student name"
-          className="w-full sm:w-64 border-blue-300 focus:border-blue-500 focus:ring-blue-500"
-        />
-      </div>
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        <Label
-          htmlFor="schoolName"
-          className="text-sm font-medium text-gray-700"
-        >
-          School Name (Optional)
-        </Label>
-        <Input
-          id="schoolName"
-          value={schoolName}
-          onChange={(e) => setSchoolName(e.target.value)}
-          placeholder="Enter school name"
-          className="w-full sm:w-64 border-blue-300 focus:border-blue-500 focus:ring-blue-500"
-        />
-      </div>
-      <div className="space-y-4">
-        <Button
-          onClick={() => setShowPdfSettings(!showPdfSettings)}
-          variant="outline"
-          className="w-full sm:w-auto border-blue-600 text-blue-600 hover:bg-blue-50 flex items-center justify-center"
-        >
-          {showPdfSettings ? "Hide PDF Settings" : "Show PDF Settings"}
-          {showPdfSettings ? (
-            <ChevronUp className="ml-2 h-4 w-4" />
-          ) : (
-            <ChevronDown className="ml-2 h-4 w-4" />
-          )}
-        </Button>
-        {showPdfSettings && (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="fontSize" className="text-gray-700">
-                Font Size (pt)
-              </Label>
-              <Input
-                id="fontSize"
-                type="number"
-                value={fontSize}
-                onChange={(e) => setFontSize(Number(e.target.value))}
-                min={8}
-                max={20}
-                className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <Label htmlFor="pagePadding" className="text-gray-700">
-                Page Padding (pt)
-              </Label>
-              <Input
-                id="pagePadding"
-                type="number"
-                value={pagePadding}
-                onChange={(e) => setPagePadding(Number(e.target.value))}
-                min={0}
-                max={50}
-                className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <Label htmlFor="sectionMargin" className="text-gray-700">
-                Section Margin (pt)
-              </Label>
-              <Input
-                id="sectionMargin"
-                type="number"
-                value={sectionMargin}
-                onChange={(e) => setSectionMargin(Number(e.target.value))}
-                min={0}
-                max={50}
-                className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <Label htmlFor="sectionPadding" className="text-gray-700">
-                Section Padding (pt)
-              </Label>
-              <Input
-                id="sectionPadding"
-                type="number"
-                value={sectionPadding}
-                onChange={(e) => setSectionPadding(Number(e.target.value))}
-                min={0}
-                max={50}
-                className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <Label htmlFor="questionSpacing" className="text-gray-700">
-                Question Spacing (pt)
-              </Label>
-              <Input
-                id="questionSpacing"
-                type="number"
-                value={questionSpacing}
-                onChange={(e) => setQuestionSpacing(Number(e.target.value))}
-                min={0}
-                max={50}
-                className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <Label htmlFor="questionLeftMargin" className="text-gray-700">
-                Question Left Margin (pt)
-              </Label>
-              <Input
-                id="questionLeftMargin"
-                type="number"
-                value={questionLeftMargin}
-                onChange={(e) => setQuestionLeftMargin(Number(e.target.value))}
-                min={0}
-                max={50}
-                className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label
+            htmlFor="chapterNo"
+            className="text-sm font-medium text-gray-700"
+          >
+            Chapter Number (Required)
+          </Label>
+          <Input
+            id="chapterNo"
+            value={chapterNo}
+            onChange={(e) => setChapterNo(e.target.value)}
+            placeholder="Enter chapter number"
+            className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
+            required
+          />
+        </div>
+        <div>
+          <Label
+            htmlFor="studentName"
+            className="text-sm font-medium text-gray-700"
+          >
+            Student Name (Optional)
+          </Label>
+          <Input
+            id="studentName"
+            value={studentName}
+            onChange={(e) => setStudentName(e.target.value)}
+            placeholder="Enter student name"
+            className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <Label
+            htmlFor="schoolName"
+            className="text-sm font-medium text-gray-700"
+          >
+            School Name (Optional)
+          </Label>
+          <Input
+            id="schoolName"
+            value={schoolName}
+            onChange={(e) => setSchoolName(e.target.value)}
+            placeholder="Enter school name"
+            className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <Label
+            htmlFor="testTitle"
+            className="text-sm font-medium text-gray-700"
+          >
+            Test Title
+          </Label>
+          <Input
+            id="testTitle"
+            value={testTitle}
+            onChange={(e) => setTestTitle(e.target.value)}
+            placeholder="Unit Test"
+            className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <Label
+            htmlFor="examTime"
+            className="text-sm font-medium text-gray-700"
+          >
+            Exam Time
+          </Label>
+          <Input
+            id="examTime"
+            value={examTime}
+            onChange={(e) => setExamTime(e.target.value)}
+            placeholder="1 hour"
+            className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
       </div>
 
       {examStructure.sections.length > 0 && (
@@ -646,6 +665,13 @@ export default function GenerateExamPage() {
             onGeneratePdf={handleGeneratePdf}
             isSectionWise={true}
           />
+          <Button
+            onClick={saveToHistory}
+            variant="outline"
+            className="mt-4 border-blue-600 text-blue-600 hover:bg-blue-50"
+          >
+            Save to History
+          </Button>
           {showPdfDownload && (
             <PdfDownload
               format={pdfFormat!}
@@ -656,15 +682,12 @@ export default function GenerateExamPage() {
               schoolName={schoolName}
               studentName={studentName}
               subject={selectedContent?.name || ""}
+              chapterNumber={chapterNo} // New prop
               chapters={selectedChapters.map((ch) => ch.chapterNo).join(", ")}
               teacherName={user?.fullName || "User"}
               isSectionWise={true}
-              fontSize={fontSize}
-              pagePadding={pagePadding}
-              sectionMargin={sectionMargin}
-              sectionPadding={sectionPadding}
-              questionSpacing={questionSpacing}
-              questionLeftMargin={questionLeftMargin}
+              testTitle={testTitle}
+              examTime={examTime}
             />
           )}
         </>
