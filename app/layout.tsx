@@ -6,6 +6,7 @@ import { siteConfig } from "@/config/site";
 import { ErrorHandler } from "@/components/ErrorHandler";
 import { Analytics } from "@vercel/analytics/next";
 import Footer from "@/components/Footer";
+import { ThemeProvider } from "next-themes";
 
 export const metadata = {
   title: {
@@ -34,17 +35,27 @@ export default function RootLayout({
           <link rel="icon" href="/favicon.ico" />
           <link rel="apple-touch-icon" href="/icon-192x192.png" />
         </head>
-        <body className="min-h-screen bg-background font-sans antialiased">
-          <div className="mx-auto sm:px-1 lg:px-10 max-w-7xl">
-            <div className="relative flex min-h-screen flex-col overflow-x-hidden">
-              <Navbar />
-              <main className="flex-1 h-screen ">{children}</main>
+
+        <body className="min-h-screen bg-background  font-sans antialiased">
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <div className="mx-auto sm:px-1 lg:px-10 max-w-7xl">
+              <div className="relative flex min-h-screen flex-col overflow-x-hidden">
+                <Navbar />
+                <main className="flex-1 h-screen bg-background text-foreground ">
+                  {children}
+                </main>
+              </div>
+              <Toaster />
+              <ErrorHandler />
+              <Analytics />
+              <Footer />
             </div>
-            <Toaster />
-            <ErrorHandler />
-            <Analytics />
-            <Footer />
-          </div>
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

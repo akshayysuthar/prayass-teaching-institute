@@ -5,17 +5,13 @@ import Image from "next/image";
 import { useUser, UserButton, SignInButton } from "@clerk/nextjs";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 import { Menu } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
@@ -26,24 +22,28 @@ export function Navbar() {
     siteConfig.adminEmail.includes(user.emailAddresses[0].emailAddress);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild className="md:hidden">
               <Button
                 variant="ghost"
-                className="px-0 text-black hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="px-0 text-foreground hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
               >
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle Menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="pr-0 bg-white">
-              <SheetTitle></SheetTitle>
+            <SheetContent side="left" className="pr-0 bg-background">
               <div className="flex items-center gap-2 mb-8">
-                <Image src="/file.png" alt="Logo" width={32} height={32} />
-                <span className="font-bold text-xl text-blue-600">
+                <Image
+                  src={siteConfig.mainLogo || "/placeholder.svg"}
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                />
+                <span className="font-bold text-xl text-primary">
                   {siteConfig.name}
                 </span>
               </div>
@@ -64,8 +64,8 @@ export function Navbar() {
                         className={cn(
                           "flex items-center gap-2 text-base font-medium transition-colors",
                           pathname === link.href
-                            ? "text-blue-600"
-                            : "text-black hover:text-blue-600"
+                            ? "text-primary"
+                            : "text-foreground hover:text-primary"
                         )}
                         onClick={() => setOpen(false)}
                       >
@@ -76,11 +76,19 @@ export function Navbar() {
                   })}
                 </div>
               </ScrollArea>
+              <div className="absolute bottom-4 left-4">
+                <ThemeToggle />
+              </div>
             </SheetContent>
           </Sheet>
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/file.png" alt="Logo" width={32} height={32} />
-            <span className="hidden md:inline-block font-bold text-xl text-blue-600">
+            <Image
+              src={siteConfig.mainLogo || "/placeholder.svg"}
+              alt="Logo"
+              width={32}
+              height={32}
+            />
+            <span className="hidden md:inline-block font-bold text-xl text-primary">
               {siteConfig.name}
             </span>
           </Link>
@@ -102,8 +110,8 @@ export function Navbar() {
                 className={cn(
                   "flex items-center gap-2 text-base font-medium transition-colors",
                   pathname === link.href
-                    ? "text-blue-600"
-                    : "text-black hover:text-blue-600"
+                    ? "text-primary"
+                    : "text-foreground hover:text-primary"
                 )}
               >
                 {Icon && <Icon className="h-5 w-5" />}
@@ -114,9 +122,10 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-4">
+          <ThemeToggle />
           {user ? (
             <>
-              <span className="text-sm hidden md:inline text-black">
+              <span className="text-sm hidden md:inline text-foreground">
                 {user.fullName}
               </span>
               <UserButton afterSignOutUrl="/" />
@@ -125,7 +134,7 @@ export function Navbar() {
             <SignInButton mode="modal">
               <Button
                 variant="outline"
-                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                className="border-primary text-primary hover:bg-primary/10"
               >
                 Sign In
               </Button>

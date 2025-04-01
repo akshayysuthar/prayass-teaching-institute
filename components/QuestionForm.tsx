@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
+import type React from "react";
+
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ImagePreview } from "./ImagePreview";
-import { compressImage } from "@/utils/imageCompression";
+import { Button } from "@/components/ui/button";
+import { Trash2, Plus, Minus, X } from "lucide-react";
+import Image from "next/image";
 import type { Question } from "@/types";
-import { Paperclip, Minus, Plus } from "lucide-react";
 
 interface QuestionFormProps {
   currentQuestion: Partial<Question>;
@@ -22,10 +24,16 @@ interface QuestionFormProps {
     language: "en" | "gu"
   ) => void;
   handleImageRemove: (
-    index: number,
+    imageIndex: number,
     type: "question" | "answer",
     language: "en" | "gu"
   ) => void;
+  handlePasteImage: (
+    e: React.ClipboardEvent,
+    type: "question" | "answer",
+    language: "en" | "gu"
+  ) => void;
+  handleUpdateMarks: (increment: boolean) => void;
   isSubmitting: boolean;
   questionType: string;
   removeQuestion: () => void;
@@ -38,220 +46,350 @@ export function QuestionForm({
   handleQuestionChange,
   handleImageUpload,
   handleImageRemove,
-  // isSubmitting,
-  // questionType,
+  handlePasteImage,
+  handleUpdateMarks,
+  isSubmitting,
+  questionType,
   removeQuestion,
   selectedContentMedium,
   emptyFields,
 }: QuestionFormProps) {
-  const [dragActive, setDragActive] = useState(false);
-
-  const handleDrag = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  }, []);
-
-  const handleDrop = useCallback(
-    async (
-      e: React.DragEvent,
-      type: "question" | "answer",
-      language: "en" | "gu"
-    ) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragActive(false);
-
-      const files = Array.from(e.dataTransfer.files);
-      const imageFiles = files.filter((file) => file.type.startsWith("image/"));
-      const compressedFiles = await Promise.all(imageFiles.map(compressImage));
-      handleImageUpload(compressedFiles, type, language);
-    },
-    [handleImageUpload]
+  const [showGujarati] = useState(
+    selectedContentMedium === "Gujarati" || selectedContentMedium === "Both"
   );
 
-  const handleFileSelect = useCallback(
-    async (
-      e: React.ChangeEvent<HTMLInputElement>,
-      type: "question" | "answer",
-      language: "en" | "gu"
-    ) => {
-      const files = Array.from(e.target.files || []);
-      const compressedFiles = await Promise.all(files.map(compressImage));
-      handleImageUpload(compressedFiles, type, language);
-      e.target.value = ""; // Reset input
-    },
-    [handleImageUpload]
-  );
-
-  const handleMarksChange = (increment: number) => {
-    const currentMarks = currentQuestion.marks || 1;
-    const newMarks = Math.max(1, Math.min(5, currentMarks + increment));
-    handleQuestionChange({
-      target: { name: "marks", value: newMarks.toString() },
-    } as React.ChangeEvent<HTMLInputElement>);
-  };
-
-  const renderInputField = (
-    field: string,
-    label: string,
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "question" | "answer",
     language: "en" | "gu"
   ) => {
-    const isHidden = language === "gu" && selectedContentMedium !== "Both";
-    if (isHidden) return null;
-
-    const isRequired = language === "en" || selectedContentMedium === "Both";
-
-    const handlePaste = async (
-      e: React.ClipboardEvent<HTMLTextAreaElement>
-    ) => {
-      const items = e.clipboardData.items;
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf("image") !== -1) {
-          e.preventDefault();
-          const file = items[i].getAsFile();
-          if (file) {
-            const compressedFile = await compressImage(file);
-            handleImageUpload(
-              [compressedFile],
-              field as "question" | "answer",
-              language
-            );
-          }
-        }
-      }
-    };
-
-    return (
-      <div className="space-y-2">
-        <Label
-          htmlFor={`${field}-${language}`}
-          className="text-lg font-semibold"
-        >
-          {label} ({language === "en" ? "English" : "Gujarati"})
-          {isRequired && emptyFields[field] && (
-            <span className="text-red-500 ml-1">*</span>
-          )}
-        </Label>
-        <div
-          className={`relative ${
-            dragActive ? "border-2 border-dashed border-blue-400" : ""
-          }`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={(e) =>
-            handleDrop(e, field as "question" | "answer", language)
-          }
-        >
-          <Textarea
-            id={`${field}-${language}`}
-            name={field}
-            value={currentQuestion[field] || ""}
-            onChange={handleQuestionChange}
-            onPaste={handlePaste}
-            className={`min-h-[150px] pr-10 ${
-              isRequired && emptyFields[field] ? "border-red-500" : ""
-            }`}
-            placeholder={`Type your ${field} here or drag and drop an image...`}
-            required={isRequired}
-          />
-          <label className="absolute top-2 right-2 cursor-pointer">
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) =>
-                handleFileSelect(e, field as "question" | "answer", language)
-              }
-            />
-            <Paperclip className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-          </label>
-        </div>
-        {renderImagePreviews(field, language)}
-      </div>
-    );
-  };
-
-  const renderImagePreviews = (field: string, language: "en" | "gu") => {
-    const imageField = `${field}_images${
-      language === "gu" ? "_gu" : ""
-    }` as keyof Question;
-    const images = currentQuestion[imageField] as string[] | undefined;
-
-    if (images && images.length > 0) {
-      return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-          {images.map((img, index) => (
-            <ImagePreview
-              key={index}
-              src={img || "/placeholder.svg"}
-              alt={`${field.charAt(0).toUpperCase() + field.slice(1)} image ${
-                index + 1
-              }`}
-              onRemove={() =>
-                handleImageRemove(
-                  index,
-                  field as "question" | "answer",
-                  language
-                )
-              }
-            />
-          ))}
-        </div>
-      );
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleImageUpload(Array.from(files), type, language);
+      e.target.value = ""; // Reset the input
     }
-    return null;
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {renderInputField("question", "Question", "en")}
-        {renderInputField("answer", "Answer", "en")}
-        {selectedContentMedium === "Both" && (
-          <>
-            {renderInputField("question_gu", "Question", "gu")}
-            {renderInputField("answer_gu", "Answer", "gu")}
-          </>
-        )}
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={removeQuestion}
+          className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+          disabled={isSubmitting}
+        >
+          <Trash2 className="h-4 w-4 mr-1" /> Remove Question
+        </Button>
       </div>
 
       <div className="space-y-4">
         <div>
-          <Label htmlFor="marks" className="text-lg font-semibold">
+          <Label
+            htmlFor="question"
+            className={`text-foreground ${
+              emptyFields.question ? "text-red-500" : ""
+            }`}
+          >
+            Question (English) {emptyFields.question && "*Required"}
+          </Label>
+          <Textarea
+            id="question"
+            name="question"
+            value={currentQuestion.question || ""}
+            onChange={handleQuestionChange}
+            onPaste={(e) => handlePasteImage(e, "question", "en")}
+            className={`mt-1 text-foreground ${
+              emptyFields.question ? "border-red-500" : ""
+            }`}
+            rows={3}
+            disabled={isSubmitting}
+            placeholder={
+              questionType === "MCQ"
+                ? "Enter question with options (A) Option 1 (B) Option 2..."
+                : "Enter question"
+            }
+          />
+          <div className="mt-2">
+            <Label htmlFor="question-image" className="text-foreground">
+              Upload Image (English)
+            </Label>
+            <Input
+              id="question-image"
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleFileChange(e, "question", "en")}
+              className="mt-1 text-foreground"
+              disabled={isSubmitting}
+              multiple
+            />
+          </div>
+          {Array.isArray(currentQuestion.question_images) &&
+            currentQuestion.question_images.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {currentQuestion.question_images.map((url, index) => (
+                  <div key={index} className="relative">
+                    <Image
+                      src={url || "/placeholder.svg"}
+                      alt={`Question image ${index + 1}`}
+                      width={100}
+                      height={100}
+                      className="object-cover rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleImageRemove(index, "question", "en")}
+                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+                      disabled={isSubmitting}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+        </div>
+
+        {showGujarati && (
+          <div>
+            <Label
+              htmlFor="question_gu"
+              className={`text-foreground ${
+                emptyFields.question_gu ? "text-red-500" : ""
+              }`}
+            >
+              Question (Gujarati) {emptyFields.question_gu && "*Required"}
+            </Label>
+            <Textarea
+              id="question_gu"
+              name="question_gu"
+              value={currentQuestion.question_gu || ""}
+              onChange={handleQuestionChange}
+              onPaste={(e) => handlePasteImage(e, "question", "gu")}
+              className={`mt-1 text-foreground ${
+                emptyFields.question_gu ? "border-red-500" : ""
+              }`}
+              rows={3}
+              disabled={isSubmitting}
+              placeholder={
+                questionType === "MCQ"
+                  ? "Enter question with options (A) Option 1 (B) Option 2..."
+                  : "Enter question"
+              }
+            />
+            <div className="mt-2">
+              <Label htmlFor="question-image-gu" className="text-foreground">
+                Upload Image (Gujarati)
+              </Label>
+              <Input
+                id="question-image-gu"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileChange(e, "question", "gu")}
+                className="mt-1 text-foreground"
+                disabled={isSubmitting}
+                multiple
+              />
+            </div>
+            {Array.isArray(currentQuestion.question_images_gu) &&
+              currentQuestion.question_images_gu.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {currentQuestion.question_images_gu.map((url, index) => (
+                    <div key={index} className="relative">
+                      <Image
+                        src={url || "/placeholder.svg"}
+                        alt={`Question image (Gujarati) ${index + 1}`}
+                        width={100}
+                        height={100}
+                        className="object-cover rounded-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleImageRemove(index, "question", "gu")
+                        }
+                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+                        disabled={isSubmitting}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+          </div>
+        )}
+
+        <div>
+          <Label
+            htmlFor="answer"
+            className={`text-foreground ${
+              emptyFields.answer ? "text-red-500" : ""
+            }`}
+          >
+            Answer (English) {emptyFields.answer && "*Required"}
+          </Label>
+          <Textarea
+            id="answer"
+            name="answer"
+            value={
+              typeof currentQuestion.answer === "object"
+                ? JSON.stringify(currentQuestion.answer)
+                : currentQuestion.answer || ""
+            }
+            onChange={handleQuestionChange}
+            onPaste={(e) => handlePasteImage(e, "answer", "en")}
+            className={`mt-1 text-foreground ${
+              emptyFields.answer ? "border-red-500" : ""
+            }`}
+            rows={3}
+            disabled={isSubmitting}
+          />
+          <div className="mt-2">
+            <Label htmlFor="answer-image" className="text-foreground">
+              Upload Image (English)
+            </Label>
+            <Input
+              id="answer-image"
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleFileChange(e, "answer", "en")}
+              className="mt-1 text-foreground"
+              disabled={isSubmitting}
+              multiple
+            />
+          </div>
+          {Array.isArray(currentQuestion.answer_images) &&
+            currentQuestion.answer_images.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {currentQuestion.answer_images.map((url, index) => (
+                  <div key={index} className="relative">
+                    <Image
+                      src={url || "/placeholder.svg"}
+                      alt={`Answer image ${index + 1}`}
+                      width={100}
+                      height={100}
+                      className="object-cover rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleImageRemove(index, "answer", "en")}
+                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+                      disabled={isSubmitting}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+        </div>
+
+        {showGujarati && (
+          <div>
+            <Label
+              htmlFor="answer_gu"
+              className={`text-foreground ${
+                emptyFields.answer_gu ? "text-red-500" : ""
+              }`}
+            >
+              Answer (Gujarati) {emptyFields.answer_gu && "*Required"}
+            </Label>
+            <Textarea
+              id="answer_gu"
+              name="answer_gu"
+              value={
+                typeof currentQuestion.answer_gu === "object"
+                  ? JSON.stringify(currentQuestion.answer_gu)
+                  : currentQuestion.answer_gu || ""
+              }
+              onChange={handleQuestionChange}
+              onPaste={(e) => handlePasteImage(e, "answer", "gu")}
+              className={`mt-1 text-foreground ${
+                emptyFields.answer_gu ? "border-red-500" : ""
+              }`}
+              rows={3}
+              disabled={isSubmitting}
+            />
+            <div className="mt-2">
+              <Label htmlFor="answer-image-gu" className="text-foreground">
+                Upload Image (Gujarati)
+              </Label>
+              <Input
+                id="answer-image-gu"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileChange(e, "answer", "gu")}
+                className="mt-1 text-foreground"
+                disabled={isSubmitting}
+                multiple
+              />
+            </div>
+            {Array.isArray(currentQuestion.answer_images_gu) &&
+              currentQuestion.answer_images_gu.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {currentQuestion.answer_images_gu.map((url, index) => (
+                    <div key={index} className="relative">
+                      <Image
+                        src={url || "/placeholder.svg"}
+                        alt={`Answer image (Gujarati) ${index + 1}`}
+                        width={100}
+                        height={100}
+                        className="object-cover rounded-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleImageRemove(index, "answer", "gu")}
+                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+                        disabled={isSubmitting}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+          </div>
+        )}
+
+        <div>
+          <Label htmlFor="marks" className="text-foreground">
             Marks
           </Label>
-          <div className="flex items-center space-x-2 mt-2">
+          <div className="flex items-center gap-2 mt-1">
             <Button
               type="button"
-              onClick={() => handleMarksChange(-1)}
-              disabled={currentQuestion.marks === 1}
+              variant="outline"
+              size="icon"
+              onClick={() => handleUpdateMarks(false)}
+              disabled={isSubmitting || (currentQuestion.marks || 1) <= 1}
+              className="h-8 w-8 rounded-full"
             >
               <Minus className="h-4 w-4" />
             </Button>
-            <span className="text-lg font-medium w-8 text-center">
-              {currentQuestion.marks}
-            </span>
+            <Input
+              id="marks"
+              name="marks"
+              type="number"
+              min={1}
+              max={10}
+              value={currentQuestion.marks || 1}
+              onChange={handleQuestionChange}
+              className="w-16 text-center text-foreground"
+              disabled={isSubmitting}
+            />
             <Button
               type="button"
-              onClick={() => handleMarksChange(1)}
-              disabled={currentQuestion.marks === 5}
+              variant="outline"
+              size="icon"
+              onClick={() => handleUpdateMarks(true)}
+              disabled={isSubmitting || (currentQuestion.marks || 1) >= 5}
+              className="h-8 w-8 rounded-full"
             >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-        </div>
-
-        <div className="flex justify-end">
-          <Button onClick={removeQuestion} variant="destructive">
-            Remove Question
-          </Button>
         </div>
       </div>
     </div>

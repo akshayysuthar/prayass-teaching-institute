@@ -1,13 +1,18 @@
 "use client";
 
+import type React from "react";
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import type { Question } from "@/types";
+import type { Question, Content } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MetadataForm } from "./MetadataForm";
 import { QuestionForm } from "./QuestionForm";
 import { useUser } from "@clerk/nextjs";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export function AddQuestionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,7 +38,11 @@ export function AddQuestionForm() {
   });
   const [selectedContentMedium, setSelectedContentMedium] =
     useState<string>("");
-  //const [showHiddenInputs, setShowHiddenInputs] = useState(false)
+  const [selectedContent, setSelectedContent] = useState<Content | null>(null);
+  const [sectionTitleSuggestions, setSectionTitleSuggestions] = useState<
+    string[]
+  >([]);
+  const [typeSuggestions, setTypeSuggestions] = useState<string[]>([]);
   const { toast } = useToast();
   const { user } = useUser();
 
@@ -45,9 +54,15 @@ export function AddQuestionForm() {
 
   useEffect(() => {
     if (metadata.content_id) {
-      fetchContentMedium(metadata.content_id);
+      fetchContentDetails(metadata.content_id);
     }
   }, [metadata.content_id]);
+
+  useEffect(() => {
+    if (metadata.subject_id) {
+      fetchSuggestionsBySubject(metadata.subject_id);
+    }
+  }, [metadata.subject_id]);
 
   const fetchRecentEntries = async () => {
     const { data, error } = await supabase
@@ -72,16 +87,69 @@ export function AddQuestionForm() {
     }
   };
 
-  const fetchContentMedium = async (contentId: string) => {
-    const { data, error } = await supabase
-      .from("contents")
-      .select("medium")
-      .eq("id", contentId)
-      .single();
-    if (error) {
-      console.error("Error fetching content medium:", error);
-    } else {
+  const fetchContentDetails = async (contentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("contents")
+        .select("*")
+        .eq("id", contentId)
+        .single();
+
+      if (error) throw error;
+
+      setSelectedContent(data);
       setSelectedContentMedium(data.medium);
+    } catch (error) {
+      console.error("Error fetching content details:", error);
+    }
+  };
+
+  const fetchSuggestionsBySubject = async (subjectId: string) => {
+    try {
+      // Fetch unique section titles for this subject
+      const { data: sectionData, error: sectionError } = await supabase
+        .from("questions")
+        .select("sectionTitle, section_title")
+        .eq("subject_id", subjectId)
+        .not("sectionTitle", "is", null)
+        .limit(50);
+
+      if (sectionError) throw sectionError;
+
+      // Fetch unique question types for this subject
+      const { data: typeData, error: typeError } = await supabase
+        .from("questions")
+        .select("type")
+        .eq("subject_id", subjectId)
+        .not("type", "is", null)
+        .limit(50);
+
+      if (typeError) throw typeError;
+
+      // Process section titles (handle both sectionTitle and section_title fields)
+      const sectionTitles = new Set<string>();
+      sectionData.forEach((item) => {
+        if (item.sectionTitle) sectionTitles.add(item.sectionTitle);
+        if (item.section_title) sectionTitles.add(item.section_title);
+      });
+
+      // Process question types
+      const types = new Set<string>();
+      typeData.forEach((item) => {
+        if (item.type) types.add(item.type);
+      });
+
+      // Add default types if none found
+      if (types.size === 0) {
+        types.add("MCQ");
+        types.add("Short Answer");
+        types.add("Long Answer");
+      }
+
+      setSectionTitleSuggestions(Array.from(sectionTitles));
+      setTypeSuggestions(Array.from(types));
+    } catch (error) {
+      console.error("Error fetching suggestions by subject:", error);
     }
   };
 
@@ -182,14 +250,51 @@ export function AddQuestionForm() {
     });
   };
 
+  const handlePasteImage = async (
+    index: number,
+    e: React.ClipboardEvent,
+    type: "question" | "answer",
+    language: "en" | "gu"
+  ) => {
+    const items = e.clipboardData.items;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf("image") !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          await handleImageUpload(index, [file], type, language);
+        }
+      }
+    }
+  };
+
+  const handleUpdateMarks = (index: number, increment: boolean) => {
+    setQuestions((prev) => {
+      const newQuestions = [...prev];
+      const currentMarks = newQuestions[index].marks || 1;
+      const newMarks = increment
+        ? Math.min(5, currentMarks + 1)
+        : Math.max(1, currentMarks - 1);
+
+      newQuestions[index] = {
+        ...newQuestions[index],
+        marks: newMarks,
+      };
+
+      return newQuestions;
+    });
+  };
+
   const checkRequiredFields = (question: Partial<Question>) => {
     const requiredFields = ["question", "answer"];
+
     if (
       selectedContentMedium === "Gujarati" ||
       selectedContentMedium === "Both"
     ) {
       requiredFields.push("question_gu", "answer_gu");
     }
+
     return requiredFields.reduce((acc, field) => {
       acc[field] = !question[field];
       return acc;
@@ -215,7 +320,6 @@ export function AddQuestionForm() {
       const emptyFields = emptyFieldsByQuestion.flatMap((fields, index) =>
         Object.entries(fields)
           .filter(([isEmpty]) => isEmpty)
-          // Changed from ([_, isEmpty]) to ([field, isEmpty])
           .map(([field]) => `Question ${index + 1}: ${field}`)
       );
 
@@ -308,6 +412,7 @@ export function AddQuestionForm() {
         marks: 1,
       },
     ]);
+    // Keep the metadata to make it easier to add multiple questions
     // setMetadata({
     //   content_id: "",
     //   subject_id: "",
@@ -317,14 +422,18 @@ export function AddQuestionForm() {
   };
 
   if (!user) {
-    return <div>Please log in to access this form.</div>;
+    return (
+      <div className="text-foreground">Please log in to access this form.</div>
+    );
   }
 
   return (
     <div className="space-y-8">
-      <div className="space-y-4 border p-4 rounded-md">
-        <h2 className="text-2xl font-bold">Add New Questions</h2>
-        <h3 className="text-lg font-semibold text-gray-700">
+      <div className="space-y-4 border p-4 rounded-md bg-background">
+        <h2 className="text-2xl font-bold text-foreground">
+          Add New Questions
+        </h2>
+        <h3 className="text-lg font-semibold text-foreground/80">
           Instructions: Based on the selected content&apos;s medium, you&apos;ll
           see different input fields: - For English medium: Only English
           question and answer fields will be shown. - For Gujarati medium: Both
@@ -332,14 +441,62 @@ export function AddQuestionForm() {
           always required. Gujarati inputs are required when the medium is
           Gujarati.
         </h3>
+
         <MetadataForm
           metadata={metadata}
           handleMetadataChange={handleMetadataChange}
+          sectionTitleSuggestions={sectionTitleSuggestions}
+          typeSuggestions={typeSuggestions}
         />
-        {/* Remove this JSX */}
+
+        {selectedContent && (
+          <Card className="bg-background border shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg text-foreground">
+                Selected Content Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Name
+                  </p>
+                  <p className="text-foreground">{selectedContent.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Medium
+                  </p>
+                  <p className="text-foreground">{selectedContent.medium}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Class
+                  </p>
+                  <p className="text-foreground">{selectedContent.class}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Board
+                  </p>
+                  <p className="text-foreground">{selectedContent.board}</p>
+                </div>
+              </div>
+              {selectedContent.semester && (
+                <Badge className="mt-2 bg-primary/10 text-primary">
+                  Semester: {selectedContent.semester}
+                </Badge>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {questions.map((question, index) => (
           <div key={index} className="border-t pt-4 mt-4">
-            <h3 className="text-lg font-semibold mb-2">Question {index + 1}</h3>
+            <h3 className="text-lg font-semibold mb-2 text-foreground">
+              Question {index + 1}
+            </h3>
             <QuestionForm
               currentQuestion={question}
               handleQuestionChange={(e) => handleQuestionChange(index, e)}
@@ -348,6 +505,12 @@ export function AddQuestionForm() {
               }
               handleImageRemove={(imageIndex, type, language) =>
                 handleImageRemove(index, imageIndex, type, language)
+              }
+              handlePasteImage={(e, type, language) =>
+                handlePasteImage(index, e, type, language)
+              }
+              handleUpdateMarks={(increment) =>
+                handleUpdateMarks(index, increment)
               }
               isSubmitting={isSubmitting}
               questionType={metadata.type}

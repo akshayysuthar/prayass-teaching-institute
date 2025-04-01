@@ -419,7 +419,7 @@ export default function GenerateExamPage() {
 
     const chaptersString = selectedChapters
       .map((ch) => ch.chapterNo)
-      .sort((a, b) => a - b)
+      .sort((a, b) => (a ?? 0) - (b ?? 0))
       .join(", ");
 
     saveExamToHistory({
