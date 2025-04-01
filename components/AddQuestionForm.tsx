@@ -524,14 +524,14 @@ export function AddQuestionForm() {
           <Button onClick={addNewQuestion} variant="outline">
             Add Another Question
           </Button>
-          <Button onClick={resetFormState} variant="secondary">
+          <Button onClick={resetFormState} variant="destructive">
             Clear All
           </Button>
           <Button
             onClick={handleSaveQuestions}
             disabled={isSubmitting}
             className="w-full sm:w-auto"
-            variant="default"
+            variant="outline"
           >
             {isSubmitting ? "Saving..." : "Save All Questions"}
           </Button>
