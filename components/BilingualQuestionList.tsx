@@ -92,15 +92,19 @@ export function BilingualQuestionList({
       const gujaratiQuestions = questions.filter(
         (q) => q.question_gu && q.question_gu.trim() !== ""
       );
-      const percentage = (gujaratiQuestions.length / subject.question_count) * 100;
+      const percentage =
+        (gujaratiQuestions.length / subject.question_count) * 100;
       setProgress(Math.round(percentage));
     } else {
       setProgress(0);
     }
   }, [questions, subject?.question_count]);
 
-  const renderContent = (content: string, images: string[] | null) => {
-    if (!content) return null;
+  const renderContent = (
+    content: string | undefined,
+    images: string[] | null | undefined
+  ) => {
+    if (!content) return null; // Handles undefined or empty string
     const parts = content.split(/(\[img\d+\])/g);
     return parts.map((part, index) => {
       const imgMatch = part.match(/\[img(\d+)\]/);
@@ -342,7 +346,7 @@ export function BilingualQuestionList({
         <p className="text-sm text-gray-500 mt-1">{progress}% complete</p>
       </div>
       {Object.entries(groupedQuestions).map(
-        ([sectionTitle, sectionQuestions]: [string, any[]]) => (
+        ([sectionTitle, sectionQuestions]: [string, Question[]]) => (
           <Accordion
             type="single"
             collapsible
