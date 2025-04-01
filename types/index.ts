@@ -1,82 +1,61 @@
-// Current active interfaces
-
 export interface Question {
   id: string;
   content_id: number;
-  subject_id: number;
   chapter_no: string;
   chapter_name: string;
-  sectionTitle?: string;
-  section_title?: string | null;
+  section_title: string | null;
   type: string | null;
   question: string;
-  question_gu?: string;
+  question_gu: string;
   question_images: string[] | null;
-  question_images_gu?: string[] | null;
+  question_images_gu: string[] | null;
   answer: string | object;
-  answer_gu?: string | object;
+  answer_gu: string | object;
   answer_images: string[] | null;
-  answer_images_gu?: string[] | null;
+  answer_images_gu: string[] | null;
   marks: number;
-  selection_count?: number;
-  is_reviewed?: boolean;
-  reviewed_by?: string | null;
-  created_by?: string;
-  last_edited_by?: string | null;
-  last_updated?: string;
-  created_at?: string;
-  options?: Record<string, string>;
-  chapterNo?: number;
-  [key: string]: any; // Allow additional properties
+  selection_count: number;
+  is_reviewed: boolean;
+  reviewed_by: string | null;
+  created_by: string;
+  last_edited_by: string | null;
+  last_updated: string;
+  created_at: string;
+  options?: { [key: string]: string };
+  [key: string]: any; // Add this line
 }
 
 export interface Content {
+  subject_name: any;
+  subject: any;
   id: number;
   name: string;
   board: string;
   medium: string;
-  code?: string;
+  code: string;
   class: number;
-  semester: string;
-  created_at?: string;
-  status?: boolean;
+  created_at: string;
+  status: boolean;
   locked?: string;
-  subject_name?: any;
-  subject?: any;
-}
-
-export interface Subject {
-  id: number;
-  subject_name: string;
-  chapter_name: string;
-  chapter_no: number;
-  content_id: number;
-  board_weightage?: number;
-  created_at?: string;
-  type?: string;
-  status?: boolean;
+  semester: string;
 }
 
 export interface SelectedChapter {
+  [x: string]: any;
   id: string;
   name: string;
-  chapterNo?: number;
-  [x: string]: any;
+}
+
+export interface ExamStructure {
+  subject: any;
+  totalMarks: number;
+  sections: ExamSection[];
 }
 
 export interface ExamSection {
   name: string;
   questionType: string;
   totalMarks: number;
-  marksPerQuestion?: number;
-  totalQuestions?: number;
-  questions?: Question[];
-}
-
-export interface ExamStructure {
-  subject: string | null;
-  totalMarks: number;
-  sections: ExamSection[];
 }
 
 export interface PdfDownloadProps {
@@ -84,13 +63,63 @@ export interface PdfDownloadProps {
   examStructure: ExamStructure;
   instituteName: string;
   standard: string;
-  studentName?: string;
+  studentName: string;
   subject: string;
   chapters: string;
   teacherName: string;
   isSectionWise: boolean;
-  format?: "exam" | "examWithAnswer" | "material" | null;
-  chapterNumber?: string;
+  format: "exam" | "examWithAnswer" | "material" | null;
+}
+
+// export interface Question {
+//   content_id: any;
+//   chapter_name: string;
+//   chapter_no: any;
+//   id: string;
+//   subject_id: number | string;
+//   section_title: string | null;
+//   type: string | null;
+//   question: string;
+//   question_images: string[] | null;
+//   answer: string | object;
+//   answer_images: string[] | null;
+//   marks: number;
+//   selection_count: number;
+//   is_reviewed: boolean;
+//   reviewed_by: string | null;
+//   created_by: string;
+//   last_edited_by: string | null;
+//   last_updated: string;
+//   created_at: string;
+//   options?: { [key: string]: string };
+// }
+
+export interface Content {
+  id: number;
+  name: string;
+  board: string;
+  medium: string;
+  code: string;
+  class: number;
+  created_at: string;
+}
+
+export interface Subject {
+  id: number;
+  subject_name: string;
+  chapter_no: number;
+  chapter_name: string;
+  content_id: number;
+  board_weightage: number;
+  created_at: string;
+  // type is not actually in the database, so we'll make it optional
+  type?: string;
+  status: boolean;
+}
+
+export interface SelectedChapter {
+  id: string;
+  name: string;
 }
 
 export interface NavItem {
@@ -103,13 +132,21 @@ export interface NavItem {
 }
 
 export interface SubjectSelectorProps {
-  subjects?: Subject[];
+  subjects: Subject[];
   onSelectSubject: (subjectId: string) => void;
   initialSubject?: string | null;
-  subjectData?: SubjectDataItem[];
-  classNumber?: number;
-  board?: string;
-  medium?: string;
+}
+
+export interface PdfDownloadProps {
+  selectedQuestions: Question[];
+  instituteName: string;
+  standard: string;
+  studentName: string;
+  subject: string;
+  chapters: string;
+  teacherName: string;
+  examStructure: ExamStructure;
+  chapterNumber: string; // Added
 }
 
 export interface SubjectData {
@@ -148,6 +185,15 @@ export interface SubjectDataItem {
   subjects?: Subject[];
 }
 
+export interface SubjectSelectorProps {
+  subjectData: SubjectDataItem[];
+  classNumber: number;
+  board: string;
+  medium: string;
+  onSelectSubject: (subject: string) => void;
+  initialSubject?: string | null;
+}
+
 export interface ChapterSelectorProps {
   questionBankData: Chapter[];
   onSelectQuestions: (questions: Question[]) => void;
@@ -163,9 +209,13 @@ export interface ExamMetadata {
   teacherName: string;
   totalMarks: number;
 }
-
 export interface GeneratedExamProps extends ExamMetadata {
   selectedQuestions: Question[];
+}
+
+export interface SelectedChapter {
+  id: string;
+  name: string;
 }
 
 export interface ClassSelectorProps {
@@ -176,13 +226,51 @@ export interface ClassSelectorProps {
   initialClass: number | null;
   initialBoard: string | null;
   initialMedium: string | null;
-  contents?: Content[];
-  onSelectContent?: (content: Content) => void;
-  initialContent?: Content | null;
+}
+
+// export interface Question {
+//   // server side or metadata
+//   id: string;
+//   isReviewed: boolean;
+//   reviewedBy: string; // by defeult it will system
+//   last_updated: string;
+//   selectionCount?: number; // by defeult it will 0
+//   class: number; // The class/grade level of the question (e.g., 1 to 10).
+//   subject: string; // The subject of the question (e.g., Math, Science).
+//   bookName: string; // Name of the textbook associated with the question.
+//   board: string; // Educational board (e.g., CBSE, GSEB).
+//   chapterNo: string; // Chapter number.
+//   chapterName: string; // Full name of the chapter.
+//   section: string; // Section within the chapter (if applicable).
+//   type: string; // Type of question (e.g., 'MCQ', 'Short Answer').
+
+//   imageUploadPending: boolean;
+
+//   // client side
+//   question: string;
+//   questionImages?: string[];
+//   question_images: string[];
+//   answer: string | string[] | Record<string, string | string[]>;
+//   answerImages?: string[];
+//   answer_images: string[];
+//   options?: Record<string, string>;
+//   marks: number;
+// }
+
+export interface ExamSection {
+  name: string;
+  questionType: string;
+  marksPerQuestion: number;
+  totalQuestions: number;
+}
+
+export interface ExamStructure {
+  totalMarks: number;
+  sections: ExamSection[];
 }
 
 export interface ExamHistoryItem {
-  id: string | number;
+  id: number;
   contentId: number;
   contentName: string;
   standard: string;
@@ -190,67 +278,7 @@ export interface ExamHistoryItem {
   semester: string;
   totalQuestions: number;
   totalMarks: number;
-  selectedQuestionIds: string[] | number[];
+  selectedQuestionIds: string[];
   timestamp: number;
   chapters?: string;
 }
-
-// ==========================================
-// BACKUP INTERFACES - KEPT FOR REFERENCE
-// ==========================================
-
-/* 
-export interface Question {
-  content_id: any;
-  chapter_name: string;
-  chapter_no: any;
-  id: string;
-  subject_id: number | string;
-  section_title: string | null;
-  type: string | null;
-  question: string;
-  question_images: string[] | null;
-  answer: string | object;
-  answer_images: string[] | null;
-  marks: number;
-  selection_count: number;
-  is_reviewed: boolean;
-  reviewed_by: string | null;
-  created_by: string;
-  last_edited_by: string | null;
-  last_updated: string;
-  created_at: string;
-  options?: { [key: string]: string };
-}
-*/
-
-/*
-export interface Question {
-  // server side or metadata
-  id: string;
-  isReviewed: boolean;
-  reviewedBy: string; // by defeult it will system
-  last_updated: string;
-  selectionCount?: number; // by defeult it will 0
-  class: number; // The class/grade level of the question (e.g., 1 to 10).
-  subject: string; // The subject of the question (e.g., Math, Science).
-  bookName: string; // Name of the textbook associated with the question.
-  board: string; // Educational board (e.g., CBSE, GSEB).
-  chapterNo: string; // Chapter number.
-  chapterName: string; // Full name of the chapter.
-  section: string; // Section within the chapter (if applicable).
-  type: string; // Type of question (e.g., 'MCQ', 'Short Answer').
-
-  imageUploadPending: boolean;
-
-  // client side
-  question: string;
-  questionImages?: string[];
-  question_images: string[];
-  answer: string | string[] | Record<string, string | string[]>;
-  answerImages?: string[];
-  answer_images: string[];
-  options?: Record<string, string>;
-  marks: number;
-}
-*/
