@@ -130,9 +130,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative bg-blue-600 text-white py-20">
+      <section className="relative bg-blue-600 text-foreground py-20">
         <div
           className="absolute inset-0 opacity-10 bg-pattern"
           style={{

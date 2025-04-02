@@ -34,9 +34,13 @@ export default function RootLayout({
           <meta name="theme-color" content="#000000" />
           <link rel="icon" href="/favicon.ico" />
           <link rel="apple-touch-icon" href="/icon-192x192.png" />
+          <meta
+            name="google-adsense-account"
+            content="ca-pub-1160650118224185"
+          ></meta>
         </head>
 
-        <body className="min-h-screen bg-background  font-sans antialiased">
+        <body className="min-h-screen text-foreground bg-background  font-sans antialiased">
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
@@ -46,9 +50,8 @@ export default function RootLayout({
             <div className="mx-auto sm:px-1 lg:px-10 max-w-7xl">
               <div className="relative flex min-h-screen flex-col overflow-x-hidden">
                 <Navbar />
-                <main className="flex-1 h-screen bg-background text-foreground ">
-                  {children}
-                </main>
+
+                <main className="flex-1 h-screen">{children}</main>
               </div>
               <Toaster />
               <ErrorHandler />
