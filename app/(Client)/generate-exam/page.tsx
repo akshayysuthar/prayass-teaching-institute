@@ -683,7 +683,7 @@ export default function GenerateExamPage() {
               studentName={studentName}
               subject={selectedContent?.name || ""}
               chapterNumber={chapterNo} // New prop
-              chapters={selectedChapters.map((ch) => ch.chapterNo).join(", ")}
+              chapters={chapterNo}
               teacherName={user?.fullName || "User"}
               isSectionWise={true}
               testTitle={testTitle}

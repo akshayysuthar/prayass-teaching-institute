@@ -7,6 +7,7 @@ import {
   Book,
   GraduationCap,
   School,
+  Upload,
 } from "lucide-react";
 
 export type SiteConfig = {
@@ -78,6 +79,12 @@ export const siteConfig: SiteConfig = {
       title: "Add Question",
       href: "/add-questions",
       icon: PlusCircle,
+      disabled: "",
+    },
+    {
+      title: "CSV Upload",
+      href: "/csv-upload",
+      icon: Upload,
       disabled: "",
     },
     {

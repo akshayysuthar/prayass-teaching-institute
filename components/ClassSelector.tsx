@@ -47,7 +47,7 @@ export function ClassSelector({
             {contents.map((content) => (
               <SelectItem key={content.id} value={content.id.toString()}>
                 {content.name} - Class {content.class} - {content.board} -{" "}
-                {content.medium} Medium
+                {content.medium} Medium - {content.note}
               </SelectItem>
             ))}
           </SelectContent>

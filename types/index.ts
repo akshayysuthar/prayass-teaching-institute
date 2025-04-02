@@ -102,6 +102,7 @@ export interface Content {
   code: string;
   class: number;
   created_at: string;
+  note: string;
 }
 
 export interface Subject {

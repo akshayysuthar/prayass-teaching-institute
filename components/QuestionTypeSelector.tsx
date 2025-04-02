@@ -56,7 +56,7 @@ export function QuestionSelector({
         .select("id, chapter_name, chapter_no, status")
         .in("id", subjectIds);
 
-      if (error) throw new Error(`Failed to fetch chapters: ${error.message}`);
+      if (error) throw new Error(`Failed to fetch subjects: ${error.message}`);
 
       const chapterMap = data.reduce(
         (
@@ -113,7 +113,6 @@ export function QuestionSelector({
       : questions;
   }, [questions, searchTerm]);
 
-  /** Utility function to safely get section title */
   const getSectionTitle = (q: Question): string => {
     const qWithSectionTitle = q as {
       sectionTitle?: string;
@@ -127,47 +126,97 @@ export function QuestionSelector({
   };
 
   const groupedQuestions = useMemo(() => {
-    const grouped = filteredQuestions.reduce(
+    // Step 1: Group questions by chapter (subject_id)
+    const groupedByChapter = filteredQuestions.reduce(
       (
         acc: Record<
           string,
           {
-            marks: Record<string, Question[]>;
-            types: Record<string, Question[]>;
-            sectionTitles: Record<string, Question[]>;
+            typeSectionTitle: Record<
+              string,
+              {
+                type: string;
+                sectionTitle: string;
+                marks: Record<string, Question[]>;
+              }
+            >;
           }
         >,
         q
       ) => {
         const chapterId = q.subject_id.toString();
-        acc[chapterId] = acc[chapterId] || {
+        acc[chapterId] = acc[chapterId] || { typeSectionTitle: {} };
+
+        // Step 2: Create a unique key for the combination of Type and SectionTitle
+        const typeKey = q.type || "Other";
+        const sectionTitleKey = getSectionTitle(q);
+        const typeSectionTitleKey = `${typeKey}||${sectionTitleKey}`; // Unique key to avoid duplicates
+
+        // Step 3: Group by the Type-SectionTitle combination
+        acc[chapterId].typeSectionTitle[typeSectionTitleKey] = acc[chapterId]
+          .typeSectionTitle[typeSectionTitleKey] || {
+          type: typeKey,
+          sectionTitle: sectionTitleKey,
           marks: {},
-          types: {},
-          sectionTitles: {},
         };
 
+        // Step 4: Within each Type-SectionTitle group, group by Marks
         const markKey = `${q.marks}`;
-        acc[chapterId].marks[markKey] = acc[chapterId].marks[markKey] || [];
-        acc[chapterId].marks[markKey].push(q);
-
-        const typeKey = q.type || "Other";
-        acc[chapterId].types[typeKey] = acc[chapterId].types[typeKey] || [];
-        acc[chapterId].types[typeKey].push(q);
-
-        const sectionTitleKey = getSectionTitle(q);
-        acc[chapterId].sectionTitles[sectionTitleKey] =
-          acc[chapterId].sectionTitles[sectionTitleKey] || [];
-        acc[chapterId].sectionTitles[sectionTitleKey].push(q);
+        acc[chapterId].typeSectionTitle[typeSectionTitleKey].marks[markKey] =
+          acc[chapterId].typeSectionTitle[typeSectionTitleKey].marks[markKey] ||
+          [];
+        acc[chapterId].typeSectionTitle[typeSectionTitleKey].marks[
+          markKey
+        ].push(q);
 
         return acc;
       },
       {}
     );
+
+    // Step 5: Sort chapters by chapterNo and questions within each group by marks
     return Object.fromEntries(
-      Object.entries(grouped).sort(
-        ([a], [b]) =>
-          (chapterData[a]?.chapterNo || 0) - (chapterData[b]?.chapterNo || 0)
-      )
+      Object.entries(groupedByChapter)
+        .sort(
+          ([a], [b]) =>
+            (chapterData[a]?.chapterNo || 0) - (chapterData[b]?.chapterNo || 0)
+        )
+        .map(([chapterId, groups]) => [
+          chapterId,
+          {
+            // Step 6: Prepare data for rendering under Type, Marks, and SectionTitle accordions
+            types: Object.values(groups.typeSectionTitle).reduce(
+              (acc, { type, marks }) => {
+                acc[type] = acc[type] || [];
+                Object.values(marks).forEach((questions) => {
+                  acc[type].push(...questions);
+                });
+                return acc;
+              },
+              {} as Record<string, Question[]>
+            ),
+            marks: Object.values(groups.typeSectionTitle).reduce(
+              (acc, { marks }) => {
+                Object.entries(marks).forEach(([mark, questions]) => {
+                  acc[mark] = acc[mark] || [];
+                  acc[mark].push(...questions);
+                });
+                return acc;
+              },
+              {} as Record<string, Question[]>
+            ),
+            sectionTitles: Object.values(groups.typeSectionTitle).reduce(
+              (acc, { sectionTitle, marks }) => {
+                acc[sectionTitle] = acc[sectionTitle] || [];
+                Object.values(marks).forEach((questions) => {
+                  acc[sectionTitle].push(...questions);
+                });
+                return acc;
+              },
+              {} as Record<string, Question[]>
+            ),
+          },
+        ])
     );
   }, [filteredQuestions, chapterData]);
 
@@ -325,6 +374,17 @@ export function QuestionSelector({
     );
   };
 
+  const getGroupTitle = (
+    groupKey: string,
+    groupType: "types" | "marks" | "sectionTitles",
+    count: number
+  ) => {
+    if (groupType === "marks") {
+      return `${groupKey} Mark${Number(groupKey) !== 1 ? "s" : ""} (${count})`;
+    }
+    return `${groupKey} (${count})`;
+  };
+
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -344,19 +404,20 @@ export function QuestionSelector({
               type="single"
               collapsible
               key={chapterId}
-              value={expandedChapters.includes(chapterId) ? chapterId : ""}
+              value={
+                expandedChapters.includes(chapterId) ? chapterId : undefined
+              }
+              onValueChange={() => toggleChapter(chapterId)}
               className="border rounded-md bg-white"
             >
               <AccordionItem value={chapterId}>
-                <AccordionTrigger
-                  onClick={() => toggleChapter(chapterId)}
-                  className="text-left px-4 py-3 hover:bg-gray-50"
-                >
+                <AccordionTrigger className="text-left px-4 py-3 hover:bg-gray-50">
+                  {/* Display chapter number and name with total question count */}
                   <div className="flex items-center gap-2">
                     <h4 className="text-base font-medium truncate">
-                      Ch. {chapterData[chapterId]?.chapterNo || chapterId}:{" "}
-                      {chapterData[chapterId]?.name || `Chapter ${chapterId}`} (
-                      {Object.values(groups.marks).flat().length})
+                      Ch. {chapterData[chapterId]?.chapterNo || "N/A"}:{" "}
+                      {chapterData[chapterId]?.name || "Unknown Chapter"} (
+                      {Object.values(groups.sectionTitles).flat().length})
                     </h4>
                     {chapterData[chapterId]?.status ? (
                       <Check className="h-4 w-4 text-green-600" />
@@ -368,25 +429,69 @@ export function QuestionSelector({
                 <AccordionContent className="px-4 py-2">
                   {loadedChapters.includes(chapterId) ? (
                     <div className="space-y-4">
-                      <Accordion
-                        type="multiple"
-                        value={Object.keys(groups.marks).map(
-                          (mark) => `${chapterId}-mark-${mark}`
-                        )}
-                        className="space-y-2"
-                      >
-                        {Object.entries(groups.marks)
-                          .sort(([a], [b]) => Number(a) - Number(b))
-                          .map(([mark, markQuestions]) => {
-                            const itemValue = `${chapterId}-mark-${mark}`;
+                      {/* Group by Type */}
+                      <Accordion type="multiple" className="space-y-2">
+                        {Object.entries(groups.types)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([key, questions]) => {
+                            const itemValue = `${chapterId}-types-${key}`;
                             return (
-                              <AccordionItem value={itemValue} key={mark}>
+                              <AccordionItem value={itemValue} key={key}>
                                 <AccordionTrigger className="text-sm py-2 hover:bg-gray-50">
-                                  {mark} Mark{Number(mark) !== 1 ? "s" : ""} (
-                                  {markQuestions.length})
+                                  {getGroupTitle(
+                                    key,
+                                    "types",
+                                    questions.length
+                                  )}
                                 </AccordionTrigger>
                                 <AccordionContent className="px-2 py-1">
-                                  {markQuestions.map(renderQuestion)}
+                                  {questions.map(renderQuestion)}
+                                </AccordionContent>
+                              </AccordionItem>
+                            );
+                          })}
+                      </Accordion>
+
+                      {/* Group by Marks */}
+                      <Accordion type="multiple" className="space-y-2">
+                        {Object.entries(groups.marks)
+                          .sort(([a], [b]) => Number(a) - Number(b))
+                          .map(([key, questions]) => {
+                            const itemValue = `${chapterId}-marks-${key}`;
+                            return (
+                              <AccordionItem value={itemValue} key={key}>
+                                <AccordionTrigger className="text-sm py-2 hover:bg-gray-50">
+                                  {getGroupTitle(
+                                    key,
+                                    "marks",
+                                    questions.length
+                                  )}
+                                </AccordionTrigger>
+                                <AccordionContent className="px-2 py-1">
+                                  {questions.map(renderQuestion)}
+                                </AccordionContent>
+                              </AccordionItem>
+                            );
+                          })}
+                      </Accordion>
+
+                      {/* Group by Section Title */}
+                      <Accordion type="multiple" className="space-y-2">
+                        {Object.entries(groups.sectionTitles)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([key, questions]) => {
+                            const itemValue = `${chapterId}-sectionTitles-${key}`;
+                            return (
+                              <AccordionItem value={itemValue} key={key}>
+                                <AccordionTrigger className="text-sm py-2 hover:bg-gray-50">
+                                  {getGroupTitle(
+                                    key,
+                                    "sectionTitles",
+                                    questions.length
+                                  )}
+                                </AccordionTrigger>
+                                <AccordionContent className="px-2 py-1">
+                                  {questions.map(renderQuestion)}
                                 </AccordionContent>
                               </AccordionItem>
                             );
