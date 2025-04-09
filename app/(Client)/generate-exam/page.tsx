@@ -63,6 +63,8 @@ export default function GenerateExamPage() {
   const { toast } = useToast();
   const isBrowser = typeof window !== "undefined";
 
+  console.log(selectedChapters, saveExamToHistory);
+
   const fetchContents = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -384,7 +386,7 @@ export default function GenerateExamPage() {
 
   const progress = (currentStep / 3) * 100;
   // console.log("Rendering with contents:", contents, ); // Debug here
-  console.log("History:", historyId); // Debug here
+  console.log("Current history ID:", historyId);
 
   const contentSelectionStep = (
     <div className="space-y-6">
@@ -407,40 +409,56 @@ export default function GenerateExamPage() {
     </div>
   );
 
-  const saveToHistory = useCallback(() => {
-    if (!selectedContent || selectedQuestions.length === 0) {
-      toast({
-        title: "Error",
-        description: "Select content and questions to save to history.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // const saveToHistory = useCallback(() => {
+  //   try {
+  //     if (!selectedContent || selectedQuestions.length === 0) {
+  //       toast({
+  //         title: "Error",
+  //         description: "Select content and questions to save to history.",
+  //         variant: "destructive",
+  //       });
+  //       return;
+  //     }
 
-    const chaptersString = selectedChapters
-      .map((ch) => ch.chapterNo)
-      .sort((a, b) => (a ?? 0) - (b ?? 0))
-      .join(", ");
+  //     const chaptersString = selectedChapters
+  //       .map((ch) => ch.chapterNo)
+  //       .sort((a, b) => (a ?? 0) - (b ?? 0))
+  //       .join(", ");
 
-    saveExamToHistory({
-      contentId: selectedContent.id,
-      contentName: selectedContent.name,
-      standard: selectedContent.class.toString(),
-      medium: selectedContent.medium,
-      semester: selectedContent.semester,
-      totalQuestions: selectedQuestions.length,
-      totalMarks: totalPaperMarks,
-      selectedQuestionIds: selectedQuestions.map((q) => Number(q.id)),
-      chapters: chaptersString,
-    });
-  }, [
-    selectedContent,
-    selectedQuestions,
-    selectedChapters,
-    totalPaperMarks,
-    saveExamToHistory,
-    toast,
-  ]);
+  //     const historyId = saveExamToHistory({
+  //       contentId: selectedContent.id,
+  //       contentName: selectedContent.name,
+  //       standard: selectedContent.class.toString(),
+  //       medium: selectedContent.medium,
+  //       semester: selectedContent.semester,
+  //       totalQuestions: selectedQuestions.length,
+  //       totalMarks: totalPaperMarks,
+  //       selectedQuestionIds: selectedQuestions.map((q) => Number(q.id)),
+  //       chapters: chaptersString,
+  //     });
+
+  //     if (historyId) {
+  //       toast({
+  //         title: "Success",
+  //         description: "Exam saved to history successfully.",
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error("Error saving to history:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: "Failed to save exam to history.",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // }, [
+  //   selectedContent,
+  //   selectedQuestions,
+  //   selectedChapters,
+  //   totalPaperMarks,
+  //   saveExamToHistory,
+  //   toast,
+  // ]);
 
   const questionSelectionStep = (
     <div className="space-y-6">
@@ -466,7 +484,7 @@ export default function GenerateExamPage() {
       </h2>
 
       {selectedContent && subjects.length > 0 && (
-        <Card className="bg-white shadow-md">
+        <Card className=" shadow-md">
           <CardContent className="p-4">
             <h3 className="text-lg font-medium text-blue-600 mb-3">
               Available Subjects
@@ -498,27 +516,27 @@ export default function GenerateExamPage() {
       )}
 
       {selectedQuestions.length > 0 && (
-        <Card className="bg-white shadow-md mb-4">
+        <Card className=" shadow-md mb-4">
           <CardContent className="p-4">
             <h3 className="text-lg font-medium text-blue-600 mb-2">
               Selected Questions Summary
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              <div className="bg-gray-50 p-2 rounded">
+              <div className=" p-2 rounded">
                 <p className="text-sm font-medium">Total Questions</p>
                 <p className="text-xl font-bold">{selectedQuestions.length}</p>
               </div>
-              <div className="bg-gray-50 p-2 rounded">
+              <div className=" p-2 rounded">
                 <p className="text-sm font-medium">Total Marks</p>
                 <p className="text-xl font-bold">{totalPaperMarks}</p>
               </div>
-              <div className="bg-gray-50 p-2 rounded">
+              <div className=" p-2 rounded">
                 <p className="text-sm font-medium">Sections</p>
                 <p className="text-xl font-bold">
                   {examStructure.sections.length}
                 </p>
               </div>
-              <div className="bg-gray-50 p-2 rounded col-span-2">
+              <div className=" p-2 rounded col-span-2">
                 <p className="text-sm font-medium">Marks Distribution</p>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {[1, 2, 3, 4, 5].map((mark) => {
@@ -526,11 +544,7 @@ export default function GenerateExamPage() {
                       (q) => q.marks === mark
                     ).length;
                     return count > 0 ? (
-                      <Badge
-                        key={mark}
-                        variant="outline"
-                        className="bg-blue-50"
-                      >
+                      <Badge key={mark} variant="outline" className="">
                         {mark} mark: {count}
                       </Badge>
                     ) : null;
@@ -565,7 +579,7 @@ export default function GenerateExamPage() {
       </Button>
 
       {examStructure.sections.length === 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md flex items-start gap-3">
+        <div className=" border border-yellow-200 p-4 rounded-md flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5" />
           <div>
             <h4 className="font-medium text-yellow-800">
@@ -665,13 +679,13 @@ export default function GenerateExamPage() {
             onGeneratePdf={handleGeneratePdf}
             isSectionWise={true}
           />
-          <Button
+          {/* <Button
             onClick={saveToHistory}
             variant="outline"
             className="mt-4 border-blue-600 text-blue-600 hover:bg-blue-50"
           >
             Save to History
-          </Button>
+          </Button> */}
           {showPdfDownload && (
             <PdfDownload
               format={pdfFormat!}
@@ -699,7 +713,7 @@ export default function GenerateExamPage() {
     return <Loading title="Loading exam generation..." />;
 
   return (
-    <div className="container mx-auto p-2 sm:p-2 max-w-5xl bg-gray-50">
+    <div className="container mx-auto p-2 px- sm:p-2 lg:mx-5 ">
       <header className="mb-6">
         <h1 className="text-3xl font-bold mb-4 text-blue-600">
           Generate Exam Paper

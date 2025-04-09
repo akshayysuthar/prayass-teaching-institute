@@ -2,19 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #f9f7ed; /* vanilla-900 */
-  --primary: #f7ce5b; /* mustard */
-  --secondary: #f7b05b; /* earthYellow */
-  --text: #1f1300; /* licorice */
-  --vanilla: #dfd6a7;
-  --satin-sheen-gold: #af9b46;
-}
 
-body {
-  background-color: var(--background);
-  color: var(--text);
-}
 
 /* globals.css */
 html,

@@ -20,7 +20,6 @@ export function Navbar() {
   const isAdmin =
     user?.emailAddresses[0]?.emailAddress &&
     siteConfig.adminEmail.includes(user.emailAddresses[0].emailAddress);
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
       <div className="container flex h-16 items-center justify-between">
@@ -35,7 +34,7 @@ export function Navbar() {
                 <span className="sr-only">Toggle Menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="pr-0 bg-background">
+            <SheetContent side="left" className="pr-0">
               <div className="flex items-center gap-2 mb-8">
                 <Image
                   src={siteConfig.mainLogo || "/placeholder.svg"}
@@ -132,12 +131,7 @@ export function Navbar() {
             </>
           ) : (
             <SignInButton mode="modal">
-              <Button
-                variant="outline"
-                className="border-primary text-primary hover:bg-primary/10"
-              >
-                Sign In
-              </Button>
+              <Button variant="outline">Sign In</Button>
             </SignInButton>
           )}
         </div>

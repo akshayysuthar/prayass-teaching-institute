@@ -130,7 +130,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-scroll bg-background">
       {/* Hero Section */}
       <section className="relative bg-blue-600 text-foreground py-20">
         <div
@@ -190,7 +190,7 @@ export default function Home() {
         <section className="mb-16">
           <Card className="shadow-lg border-none">
             <CardHeader className="bg-blue-50 border-b">
-              <CardTitle className="text-2xl font-semibold text-blue-600 flex items-center">
+              <CardTitle className="text-2xl font-semibold  flex items-center">
                 {/* <siteConfig.navLinks[0].icon className="mr-2 h-6 w-6" /> Your Preferences */}
               </CardTitle>
               <CardDescription>
@@ -254,13 +254,13 @@ export default function Home() {
 
         {/* Available Content Section */}
         <section className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-8 text-blue-600">
+          <h2 className="text-3xl font-bold text-center mb-8 ">
             Available Content
           </h2>
           {isLoading ? (
             <div className="text-center py-8">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-              <p className="mt-4 text-gray-600">Loading content...</p>
+              <p className="mt-4 text-gray-700">Loading content...</p>
             </div>
           ) : filteredContents.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -270,7 +270,7 @@ export default function Home() {
                   className="hover:shadow-lg transition-shadow border-none shadow-md"
                 >
                   <CardHeader className="bg-blue-50 pb-2">
-                    <CardTitle className="flex items-center text-blue-600">
+                    <CardTitle className="flex items-center ">
                       {/* <siteConfig.navLinks[1].icon className="mr-2 h-6 w-6" /> {content.name} */}
                       {content.status !== false && (
                         <CheckCircle className="ml-2 h-4 w-4 text-green-600" />
@@ -292,7 +292,7 @@ export default function Home() {
                       </p>
                       <p className="text-sm text-gray-600">
                         <span className="font-medium">Semester:</span>{" "}
-                        {content.semester}
+                        {content.semester || "Not Found"}
                       </p>
                     </div>
                   </CardContent>
@@ -320,7 +320,7 @@ export default function Home() {
                   setPreferences({ medium: "", standard: "", semester: "" })
                 }
                 variant="outline"
-                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                className="border-blue-600  hover:bg-blue-50"
               >
                 Clear Filters
               </Button>
@@ -333,7 +333,7 @@ export default function Home() {
           <section className="mb-8">
             <Card className="shadow-lg border-none">
               <CardHeader className="bg-blue-50 border-b">
-                <CardTitle className="text-2xl font-semibold text-blue-600">
+                <CardTitle className="text-2xl font-semibold ">
                   Content Management
                 </CardTitle>
                 <CardDescription>
@@ -375,9 +375,7 @@ export default function Home() {
 
       {/* Features Section */}
       <section className="mb-16">
-        <h2 className="text-3xl font-bold text-center mb-12 text-blue-600">
-          Key Features
-        </h2>
+        <h2 className="text-3xl font-bold text-center mb-12 ">Key Features</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {siteConfig.features.map((feature, index) => (
             <Card
@@ -385,7 +383,7 @@ export default function Home() {
               className="border-t-4 border-blue-400 shadow-md hover:shadow-lg transition-shadow"
             >
               <CardHeader>
-                <CardTitle className="flex items-center text-blue-600">
+                <CardTitle className="flex items-center ">
                   <feature.icon className="mr-2 h-6 w-6" /> {feature.title}
                 </CardTitle>
               </CardHeader>

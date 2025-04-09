@@ -49,7 +49,11 @@ export function QuestionSelector({
   const fetchChapterNames = useCallback(async () => {
     try {
       const subjectIds = [...new Set(questions.map((q) => q.subject_id))];
-      if (subjectIds.length === 0) return;
+      if (subjectIds.length === 0) {
+        setChapterData({});
+        onSelectChapters([]);
+        return;
+      }
 
       const { data, error } = await supabase
         .from("subjects")
@@ -57,6 +61,12 @@ export function QuestionSelector({
         .in("id", subjectIds);
 
       if (error) throw new Error(`Failed to fetch subjects: ${error.message}`);
+
+      if (!data || data.length === 0) {
+        setChapterData({});
+        onSelectChapters([]);
+        return;
+      }
 
       const chapterMap = data.reduce(
         (
@@ -86,12 +96,14 @@ export function QuestionSelector({
         .sort((a, b) => a.chapterNo - b.chapterNo);
       onSelectChapters(availableChapters);
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching chapter names:", error);
       toast({
         title: "Error",
         description: "Failed to load chapters.",
         variant: "destructive",
       });
+      setChapterData({});
+      onSelectChapters([]);
     }
   }, [questions, onSelectChapters, toast]);
 
@@ -289,24 +301,35 @@ export function QuestionSelector({
 
   const renderImages = useCallback((images?: string | string[] | null) => {
     if (!images) return null;
-    const imageArray = Array.isArray(images) ? images : [images];
-    return (
-      <div className="flex flex-wrap gap-2 mt-2">
-        {imageArray.map((img, idx) => (
-          <Image
-            loading="lazy"
-            key={idx}
-            src={img || "/placeholder.svg"}
-            alt={`Question image ${idx + 1}`}
-            width={350}
-            height={150}
-            className="object-contain max-w-full h-auto rounded-md"
-          />
-        ))}
-      </div>
-    );
+
+    try {
+      const imageArray = Array.isArray(images) ? images : [images];
+      return (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {imageArray.map((img, idx) => (
+            <Image
+              loading="lazy"
+              key={idx}
+              src={img || "/placeholder.svg"}
+              alt={`Question image ${idx + 1}`}
+              width={350}
+              height={150}
+              className="object-contain max-w-full h-auto rounded-md"
+              onError={(e) => {
+                // Fallback to placeholder on error
+                (e.target as HTMLImageElement).src = "/placeholder.svg";
+              }}
+            />
+          ))}
+        </div>
+      );
+    } catch (error) {
+      console.error("Error rendering images:", error);
+      return null;
+    }
   }, []);
 
+  // 1. Update the question rendering to support dark mode
   const renderQuestion = (question: Question) => {
     const isSelected = selectedQuestions.some((q) => q.id === question.id);
     const sectionTitle = getSectionTitle(question);
@@ -315,7 +338,7 @@ export function QuestionSelector({
       <div
         className={cn(
           "flex items-start gap-3 border-b pb-1 p-2 mt-1 rounded-lg last:border-b-0 transition-colors",
-          isSelected && "bg-blue-50"
+          isSelected && "bg-blue-50 dark:bg-blue-900/30 text-foreground"
         )}
         key={question.id}
       >
@@ -376,7 +399,7 @@ export function QuestionSelector({
 
   const getGroupTitle = (
     groupKey: string,
-    groupType: "types" | "marks" | "sectionTitles",
+    groupType: "marks" | "sectionTitles",
     count: number
   ) => {
     if (groupType === "marks") {
@@ -385,6 +408,7 @@ export function QuestionSelector({
     return `${groupKey} (${count})`;
   };
 
+  // 2. Update the accordion items to support dark mode
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -408,10 +432,10 @@ export function QuestionSelector({
                 expandedChapters.includes(chapterId) ? chapterId : undefined
               }
               onValueChange={() => toggleChapter(chapterId)}
-              className="border rounded-md bg-white"
+              className="border rounded-md bg-background dark:border-gray-700"
             >
               <AccordionItem value={chapterId}>
-                <AccordionTrigger className="text-left px-4 py-3 hover:bg-gray-50">
+                <AccordionTrigger className="text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800">
                   {/* Display chapter number and name with total question count */}
                   <div className="flex items-center gap-2">
                     <h4 className="text-base font-medium truncate">
@@ -420,38 +444,15 @@ export function QuestionSelector({
                       {Object.values(groups.sectionTitles).flat().length})
                     </h4>
                     {chapterData[chapterId]?.status ? (
-                      <Check className="h-4 w-4 text-green-600" />
+                      <Check className="h-4 w-4 text-success" />
                     ) : (
-                      <X className="h-4 w-4 text-red-600" />
+                      <X className="h-4 w-4 text-destructive" />
                     )}
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 py-2">
                   {loadedChapters.includes(chapterId) ? (
                     <div className="space-y-4">
-                      {/* Group by Type */}
-                      <Accordion type="multiple" className="space-y-2">
-                        {Object.entries(groups.types)
-                          .sort(([a], [b]) => a.localeCompare(b))
-                          .map(([key, questions]) => {
-                            const itemValue = `${chapterId}-types-${key}`;
-                            return (
-                              <AccordionItem value={itemValue} key={key}>
-                                <AccordionTrigger className="text-sm py-2 hover:bg-gray-50">
-                                  {getGroupTitle(
-                                    key,
-                                    "types",
-                                    questions.length
-                                  )}
-                                </AccordionTrigger>
-                                <AccordionContent className="px-2 py-1">
-                                  {questions.map(renderQuestion)}
-                                </AccordionContent>
-                              </AccordionItem>
-                            );
-                          })}
-                      </Accordion>
-
                       {/* Group by Marks */}
                       <Accordion type="multiple" className="space-y-2">
                         {Object.entries(groups.marks)
@@ -460,7 +461,7 @@ export function QuestionSelector({
                             const itemValue = `${chapterId}-marks-${key}`;
                             return (
                               <AccordionItem value={itemValue} key={key}>
-                                <AccordionTrigger className="text-sm py-2 hover:bg-gray-50">
+                                <AccordionTrigger className="text-sm py-2 px-2 rounded-lg hover:bg-accent/50">
                                   {getGroupTitle(
                                     key,
                                     "marks",
@@ -483,7 +484,7 @@ export function QuestionSelector({
                             const itemValue = `${chapterId}-sectionTitles-${key}`;
                             return (
                               <AccordionItem value={itemValue} key={key}>
-                                <AccordionTrigger className="text-sm py-2 hover:bg-gray-50">
+                                <AccordionTrigger className="text-sm py-2 px-2 rounded-lg hover:bg-accent/50">
                                   {getGroupTitle(
                                     key,
                                     "sectionTitles",
@@ -523,8 +524,8 @@ export function QuestionSelector({
       )}
 
       {selectedQuestions.length > 0 && (
-        <div className="bg-blue-50 p-4 rounded-md">
-          <h3 className="text-sm font-medium text-blue-700 mb-2">
+        <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-md">
+          <h3 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
             Selected Questions ({selectedQuestions.length})
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -534,7 +535,10 @@ export function QuestionSelector({
               ).length;
               if (count === 0) return null;
               return (
-                <Badge key={mark} className="bg-blue-100 text-blue-800">
+                <Badge
+                  key={mark}
+                  className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                >
                   {mark} mark: {count} (Total: {mark * count})
                 </Badge>
               );

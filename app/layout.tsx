@@ -40,18 +40,17 @@ export default function RootLayout({
           ></meta>
         </head>
 
-        <body className="min-h-screen text-foreground bg-background  font-sans antialiased">
+        <body className="font-sans bg-transparent">
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >
-            <div className="mx-auto">
-              <div className="relative flex min-h-screen flex-col overflow-x-hidden">
+            <div className="mx-auto h-screen">
+              <div className="relative flex flex-col  overflow-x-hidden">
                 <Navbar />
-
-                <main className="h-screen w-screen">{children}</main>
+                <main className="mb-3 mx-auto">{children}</main>
               </div>
               <Toaster />
               <ErrorHandler />

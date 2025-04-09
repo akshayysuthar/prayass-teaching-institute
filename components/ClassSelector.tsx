@@ -35,7 +35,7 @@ export function ClassSelector({
   return (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="content">Content</Label>
+        <Label htmlFor="content">Select The Subject</Label>
         <Select
           onValueChange={handleContentChange}
           value={selectedContent?.id.toString()}
