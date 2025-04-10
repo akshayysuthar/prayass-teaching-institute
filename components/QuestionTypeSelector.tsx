@@ -1,23 +1,33 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Input } from "@/components/ui/input";
+import {
+  Search,
+  Check,
+  X,
+  Minus,
+  Plus,
+  BookOpen,
+  Tag,
+  CheckSquare,
+  List,
+} from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { useToast } from "@/hooks/use-toast";
 import type { Question } from "@/types";
 import { supabase } from "@/utils/supabase/client";
-import { Input } from "@/components/ui/input";
-import { Search, Plus, Minus, Check, X } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 interface SelectedChapter {
   id: string;
@@ -338,7 +348,9 @@ export function QuestionSelector({
       <div
         className={cn(
           "flex items-start gap-3 border-b pb-1 p-2 mt-1 rounded-lg last:border-b-0 transition-colors",
-          isSelected && "bg-blue-50 dark:bg-blue-900/30 text-foreground"
+          isSelected
+            ? "bg-blue-50 dark:bg-blue-900/30 text-foreground"
+            : "hover:bg-gray-50 dark:hover:bg-gray-800"
         )}
         key={question.id}
       >
@@ -359,7 +371,8 @@ export function QuestionSelector({
             question.question_images || question.question_images_gu
           )}
           <div className="flex items-center justify-between mt-1">
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground flex items-center">
+              <Tag className="mr-1 h-3 w-3" />
               {question.type || "General"} - {sectionTitle}
             </span>
             <div className="flex items-center gap-2">
@@ -403,9 +416,19 @@ export function QuestionSelector({
     count: number
   ) => {
     if (groupType === "marks") {
-      return `${groupKey} Mark${Number(groupKey) !== 1 ? "s" : ""} (${count})`;
+      return (
+        <div className="flex items-center">
+          <Tag className="mr-2 h-4 w-4" />
+          {groupKey} Mark{Number(groupKey) !== 1 ? "s" : ""} ({count})
+        </div>
+      );
     }
-    return `${groupKey} (${count})`;
+    return (
+      <div className="flex items-center">
+        <List className="mr-2 h-4 w-4" />
+        {groupKey} ({count})
+      </div>
+    );
   };
 
   // 2. Update the accordion items to support dark mode
@@ -438,15 +461,16 @@ export function QuestionSelector({
                 <AccordionTrigger className="text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800">
                   {/* Display chapter number and name with total question count */}
                   <div className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     <h4 className="text-base font-medium truncate">
                       Ch. {chapterData[chapterId]?.chapterNo || "N/A"}:{" "}
                       {chapterData[chapterId]?.name || "Unknown Chapter"} (
                       {Object.values(groups.sectionTitles).flat().length})
                     </h4>
                     {chapterData[chapterId]?.status ? (
-                      <Check className="h-4 w-4 text-success" />
+                      <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                     ) : (
-                      <X className="h-4 w-4 text-destructive" />
+                      <X className="h-4 w-4 text-red-600 dark:text-red-400" />
                     )}
                   </div>
                 </AccordionTrigger>
@@ -525,7 +549,8 @@ export function QuestionSelector({
 
       {selectedQuestions.length > 0 && (
         <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-md">
-          <h3 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
+          <h3 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2 flex items-center">
+            <CheckSquare className="mr-2 h-4 w-4" />
             Selected Questions ({selectedQuestions.length})
           </h3>
           <div className="flex flex-wrap gap-2">
