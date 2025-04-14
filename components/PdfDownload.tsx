@@ -12,28 +12,33 @@ import {
 import type { PdfDownloadProps, Question, ExamStructure } from "@/types";
 import { DynamicParagraph } from "./DynamicParagraph";
 import { siteConfig } from "@/config/site";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 // Register fonts
-try {
-  Font.register({ family: "NotoSans", src: "/fonts/NotoSans-Regular.ttf" });
-  Font.register({
-    family: "NotoSans",
-    src: "/fonts/NotoSans-Bold.ttf",
-    fontWeight: "bold",
-  });
-  Font.register({
-    family: "NotoSansGujarati",
-    src: "/fonts/NotoSansGujarati-Regular.ttf",
-  });
-  Font.register({
-    family: "NotoSansGujarati",
-    src: "/fonts/NotoSansGujarati-Bold.ttf",
-    fontWeight: "bold",
-  });
-  console.log("Fonts registered successfully");
-} catch (error) {
-  console.error("Font registration failed:", error);
-}
+const registerFonts = () => {
+  try {
+    Font.register({ family: "NotoSans", src: "/fonts/NotoSans-Regular.ttf" });
+    Font.register({
+      family: "NotoSans",
+      src: "/fonts/NotoSans-Bold.ttf",
+      fontWeight: "bold",
+    });
+    Font.register({
+      family: "NotoSansGujarati",
+      src: "/fonts/NotoSansGujarati-Regular.ttf",
+    });
+    Font.register({
+      family: "NotoSansGujarati",
+      src: "/fonts/NotoSansGujarati-Bold.ttf",
+      fontWeight: "bold",
+    });
+    return true;
+  } catch (error) {
+    console.error("Font registration failed:", error);
+    return false;
+  }
+};
 
 interface PdfDownloadPropsExtended extends PdfDownloadProps {
   format: "exam" | "examWithAnswer" | "material";
@@ -54,7 +59,7 @@ const createStyles = (subject: string) => {
     page: {
       flexDirection: "column",
       backgroundColor: "#FFFFFF",
-      padding: 5, // change to 5 and don't change it
+      padding: 10,
       fontFamily: "NotoSans",
       position: "relative",
     },
@@ -74,7 +79,7 @@ const createStyles = (subject: string) => {
       zIndex: -1,
     },
     headerContainer: {
-      marginBottom: 5, // keep don't change it
+      marginBottom: 5,
       borderBottomWidth: 1,
       borderBottomColor: "#000",
       paddingBottom: 10,
@@ -122,7 +127,7 @@ const createStyles = (subject: string) => {
       padding: 5,
     },
     question: {
-      fontSize: 11,
+      fontSize: 12,
       marginBottom: 2,
       width: "100%",
     },
@@ -207,7 +212,6 @@ const groupQuestionsBySection = (
   if (!isSectionWise)
     return [{ name: "", questionType: "All Questions", questions }];
 
-  // Group questions by marks
   const questionsByMarks: Record<number, Question[]> = {};
   questions.forEach((q) => {
     if (!questionsByMarks[q.marks]) questionsByMarks[q.marks] = [];
@@ -220,7 +224,6 @@ const groupQuestionsBySection = (
     questions: Question[];
   }> = [];
 
-  // Section A: MCQs and 1 mark questions
   const mcqsAndOneMarks = questions.filter(
     (q) => q.type === "MCQ" || q.marks === 1
   );
@@ -232,7 +235,6 @@ const groupQuestionsBySection = (
     });
   }
 
-  // Section B: 2 marks questions
   if (questionsByMarks[2] && questionsByMarks[2].length > 0) {
     grouped.push({
       name: "B",
@@ -241,7 +243,6 @@ const groupQuestionsBySection = (
     });
   }
 
-  // Section C: 3 marks questions
   if (questionsByMarks[3] && questionsByMarks[3].length > 0) {
     grouped.push({
       name: "C",
@@ -250,7 +251,6 @@ const groupQuestionsBySection = (
     });
   }
 
-  // Section D: 4 marks questions
   if (questionsByMarks[4] && questionsByMarks[4].length > 0) {
     grouped.push({
       name: "D",
@@ -259,7 +259,6 @@ const groupQuestionsBySection = (
     });
   }
 
-  // Section E: 5 marks questions
   if (questionsByMarks[5] && questionsByMarks[5].length > 0) {
     grouped.push({
       name: "E",
@@ -280,7 +279,6 @@ const MyDocument = ({
   studentName,
   subject,
   chapters,
-
   isSectionWise,
   format,
   testTitle = "Unit Test",
@@ -303,7 +301,8 @@ const MyDocument = ({
       <Text style={styles.subHeader}>{testTitle}</Text>
       <View style={styles.row}>
         <Text style={styles.leftColumn}>
-          STD: {standard} {schoolName ? `- ${schoolName}` : ""}
+          STD: {standard}
+          {schoolName ? ` - ${schoolName}` : ""}
         </Text>
         <Text style={styles.rightColumn}>Subject: {subject}</Text>
       </View>
@@ -318,6 +317,7 @@ const MyDocument = ({
       {studentName && (
         <View style={styles.row}>
           <Text style={styles.leftColumn}>Student: {studentName}</Text>
+          <Text style={styles.rightColumn}></Text>
         </View>
       )}
     </View>
@@ -527,9 +527,21 @@ const MyDocument = ({
 };
 
 export function PdfDownload(props: PdfDownloadPropsExtended) {
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!registerFonts()) {
+      toast({
+        title: "Warning",
+        description: "Failed to load fonts. PDF may not render correctly.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
   return (
     <div className="space-y-4">
-      <PDFViewer width="100%" height={600} className="w-full">
+      <PDFViewer width="100%" height="60vh" className="w-full h-full">
         <MyDocument {...props} />
       </PDFViewer>
       <div className="flex justify-between">
@@ -539,7 +551,7 @@ export function PdfDownload(props: PdfDownloadPropsExtended) {
             props.teacherName
           }_${new Date().toLocaleDateString()}.pdf`}
         >
-          <Button>Download PDF</Button>
+          <Button className="min-h-12">Download PDF</Button>
         </PDFDownloadLink>
       </div>
     </div>

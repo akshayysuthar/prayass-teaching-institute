@@ -2,9 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { ClassSelector } from "@/components/ClassSelector";
-import { ExamPreview } from "@/components/ExamPreview";
-import { PdfDownload } from "@/components/PdfDownload";
 import { supabase } from "@/utils/supabase/client";
 import type {
   Content,
@@ -34,21 +31,33 @@ import {
   User,
   Building,
   X,
+  // RotateCcw,
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { useUser } from "@clerk/nextjs";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { ClassSelector } from "@/components/ClassSelector";
+import { ExamPreview } from "@/components/ExamPreview";
+import { PdfDownload } from "@/components/PdfDownload";
 
 export default function GenerateExamPage() {
   const searchParams = useSearchParams();
   const contentIdParam = searchParams.get("contentId");
 
   const [contents, setContents] = useState<Content[]>([]);
-  const [selectedContent, setSelectedContent] = useState<Content | null>(null);
+  const [selectedContent, setSelectedContent] = useState<Content | null>(() =>
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("selectedContent") || "null")
+      : null
+  );
   const [totalPaperMarks, setTotalPaperMarks] = useState<number>(100);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
+  const [selectedQuestions, setSelectedQuestions] = useState<Question[]>(() =>
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("selectedQuestions") || "[]")
+      : []
+  );
   const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>(
     []
   );
@@ -68,10 +77,10 @@ export default function GenerateExamPage() {
     sections: [],
   });
   const [chapterNo, setChapterNo] = useState<string>("");
+  const [showAnswers, setShowAnswers] = useState(false);
 
   const { user } = useUser();
   const { toast } = useToast();
-  const isBrowser = typeof window !== "undefined";
 
   console.log(selectedChapters);
 
@@ -136,10 +145,14 @@ export default function GenerateExamPage() {
 
         const processedQuestions = data.map((q) => ({
           ...q,
-          question: q.question || q.question_gu || "",
-          answer: q.answer || q.answer_gu || {},
-          question_images: q.question_images || q.question_images_gu || null,
-          answer_images: q.answer_images || q.answer_images_gu || null,
+          question: q.question || "",
+          answer: q.answer || {},
+          question_images: q.question_images || null,
+          answer_images: q.answer_images || null,
+          question_gu: q.question_gu || "",
+          answer_gu: q.answer_gu || {},
+          question_images_gu: q.question_images_gu || null,
+          answer_images_gu: q.answer_images_gu || null,
         }));
 
         setQuestions(processedQuestions);
@@ -159,49 +172,18 @@ export default function GenerateExamPage() {
   );
 
   useEffect(() => {
-    if (!isBrowser) return;
-
-    const loadInitialData = async () => {
-      const savedQuestions = localStorage.getItem("selectedQuestions");
-      if (savedQuestions) setSelectedQuestions(JSON.parse(savedQuestions));
-
-      const savedContent = localStorage.getItem("selectedContent");
-      const contentId = contentIdParam ? Number.parseInt(contentIdParam) : null;
-
-      if (savedContent && !contentId) {
-        const content = JSON.parse(savedContent);
-        setSelectedContent(content);
-        await fetchSubjects(content.id);
-        await fetchQuestions(content.id);
-      } else {
-        await fetchContents();
-      }
-    };
-
-    loadInitialData();
-  }, [
-    searchParams,
-    contentIdParam,
-    fetchContents,
-    fetchQuestions,
-    fetchSubjects,
-    isBrowser,
-  ]);
+    fetchContents();
+  }, [fetchContents]);
 
   useEffect(() => {
-    if (isBrowser) {
-      localStorage.setItem(
-        "selectedQuestions",
-        JSON.stringify(selectedQuestions)
-      );
-      if (selectedContent) {
-        localStorage.setItem(
-          "selectedContent",
-          JSON.stringify(selectedContent)
-        );
-      }
+    localStorage.setItem(
+      "selectedQuestions",
+      JSON.stringify(selectedQuestions)
+    );
+    if (selectedContent) {
+      localStorage.setItem("selectedContent", JSON.stringify(selectedContent));
     }
-  }, [selectedQuestions, selectedContent, isBrowser]);
+  }, [selectedQuestions, selectedContent]);
 
   useEffect(() => {
     if (selectedQuestions.length > 0) {
@@ -278,8 +260,8 @@ export default function GenerateExamPage() {
 
       setExamStructure({
         subject: selectedContent?.name || null,
-        totalMarks: totalMarks,
-        sections: sections,
+        totalMarks,
+        sections,
       });
 
       setTotalPaperMarks(totalMarks);
@@ -301,9 +283,13 @@ export default function GenerateExamPage() {
         fetchSubjects(content.id);
         fetchQuestions(content.id);
         setCurrentStep(2);
+        toast({
+          title: "Content Selected",
+          description: `Selected ${content.name} for exam generation.`,
+        });
       }
     },
-    [selectedContent, fetchSubjects, fetchQuestions]
+    [selectedContent, fetchSubjects, fetchQuestions, toast]
   );
 
   const handleQuestionSelect = useCallback((questions: Question[]) => {
@@ -315,70 +301,86 @@ export default function GenerateExamPage() {
   }, []);
 
   const handleClearQuestions = useCallback(() => {
-    if (selectedQuestions.length === 0) {
-      toast({
-        title: "Info",
-        description: "No questions are currently selected.",
-      });
-      return;
-    }
-
     setSelectedQuestions([]);
     localStorage.removeItem("selectedQuestions");
     toast({
-      title: "Success",
+      title: "Questions Cleared",
       description: "All selected questions have been cleared.",
     });
-  }, [selectedQuestions, toast]);
+  }, [toast]);
+
+  const handleResetForm = useCallback(() => {
+    setSelectedQuestions([]);
+    setSelectedChapters([]);
+    setStudentName("");
+    setSchoolName("");
+    setTestTitle("Unit Test");
+    setExamTime("1 hour");
+    setChapterNo("");
+    localStorage.removeItem("selectedQuestions");
+    setCurrentStep(1);
+    setSelectedContent(null);
+    toast({
+      title: "Form Reset",
+      description: "All inputs have been reset.",
+    });
+  }, [toast]);
 
   const handleGeneratePdf = useCallback(
     (format: "exam" | "examWithAnswer" | "material") => {
-      if (selectedQuestions.length === 0) {
-        toast({
-          title: "Error",
-          description: "Select at least one question to generate the PDF.",
-          variant: "destructive",
-        });
-        return;
-      }
       if (!chapterNo.trim()) {
         toast({
-          title: "Error",
-          description: "Chapter number is required.",
+          title: "Missing Chapter Number",
+          description: "Please enter a chapter number to generate the PDF.",
           variant: "destructive",
         });
         return;
       }
       setPdfFormat(format);
       setShowPdfDownload(true);
+      toast({
+        title: "PDF Generation Started",
+        description: `Generating ${format} PDF...`,
+      });
     },
-    [selectedQuestions, chapterNo, toast]
-  );
-
-  const setStep = useCallback(
-    (step: number) => {
-      if (step < 1 || step > 3) return;
-      if (step > 1 && !selectedContent) {
-        toast({
-          title: "Step Required",
-          description: "Please select a content first.",
-          variant: "destructive",
-        });
-        return;
-      }
-      setCurrentStep(step);
-    },
-    [selectedContent, toast]
+    [chapterNo, toast]
   );
 
   const handleQuickGeneratePdf = useCallback(() => {
     handleGeneratePdf("exam");
   }, [handleGeneratePdf]);
 
+  const toggleAnswers = useCallback(() => {
+    setShowAnswers((prev) => {
+      const newState = !prev;
+      toast({
+        title: newState ? "Answers Shown" : "Answers Hidden",
+        description: newState
+          ? "Answers are now visible in the preview."
+          : "Answers are now hidden in the preview.",
+      });
+      return newState;
+    });
+  }, [toast]);
+
+  const setStep = useCallback(
+    (step: number) => {
+      if (step < 1 || step > 3) return;
+      setCurrentStep(step);
+      toast({
+        title: "Step Changed",
+        description: `Moved to step ${step}: ${
+          step === 1 ? "Content" : step === 2 ? "Questions" : "Preview"
+        }.`,
+      });
+    },
+    [toast]
+  );
+
   const progress = (currentStep / 3) * 100;
 
   const contentSelectionStep = (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4">
       <h2 className="text-2xl font-semibold text-blue-600 dark:text-blue-400 flex items-center">
         <BookOpen className="mr-2 h-6 w-6" /> 1. Select Content
       </h2>
@@ -387,43 +389,39 @@ export default function GenerateExamPage() {
         onSelectContent={handleContentSelect}
         initialContent={selectedContent}
       />
-      {selectedContent && (
-        <Button
-          onClick={() => setStep(2)}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800"
-        >
-          Next <ChevronRight className="ml-2 h-4 w-4" />
-        </Button>
-      )}
+      <Button
+        onClick={() => setStep(2)}
+        className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800"
+      >
+        Next <ChevronRight className="ml-2 h-5 w-5" />
+      </Button>
     </div>
   );
 
   const questionSelectionStep = (
-    <div className="space-y-6 pb-20 md:pb-0">
+    <div className="space-y-6 pb-20 flex flex-col justify-center max-w-sm lg:max-w-3xl box-border">
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <Button
           onClick={() => setStep(1)}
           variant="outline"
-          className="w-full sm:w-auto border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950/50"
+          className="w-full sm:w-auto h-12 text-base border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950/50"
         >
-          <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+          <ChevronLeft className="mr-2 h-5 w-5" /> Previous
         </Button>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-4">
           <Button
             onClick={handleClearQuestions}
             variant="outline"
-            className="w-full sm:w-auto border-red-600 text-red-600 hover:bg-red-50 dark:border-red-400 dark:text-red-400 dark:hover:bg-red-950/50"
+            className="w-full sm:w-auto h-12 text-base border-red-600 text-red-600 hover:bg-red-50 dark:border-red-400 dark:text-red-400 dark:hover:bg-red-950/50"
           >
-            <Trash2 className="mr-2 h-4 w-4" /> Clear Questions
+            <Trash2 className="mr-2 h-5 w-5" /> Clear Questions
           </Button>
-          {selectedQuestions.length > 0 && (
-            <Button
-              onClick={() => setStep(3)}
-              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800"
-            >
-              Next <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          )}
+          <Button
+            onClick={() => setStep(3)}
+            className="w-full sm:w-auto h-12 text-base bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800"
+          >
+            Next <ChevronRight className="ml-2 h-5 w-5" />
+          </Button>
         </div>
       </div>
       <h2 className="text-2xl font-semibold text-blue-600 dark:text-blue-400 flex items-center">
@@ -432,11 +430,11 @@ export default function GenerateExamPage() {
 
       {selectedContent && subjects.length > 0 && (
         <Card className="shadow-md border-none">
-          <CardContent className="p-4">
+          <CardContent className="p-4 sm:p-6">
             <h3 className="text-lg font-medium text-blue-600 dark:text-blue-400 mb-3 flex items-center">
               <BookOpen className="mr-2 h-5 w-5" /> Available Subjects
             </h3>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 ">
               {subjects
                 .sort((a, b) => a.chapter_no - b.chapter_no)
                 .map((subject) => (
@@ -447,13 +445,14 @@ export default function GenerateExamPage() {
                       subject.status
                         ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                         : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                    }`}
+                    } text-sm py-1 px-2 max-w-[150px] truncate`}
+                    title={subject.chapter_name}
                   >
                     Ch {subject.chapter_no} - {subject.chapter_name}
                     {subject.status ? (
-                      <CheckCircle className="ml-1 h-3 w-3 text-green-600 dark:text-green-400" />
+                      <CheckCircle className="ml-1 h-4 w-4 text-green-600 dark:text-green-400" />
                     ) : (
-                      <X className="ml-1 h-3 w-3 text-red-600 dark:text-red-400" />
+                      <X className="ml-1 h-4 w-4 text-red-600 dark:text-red-400" />
                     )}
                   </Badge>
                 ))}
@@ -464,29 +463,41 @@ export default function GenerateExamPage() {
 
       {selectedQuestions.length > 0 && (
         <Card className="shadow-md mb-4 border-none">
-          <CardContent className="p-4">
-            <h3 className="text-lg font-medium text-blue-600 dark:text-blue-400 mb-2 flex items-center">
+          <CardContent className="p-4 sm:p-6">
+            <h3 className="text-lg font-medium text-blue-600 dark:text-blue-400 mb-3 flex items-center">
               <CheckCircle className="mr-2 h-5 w-5" /> Selected Questions
               Summary
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                <p className="text-sm font-medium">Total Questions</p>
-                <p className="text-xl font-bold">{selectedQuestions.length}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Total Questions
+                </p>
+                <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                  {selectedQuestions.length}
+                </p>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                <p className="text-sm font-medium">Total Marks</p>
-                <p className="text-xl font-bold">{totalPaperMarks}</p>
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Total Marks
+                </p>
+                <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                  {totalPaperMarks}
+                </p>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                <p className="text-sm font-medium">Sections</p>
-                <p className="text-xl font-bold">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Sections
+                </p>
+                <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
                   {examStructure.sections.length}
                 </p>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded col-span-2">
-                <p className="text-sm font-medium">Marks Distribution</p>
-                <div className="flex flex-wrap gap-1 mt-1">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Marks Distribution
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
                   {[1, 2, 3, 4, 5].map((mark) => {
                     const count = selectedQuestions.filter(
                       (q) => q.marks === mark
@@ -495,7 +506,7 @@ export default function GenerateExamPage() {
                       <Badge
                         key={mark}
                         variant="outline"
-                        className="bg-blue-50 dark:bg-blue-900"
+                        className="bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
                       >
                         {mark} mark: {count}
                       </Badge>
@@ -508,46 +519,57 @@ export default function GenerateExamPage() {
         </Card>
       )}
 
-      <QuestionSelector
-        questions={questions}
-        onSelectQuestions={handleQuestionSelect}
-        onSelectChapters={handleChapterSelect}
-        selectedQuestions={selectedQuestions}
-      />
+      <div className="w-full overflow-x-auto">
+        <QuestionSelector
+          questions={questions}
+          onSelectQuestions={handleQuestionSelect}
+          onSelectChapters={handleChapterSelect}
+          selectedQuestions={selectedQuestions}
+        />
+      </div>
     </div>
   );
 
   const previewAndGenerateStep = (
-    <div className="space-y-6 pb-20 md:pb-0">
+    <div className="space-y-6 p-1 pb-20 md:pb-4">
       <h2 className="text-2xl font-semibold text-blue-600 dark:text-blue-400 flex items-center">
         <FileText className="mr-2 h-6 w-6" /> 3. Preview and Generate
       </h2>
-      <Button
-        onClick={() => setStep(2)}
-        variant="outline"
-        className="w-full sm:w-auto border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950/50"
-      >
-        <ChevronLeft className="mr-2 h-4 w-4" /> Previous
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Button
+          onClick={() => setStep(2)}
+          variant="outline"
+          className="w-full sm:w-auto h-12 text-base border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950/50"
+        >
+          <ChevronLeft className="mr-2 h-5 w-5" /> Previous
+        </Button>
+        <Button
+          onClick={toggleAnswers}
+          variant="outline"
+          className="w-full sm:w-auto h-12 text-base border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950/50"
+        >
+          <BookOpen className="mr-2 h-5 w-5" />{" "}
+          {showAnswers ? "Hide Answers" : "Show Answers"}
+        </Button>
+      </div>
 
       {examStructure.sections.length === 0 ? (
-        <div className="border border-yellow-200 dark:border-yellow-800 p-4 rounded-md flex items-start gap-3 bg-yellow-50 dark:bg-yellow-900/30">
+        <div className="border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg flex items-start gap-3 bg-yellow-50 dark:bg-yellow-900/30">
           <AlertCircle className="h-5 w-5 text-yellow-500 dark:text-yellow-400 mt-0.5" />
           <div>
             <h4 className="font-medium text-yellow-800 dark:text-yellow-300">
               No questions selected
             </h4>
             <p className="text-sm text-yellow-700 dark:text-yellow-400">
-              Please go back and select questions to generate an exam paper.
+              Select questions in the previous step to generate an exam paper.
             </p>
           </div>
         </div>
       ) : (
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar for Inputs */}
           <div className="lg:w-1/3 space-y-4">
             <Card className="shadow-md border-none">
-              <CardContent className="p-4 space-y-4">
+              <CardContent className="p-4 sm:p-6 space-y-4">
                 <h3 className="text-lg font-medium text-blue-600 dark:text-blue-400">
                   Exam Details
                 </h3>
@@ -564,7 +586,7 @@ export default function GenerateExamPage() {
                     value={chapterNo}
                     onChange={(e) => setChapterNo(e.target.value)}
                     placeholder="Enter chapter number"
-                    className="border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
+                    className="h-12 text-base border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
                     required
                   />
                 </div>
@@ -580,7 +602,7 @@ export default function GenerateExamPage() {
                     value={studentName}
                     onChange={(e) => setStudentName(e.target.value)}
                     placeholder="Enter student name"
-                    className="border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
+                    className="h-12 text-base border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
                   />
                 </div>
                 <div>
@@ -595,7 +617,7 @@ export default function GenerateExamPage() {
                     value={schoolName}
                     onChange={(e) => setSchoolName(e.target.value)}
                     placeholder="Enter school name"
-                    className="border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
+                    className="h-12 text-base border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
                   />
                 </div>
                 <div>
@@ -610,7 +632,7 @@ export default function GenerateExamPage() {
                     value={testTitle}
                     onChange={(e) => setTestTitle(e.target.value)}
                     placeholder="Unit Test"
-                    className="border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
+                    className="h-12 text-base border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
                   />
                 </div>
                 <div>
@@ -625,30 +647,37 @@ export default function GenerateExamPage() {
                     value={examTime}
                     onChange={(e) => setExamTime(e.target.value)}
                     placeholder="1 hour"
-                    className="border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
+                    className="h-12 text-base border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
                   />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Preview Area with Generate Button */}
           <div className="lg:w-2/3">
             <Card className="shadow-md border-none">
-              <CardContent className="p-4">
+              <CardContent className="p-4 sm:p-6">
                 <ExamPreview
                   selectedQuestions={selectedQuestions}
                   examStructure={examStructure}
                   onGeneratePdf={handleGeneratePdf}
                   isSectionWise={true}
+                  showAnswers={showAnswers}
                 />
-                <div className="mt-4 flex justify-end">
+                <div className="mt-4 flex flex-col sm:flex-row gap-4 justify-end">
                   <Button
                     onClick={() => handleGeneratePdf("exam")}
-                    className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-800"
+                    className="h-12 text-base bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-800"
                     disabled={!chapterNo.trim()}
                   >
                     Generate Exam Paper
+                  </Button>
+                  <Button
+                    onClick={() => handleGeneratePdf("examWithAnswer")}
+                    className="h-12 text-base bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800"
+                    disabled={!chapterNo.trim()}
+                  >
+                    Generate with Answers
                   </Button>
                 </div>
               </CardContent>
@@ -682,16 +711,16 @@ export default function GenerateExamPage() {
     return <Loading title="Loading exam generation..." />;
 
   return (
-    <div className="container mx-auto p-2 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-900">
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8 bg-white dark:bg-gray-900">
       <header className="mb-6">
         <h1 className="text-3xl font-bold mb-4 text-blue-600 dark:text-blue-400 flex items-center">
           <FileText className="mr-3 h-8 w-8" /> Generate Exam Paper
         </h1>
         <Progress
           value={progress}
-          className="w-full bg-blue-200 dark:bg-blue-900"
+          className="w-full h-2 bg-blue-200 dark:bg-blue-900"
         />
-        <nav className="flex justify-between mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <nav className="flex justify-between mt-3 text-sm text-gray-600 dark:text-gray-400">
           <span
             className={
               currentStep === 1
@@ -721,7 +750,7 @@ export default function GenerateExamPage() {
           </span>
         </nav>
       </header>
-      <main className="space-y-4">
+      <main className="space-y-6">
         {currentStep === 1 && contentSelectionStep}
         {currentStep === 2 && questionSelectionStep}
         {currentStep === 3 && previewAndGenerateStep}
@@ -735,21 +764,11 @@ export default function GenerateExamPage() {
         onPrevious={() => setStep(Math.max(1, currentStep - 1))}
         onNext={() => setStep(Math.min(3, currentStep + 1))}
         onClearQuestions={handleClearQuestions}
-        onGeneratePdf={
-          currentStep === 3 && examStructure.sections.length > 0
-            ? handleQuickGeneratePdf
-            : undefined
-        }
-        canGoNext={
-          (currentStep === 1 && selectedContent !== null) ||
-          (currentStep === 2 && selectedQuestions.length > 0) ||
-          currentStep === 3
-        }
-        canGeneratePdf={
-          currentStep === 3 &&
-          examStructure.sections.length > 0 &&
-          chapterNo.trim() !== ""
-        }
+        onGeneratePdf={currentStep === 3 ? handleQuickGeneratePdf : undefined}
+        onResetForm={handleResetForm}
+        onToggleAnswers={toggleAnswers}
+        canGoNext={true}
+        canGeneratePdf={currentStep === 3 && chapterNo.trim() !== ""}
       />
     </div>
   );

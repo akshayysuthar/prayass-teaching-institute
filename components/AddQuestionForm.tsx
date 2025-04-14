@@ -45,6 +45,8 @@ export function AddQuestionForm() {
   const { toast } = useToast();
   const { user } = useUser();
 
+  console.log(gujaratiToggles);
+
   useEffect(() => {
     if (user) {
       fetchRecentEntries();
@@ -64,7 +66,7 @@ export function AddQuestionForm() {
   }, [metadata.subject_id]);
 
   const fetchRecentEntries = async () => {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("questions")
       .select("*")
       .order("created_at", { ascending: false })
@@ -277,9 +279,9 @@ export function AddQuestionForm() {
 
   const checkRequiredFields = (question: Partial<Question>, index: number) => {
     const requiredFields = ["question", "answer"];
-    // if (gujaratiToggles[index]) {
-    //   requiredFields.push("question_gu", "answer_gu");
-    // }
+    if (gujaratiToggles[index]) {
+      // requiredFields.push("question_gu", "answer_gu");
+    }
 
     return requiredFields.reduce((acc, field) => {
       acc[field] = !question[field];
