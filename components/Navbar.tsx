@@ -5,7 +5,12 @@ import Image from "next/image";
 import { useUser, UserButton, SignInButton } from "@clerk/nextjs";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -35,6 +40,7 @@ export function Navbar() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="pr-0">
+              <SheetTitle> </SheetTitle>
               <div className="flex items-center gap-2 mb-8">
                 <Image
                   src={siteConfig.mainLogo || "/placeholder.svg"}

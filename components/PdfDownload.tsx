@@ -59,7 +59,7 @@ const createStyles = (subject: string) => {
     page: {
       flexDirection: "column",
       backgroundColor: "#FFFFFF",
-      padding: 10,
+      padding: 5,
       fontFamily: "NotoSans",
       position: "relative",
     },
@@ -82,7 +82,7 @@ const createStyles = (subject: string) => {
       marginBottom: 5,
       borderBottomWidth: 1,
       borderBottomColor: "#000",
-      paddingBottom: 10,
+      paddingBottom: 5,
     },
     row: {
       display: "flex",
@@ -96,12 +96,12 @@ const createStyles = (subject: string) => {
       fontSize: 18,
       fontWeight: "bold",
       textAlign: "center",
-      marginBottom: 10,
+      marginBottom: 5,
     },
     subHeader: {
       fontSize: 14,
       textAlign: "center",
-      marginBottom: 15,
+      marginBottom: 5,
     },
     date: {
       fontSize: 10,
@@ -121,7 +121,7 @@ const createStyles = (subject: string) => {
       fontSize: 14,
       fontWeight: "bold",
       textAlign: "center",
-      marginTop: 10,
+      marginTop: 5,
       marginBottom: 10,
       backgroundColor: "#f0f0f0",
       padding: 5,
