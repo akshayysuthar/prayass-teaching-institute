@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -101,7 +100,7 @@ export function MetadataForm({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div className="space-y-2">
         <Label htmlFor="content_id" className="text-foreground">
           Content
@@ -112,7 +111,7 @@ export function MetadataForm({
               variant="outline"
               role="combobox"
               aria-expanded={openContent}
-              className="w-full justify-between text-foreground"
+              className="w-full justify-between text-foreground border-input hover:bg-muted"
             >
               {metadata.content_id
                 ? contents.find(
@@ -145,8 +144,7 @@ export function MetadataForm({
                             : "opacity-0"
                         )}
                       />
-                      {/* {content.name} */}
-                      {content.name} - {content.board} - {content.medium} M -
+                      {content.name} - {content.board} - {content.medium} -
                       Class {content.class}
                     </CommandItem>
                   ))}
@@ -167,7 +165,7 @@ export function MetadataForm({
               variant="outline"
               role="combobox"
               aria-expanded={openSubject}
-              className="w-full justify-between text-foreground"
+              className="w-full justify-between text-foreground border-input hover:bg-muted"
               disabled={!metadata.content_id}
             >
               {metadata.subject_id
@@ -233,7 +231,7 @@ export function MetadataForm({
               variant="outline"
               role="combobox"
               aria-expanded={openSectionTitle}
-              className="w-full justify-between text-foreground"
+              className="w-full justify-between text-foreground border-input hover:bg-muted"
             >
               {metadata.sectionTitle || "Select section title..."}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -241,10 +239,10 @@ export function MetadataForm({
           </PopoverTrigger>
           <PopoverContent className="w-full p-0">
             <Command>
-              <CommandInput placeholder="Search or enter new section title..." />
+              <CommandInput placeholder="Search or enter section title..." />
               <CommandList>
                 <CommandEmpty>
-                  No section title found. Type to create a new one.
+                  No section title found. Type to create one.
                 </CommandEmpty>
                 <CommandGroup className="max-h-60 overflow-y-auto">
                   {sectionTitleSuggestions.map((title) => (
@@ -278,7 +276,7 @@ export function MetadataForm({
           value={metadata.sectionTitle}
           onChange={handleMetadataChange}
           placeholder="Or type a new section title"
-          className="mt-2 text-foreground"
+          className="mt-2 text-foreground border-input"
         />
       </div>
 
@@ -292,7 +290,7 @@ export function MetadataForm({
               variant="outline"
               role="combobox"
               aria-expanded={openType}
-              className="w-full justify-between text-foreground"
+              className="w-full justify-between text-foreground border-input hover:bg-muted"
             >
               {metadata.type || "Select question type..."}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -300,10 +298,10 @@ export function MetadataForm({
           </PopoverTrigger>
           <PopoverContent className="w-full p-0">
             <Command>
-              <CommandInput placeholder="Search or enter new type..." />
+              <CommandInput placeholder="Search or enter type..." />
               <CommandList>
                 <CommandEmpty>
-                  No question type found. Type to create a new one.
+                  No question type found. Type to create one.
                 </CommandEmpty>
                 <CommandGroup className="max-h-60 overflow-y-auto">
                   {typeSuggestions.map((type) => (
@@ -335,7 +333,7 @@ export function MetadataForm({
           value={metadata.type}
           onChange={handleMetadataChange}
           placeholder="Or type a new question type"
-          className="mt-2 text-foreground"
+          className="mt-2 text-foreground border-input"
         />
       </div>
     </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import type { Question, Content } from "@/types";
@@ -10,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { MetadataForm } from "./MetadataForm";
 import { QuestionForm } from "./QuestionForm";
 import { useUser } from "@clerk/nextjs";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -30,6 +28,7 @@ export function AddQuestionForm() {
       created_by: "",
     },
   ]);
+  const [gujaratiToggles, setGujaratiToggles] = useState<boolean[]>([false]);
   const [metadata, setMetadata] = useState({
     content_id: "",
     subject_id: "",
@@ -73,17 +72,6 @@ export function AddQuestionForm() {
 
     if (error) {
       console.error("Error fetching recent entries:", error);
-    } else {
-      const entriesBySubject: Record<string, Partial<Question>[]> = {};
-      data?.forEach((question) => {
-        if (!entriesBySubject[question.subject_id]) {
-          entriesBySubject[question.subject_id] = [];
-        }
-        if (entriesBySubject[question.subject_id].length < 5) {
-          entriesBySubject[question.subject_id].push(question);
-        }
-      });
-      //setRecentEntries(entriesBySubject);
     }
   };
 
@@ -99,6 +87,9 @@ export function AddQuestionForm() {
 
       setSelectedContent(data);
       setSelectedContentMedium(data.medium);
+      setGujaratiToggles((prev) =>
+        prev.map(() => data.medium === "Gujarati" || data.medium === "Both")
+      );
     } catch (error) {
       console.error("Error fetching content details:", error);
     }
@@ -106,7 +97,6 @@ export function AddQuestionForm() {
 
   const fetchSuggestionsBySubject = async (subjectId: string) => {
     try {
-      // Fetch unique section titles for this subject
       const { data: sectionData, error: sectionError } = await supabase
         .from("questions")
         .select("sectionTitle, section_title")
@@ -116,7 +106,6 @@ export function AddQuestionForm() {
 
       if (sectionError) throw sectionError;
 
-      // Fetch unique question types for this subject
       const { data: typeData, error: typeError } = await supabase
         .from("questions")
         .select("type")
@@ -126,20 +115,17 @@ export function AddQuestionForm() {
 
       if (typeError) throw typeError;
 
-      // Process section titles (handle both sectionTitle and section_title fields)
       const sectionTitles = new Set<string>();
       sectionData.forEach((item) => {
         if (item.sectionTitle) sectionTitles.add(item.sectionTitle);
         if (item.section_title) sectionTitles.add(item.section_title);
       });
 
-      // Process question types
       const types = new Set<string>();
       typeData.forEach((item) => {
         if (item.type) types.add(item.type);
       });
 
-      // Add default types if none found
       if (types.size === 0) {
         types.add("MCQ");
         types.add("Short Answer");
@@ -187,7 +173,6 @@ export function AddQuestionForm() {
     language: "en" | "gu"
   ) => {
     const uploadedUrls: string[] = [];
-
     for (const file of files) {
       const fileExt = file.name.split(".").pop();
       const fileName = `${Math.random()}.${fileExt}`;
@@ -257,7 +242,6 @@ export function AddQuestionForm() {
     language: "en" | "gu"
   ) => {
     const items = e.clipboardData.items;
-
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf("image") !== -1) {
         const file = items[i].getAsFile();
@@ -275,25 +259,27 @@ export function AddQuestionForm() {
       const newMarks = increment
         ? Math.min(5, currentMarks + 1)
         : Math.max(1, currentMarks - 1);
-
       newQuestions[index] = {
         ...newQuestions[index],
         marks: newMarks,
       };
-
       return newQuestions;
     });
   };
 
-  const checkRequiredFields = (question: Partial<Question>) => {
-    const requiredFields = ["question", "answer"];
+  const handleToggleGujarati = (index: number, show: boolean) => {
+    setGujaratiToggles((prev) => {
+      const newToggles = [...prev];
+      newToggles[index] = show;
+      return newToggles;
+    });
+  };
 
-    if (
-      selectedContentMedium === "Gujarati" ||
-      selectedContentMedium === "Both"
-    ) {
-      requiredFields.push("question_gu", "answer_gu");
-    }
+  const checkRequiredFields = (question: Partial<Question>, index: number) => {
+    const requiredFields = ["question", "answer"];
+    // if (gujaratiToggles[index]) {
+    //   requiredFields.push("question_gu", "answer_gu");
+    // }
 
     return requiredFields.reduce((acc, field) => {
       acc[field] = !question[field];
@@ -311,7 +297,9 @@ export function AddQuestionForm() {
       return;
     }
 
-    const emptyFieldsByQuestion = questions.map(checkRequiredFields);
+    const emptyFieldsByQuestion = questions.map((q, i) =>
+      checkRequiredFields(q, i)
+    );
     const isValid = emptyFieldsByQuestion.every(
       (fields) => !Object.values(fields).some(Boolean)
     );
@@ -319,7 +307,7 @@ export function AddQuestionForm() {
     if (!isValid) {
       const emptyFields = emptyFieldsByQuestion.flatMap((fields, index) =>
         Object.entries(fields)
-          .filter(([isEmpty]) => isEmpty)
+          .filter(([, isEmpty]) => isEmpty)
           .map(([field]) => `Question ${index + 1}: ${field}`)
       );
 
@@ -360,7 +348,6 @@ export function AddQuestionForm() {
         description: `${questions.length} question(s) saved successfully!`,
       });
 
-      // Reset the form state
       resetFormState();
     } catch (error) {
       console.error("Error saving questions:", error);
@@ -392,10 +379,15 @@ export function AddQuestionForm() {
         created_by: user?.fullName ?? "User Not Login",
       },
     ]);
+    setGujaratiToggles((prev) => [
+      ...prev,
+      selectedContentMedium === "Gujarati" || selectedContentMedium === "Both",
+    ]);
   };
 
   const removeQuestion = (index: number) => {
     setQuestions((prev) => prev.filter((_, i) => i !== index));
+    setGujaratiToggles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const resetFormState = () => {
@@ -412,13 +404,9 @@ export function AddQuestionForm() {
         marks: 1,
       },
     ]);
-    // Keep the metadata to make it easier to add multiple questions
-    // setMetadata({
-    //   content_id: "",
-    //   subject_id: "",
-    //   section_title: "",
-    //   type: "",
-    // });
+    setGujaratiToggles([
+      selectedContentMedium === "Gujarati" || selectedContentMedium === "Both",
+    ]);
   };
 
   if (!user) {
@@ -428,76 +416,72 @@ export function AddQuestionForm() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-4 border p-4 rounded-md bg-background">
-        <h2 className="text-2xl font-bold text-foreground">
-          Add New Questions
-        </h2>
-        <h3 className="text-lg font-semibold text-foreground/80">
-          Instructions: Based on the selected content&apos;s medium, you&apos;ll
-          see different input fields: - For English medium: Only English
-          question and answer fields will be shown. - For Gujarati medium: Both
-          English and Gujarati fields will be displayed. English inputs are
-          always required. Gujarati inputs are required when the medium is
-          Gujarati.
-        </h3>
-
-        <MetadataForm
-          metadata={metadata}
-          handleMetadataChange={handleMetadataChange}
-          sectionTitleSuggestions={sectionTitleSuggestions}
-          typeSuggestions={typeSuggestions}
-        />
-
-        {selectedContent && (
-          <Card className="bg-background border shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg text-foreground">
-                Selected Content Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Name
-                  </p>
-                  <p className="text-foreground">{selectedContent.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Medium
-                  </p>
-                  <p className="text-foreground">{selectedContent.medium}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Class
-                  </p>
-                  <p className="text-foreground">{selectedContent.class}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Board
-                  </p>
-                  <p className="text-foreground">{selectedContent.board}</p>
-                </div>
-              </div>
-              {selectedContent.semester && (
-                <Badge className="mt-2 bg-primary/10 text-primary">
-                  Semester: {selectedContent.semester}
-                </Badge>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {questions.map((question, index) => (
-          <div key={index} className="border-t pt-4 mt-4">
-            <h3 className="text-lg font-semibold mb-2 text-foreground">
-              Question {index + 1}
+    <div className="space-y-6 max-w-4xl mx-auto px-4 sm:px-0">
+      <Card className="bg-background border shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl text-foreground">
+            Add New Questions
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="border p-4 rounded-md bg-muted/50">
+            <h3 className="text-lg font-semibold text-foreground/80 mb-4">
+              Metadata
             </h3>
+            <MetadataForm
+              metadata={metadata}
+              handleMetadataChange={handleMetadataChange}
+              sectionTitleSuggestions={sectionTitleSuggestions}
+              typeSuggestions={typeSuggestions}
+            />
+          </div>
+
+          {selectedContent && (
+            <Card className="bg-background border shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg text-foreground">
+                  Selected Content Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Name
+                    </p>
+                    <p className="text-foreground">{selectedContent.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Medium
+                    </p>
+                    <p className="text-foreground">{selectedContent.medium}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Class
+                    </p>
+                    <p className="text-foreground">{selectedContent.class}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Board
+                    </p>
+                    <p className="text-foreground">{selectedContent.board}</p>
+                  </div>
+                </div>
+                {selectedContent.semester && (
+                  <Badge className="mt-2 bg-primary/10 text-primary">
+                    Semester: {selectedContent.semester}
+                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {questions.map((question, index) => (
             <QuestionForm
+              key={index}
               currentQuestion={question}
               handleQuestionChange={(e) => handleQuestionChange(index, e)}
               handleImageUpload={(files, type, language) =>
@@ -512,31 +496,42 @@ export function AddQuestionForm() {
               handleUpdateMarks={(increment) =>
                 handleUpdateMarks(index, increment)
               }
+              onToggleGujarati={(show) => handleToggleGujarati(index, show)}
               isSubmitting={isSubmitting}
               questionType={metadata.type}
               removeQuestion={() => removeQuestion(index)}
               selectedContentMedium={selectedContentMedium}
-              emptyFields={checkRequiredFields(question)}
+              emptyFields={checkRequiredFields(question, index)}
             />
+          ))}
+
+          <div className="sticky bottom-0 bg-background py-4 border-t">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button
+                onClick={addNewQuestion}
+                variant="outline"
+                className="w-full sm:w-auto"
+              >
+                Add Another Question
+              </Button>
+              <Button
+                onClick={resetFormState}
+                variant="destructive"
+                className="w-full sm:w-auto"
+              >
+                Clear All
+              </Button>
+              <Button
+                onClick={handleSaveQuestions}
+                disabled={isSubmitting}
+                className="w-full sm:w-auto"
+              >
+                {isSubmitting ? "Saving..." : "Save All Questions"}
+              </Button>
+            </div>
           </div>
-        ))}
-        <div className="flex flex-wrap justify-between items-center mt-4 gap-2">
-          <Button onClick={addNewQuestion} variant="outline">
-            Add Another Question
-          </Button>
-          <Button onClick={resetFormState} variant="destructive">
-            Clear All
-          </Button>
-          <Button
-            onClick={handleSaveQuestions}
-            disabled={isSubmitting}
-            className="w-full sm:w-auto"
-            variant="outline"
-          >
-            {isSubmitting ? "Saving..." : "Save All Questions"}
-          </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
