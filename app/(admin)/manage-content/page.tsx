@@ -92,14 +92,14 @@ export default function ManageContentPage() {
     >
   >({});
 
-  useEffect(() => {
-    if (
-      !user ||
-      !siteConfig.adminEmail.includes(user.emailAddresses[0]?.emailAddress)
-    ) {
-      redirect("/");
-    }
-  }, [user]);
+  // useEffect(() => {
+  //   if (
+  //     !user ||
+  //     !siteConfig.adminEmail.includes(user.emailAddresses[0]?.emailAddress)
+  //   ) {
+  //     redirect("/");
+  //   }
+  // }, [user]);
 
   useEffect(() => {
     fetchContents();
