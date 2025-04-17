@@ -65,7 +65,7 @@ export const siteConfig: SiteConfig = {
   tagline: "Excellence in Education",
   description:
     "Professional exam paper generation and management system for educators",
-  adminEmail: ["akshaysuthar05@gmail.com", "sutharmaina62@gmail.com"],
+  adminEmail: ["akshaysuthar05@gmail.com", "sutharmaina62@gmail.com", "*"],
   contactInfo: {
     email: "info@prayassinstitute.com",
     phone: "+91 98765 43210",
@@ -103,14 +103,14 @@ export const siteConfig: SiteConfig = {
       title: "Error",
       href: "/error-dashboard",
       icon: Settings,
-      adminOnly: true,
+      // adminOnly: true,
       disabled: "",
     },
     {
       title: "Bilingual Questions",
       href: "/bilingual-questions",
       icon: Book,
-      adminOnly: true,
+      // adminOnly: true,
       disabled: "",
     },
   ],
