@@ -4,12 +4,12 @@ import type React from "react";
 
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { redirect } from "next/navigation";
+// import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/utils/supabase/client";
 import type { Content, Subject, Question } from "@/types";
 import { Loading } from "@/components/Loading";
-import { siteConfig } from "@/config/site";
+// import { siteConfig } from "@/config/site";
 import {
   Card,
   CardContent,
