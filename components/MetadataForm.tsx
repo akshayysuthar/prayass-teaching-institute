@@ -34,6 +34,8 @@ interface MetadataFormProps {
   ) => void;
   sectionTitleSuggestions?: string[];
   typeSuggestions?: string[];
+  selectedClass: string | null; // Added selectedClass property
+  setSelectedClass: (cls: string) => void; // Correctly typed setSelectedClass as a function
 }
 
 export function MetadataForm({
@@ -41,6 +43,8 @@ export function MetadataForm({
   handleMetadataChange,
   sectionTitleSuggestions = [],
   typeSuggestions = [],
+  selectedClass,
+  setSelectedClass,
 }: MetadataFormProps) {
   const [contents, setContents] = useState<
     { id: number; name: string; board: string; medium: string; class: string }[]
@@ -60,7 +64,7 @@ export function MetadataForm({
 
   useEffect(() => {
     fetchContents();
-  }, []);
+  }, [selectedClass]);
 
   useEffect(() => {
     if (metadata.content_id) {
@@ -71,7 +75,11 @@ export function MetadataForm({
   }, [metadata.content_id]);
 
   const fetchContents = async () => {
-    const { data, error } = await supabase.from("contents").select("*");
+    let query = supabase.from("contents").select("*");
+    if (selectedClass) {
+      query = query.eq("class", selectedClass);
+    }
+    const { data, error } = await query;
     if (error) {
       console.error("Error fetching contents:", error);
     } else {
@@ -102,9 +110,28 @@ export function MetadataForm({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div className="space-y-2">
-        <Label htmlFor="content_id" className="text-foreground">
+        {/* <Label htmlFor="content_id" className="text-foreground">
           Content
         </Label>
+        <Label htmlFor="content_id" className="text-foreground">
+          {selectedClass ? "Subject" : "Content"}
+        </Label> */}
+        {/* 
+        <Label htmlFor="subject_id" className="text-foreground">
+          {selectedClass ? "Chapter" : "Subject/Chapter"}
+        </Label> */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"].map((cls) => (
+            <Button
+              key={cls}
+              variant={selectedClass === cls ? "default" : "outline"}
+              onClick={() => setSelectedClass(cls)}
+            >
+              Class {cls}
+            </Button>
+          ))}
+        </div>
+
         <Popover open={openContent} onOpenChange={setOpenContent}>
           <PopoverTrigger asChild>
             <Button
@@ -117,7 +144,7 @@ export function MetadataForm({
                 ? contents.find(
                     (content) => content.id.toString() === metadata.content_id
                   )?.name
-                : "Select content..."}
+                : "Select Subject..."}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
@@ -125,7 +152,7 @@ export function MetadataForm({
             <Command>
               <CommandInput placeholder="Search content..." />
               <CommandList>
-                <CommandEmpty>No content found.</CommandEmpty>
+                <CommandEmpty>No Subject found.</CommandEmpty>
                 <CommandGroup className="max-h-60 overflow-y-auto">
                   {contents.map((content) => (
                     <CommandItem
@@ -157,7 +184,7 @@ export function MetadataForm({
 
       <div className="space-y-2">
         <Label htmlFor="subject_id" className="text-foreground">
-          Subject/Chapter
+          Chapter
         </Label>
         <Popover open={openSubject} onOpenChange={setOpenSubject}>
           <PopoverTrigger asChild>
@@ -190,9 +217,9 @@ export function MetadataForm({
           </PopoverTrigger>
           <PopoverContent className="w-full p-0">
             <Command>
-              <CommandInput placeholder="Search subject..." />
+              <CommandInput placeholder="Search Chapter..." />
               <CommandList>
-                <CommandEmpty>No subject found.</CommandEmpty>
+                <CommandEmpty>No Chapter found.</CommandEmpty>
                 <CommandGroup className="max-h-60 overflow-y-auto">
                   {subjects.map((subject) => (
                     <CommandItem

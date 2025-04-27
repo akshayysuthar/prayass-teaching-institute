@@ -47,10 +47,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <div className="mx-auto h-screen">
+            <div className=" h-screen">
               <div className="relative flex flex-col transition overflow-x-hidden">
                 <Navbar />
-                <main className="mb-3 mx-auto ">{children}</main>
+                <main className="mb-3  ">{children}</main>
               </div>
               <Toaster />
               <ErrorHandler />

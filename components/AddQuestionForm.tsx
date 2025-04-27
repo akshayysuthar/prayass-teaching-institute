@@ -44,6 +44,7 @@ export function AddQuestionForm() {
   const [typeSuggestions, setTypeSuggestions] = useState<string[]>([]);
   const { toast } = useToast();
   const { user } = useUser();
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
 
   console.log(gujaratiToggles);
 
@@ -418,7 +419,7 @@ export function AddQuestionForm() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto px-4 sm:px-0">
+    <div className="space-y-6 max-w-4xl mx-auto px-1 sm:px-0">
       <Card className="bg-background border shadow-sm">
         <CardHeader>
           <CardTitle className="text-2xl text-foreground">
@@ -435,6 +436,8 @@ export function AddQuestionForm() {
               handleMetadataChange={handleMetadataChange}
               sectionTitleSuggestions={sectionTitleSuggestions}
               typeSuggestions={typeSuggestions}
+              selectedClass={selectedClass} // New prop for filter for class
+              setSelectedClass={setSelectedClass}
             />
           </div>
 
