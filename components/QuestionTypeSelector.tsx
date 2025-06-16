@@ -16,13 +16,11 @@ import {
   Plus,
   BookOpen,
   Tag,
-  CheckSquare,
   List,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
@@ -347,35 +345,42 @@ export function QuestionSelector({
     return (
       <div
         className={cn(
-          "flex items-start gap-3 border-b pb-1 p-2 mt-1 rounded-lg last:border-b-0 transition-colors",
+          "flex items-start gap-3 border-b pb-1 p-2 mt-1 rounded-lg last:border-b-0 transition-colors min-w-0",
           isSelected
             ? "bg-blue-50 dark:bg-blue-900/30 text-foreground"
             : "hover:bg-gray-50 dark:hover:bg-gray-800"
         )}
         key={question.id}
+        style={{ wordBreak: "break-word" }}
       >
         <Checkbox
           id={`q-${question.id}`}
           checked={isSelected}
           onCheckedChange={() => handleQuestionChange(question)}
-          className="mt-1 w-5 h-5"
+          className="mt-1 w-5 h-5 shrink-0"
         />
         <Label
           htmlFor={`q-${question.id}`}
-          className="flex-1 flex flex-col gap-1 text-sm"
+          className="flex-1 flex flex-col gap-1 text-sm min-w-0"
         >
-          <span className="leading-relaxed">
+          <span
+            className="leading-relaxed break-words whitespace-pre-line min-w-0"
+            style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
+          >
             {question.question || question.question_gu || "No question text"}
           </span>
           {renderImages(
             question.question_images || question.question_images_gu
           )}
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-xs text-muted-foreground flex items-center">
-              <Tag className="mr-1 h-3 w-3" />
+          <div className="flex flex-wrap items-center justify-between mt-1 min-w-0">
+            <span
+              className="text-xs text-muted-foreground flex items-center min-w-0 break-words"
+              style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
+            >
+              <Tag className="mr-1 h-3 w-3 shrink-0" />
               {question.type || "General"} - {sectionTitle}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Button
                 variant="outline"
                 size="icon"
@@ -388,7 +393,7 @@ export function QuestionSelector({
               >
                 <Minus className="h-3 w-3" />
               </Button>
-              <span className="text-sm font-medium">
+              <span className="text-sm font-medium min-w-0">
                 {question.marks} Marks
               </span>
               <Button
@@ -433,7 +438,7 @@ export function QuestionSelector({
 
   // 2. Update the accordion items to support dark mode
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-full overflow-x-hidden">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
@@ -443,8 +448,7 @@ export function QuestionSelector({
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
-
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-full overflow-x-auto">
         {Object.entries(groupedQuestions).length > 0 ? (
           Object.entries(groupedQuestions).map(([chapterId, groups]) => (
             <Accordion
@@ -455,44 +459,59 @@ export function QuestionSelector({
                 expandedChapters.includes(chapterId) ? chapterId : undefined
               }
               onValueChange={() => toggleChapter(chapterId)}
-              className="border rounded-md bg-background dark:border-gray-700"
+              className="border rounded-md bg-background dark:border-gray-700 max-w-full"
             >
               <AccordionItem value={chapterId}>
                 <AccordionTrigger className="text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800">
                   {/* Display chapter number and name with total question count */}
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    <h4 className="text-base font-medium truncate">
-                      Ch. {chapterData[chapterId]?.chapterNo || "N/A"}:{" "}
-                      {chapterData[chapterId]?.name || "Unknown Chapter"} (
-                      {Object.values(groups.sectionTitles).flat().length})
-                    </h4>
-                    {chapterData[chapterId]?.status ? (
-                      <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    ) : (
-                      <X className="h-4 w-4 text-red-600 dark:text-red-400" />
-                    )}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 w-full">
+                      <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <h4
+                        className="text-base font-medium truncate min-w-0 w-full break-words"
+                        style={{
+                          wordBreak: "break-word",
+                          overflowWrap: "break-word",
+                        }}
+                      >
+                        Ch. {chapterData[chapterId]?.chapterNo || "N/A"}:{" "}
+                        {chapterData[chapterId]?.name || "Unknown Chapter"} (
+                        {Object.values(groups.sectionTitles).flat().length})
+                      </h4>
+                      {chapterData[chapterId]?.status ? (
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                      ) : (
+                        <X className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" />
+                      )}
+                    </div>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="px-4 py-2">
+                <AccordionContent className="px-1 py-2 sm:px-4 max-w-full overflow-x-auto">
                   {loadedChapters.includes(chapterId) ? (
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-w-full">
                       {/* Group by Marks */}
-                      <Accordion type="multiple" className="space-y-2">
+                      <Accordion
+                        type="multiple"
+                        className="space-y-2 max-w-full"
+                      >
                         {Object.entries(groups.marks)
                           .sort(([a], [b]) => Number(a) - Number(b))
                           .map(([key, questions]) => {
                             const itemValue = `${chapterId}-marks-${key}`;
                             return (
-                              <AccordionItem value={itemValue} key={key}>
-                                <AccordionTrigger className="text-sm py-2 px-2 rounded-lg hover:bg-accent/50">
+                              <AccordionItem
+                                value={itemValue}
+                                key={key}
+                                className="max-w-full"
+                              >
+                                <AccordionTrigger className="text-sm py-2 px-2 rounded-lg hover:bg-accent/50 max-w-full">
                                   {getGroupTitle(
                                     key,
                                     "marks",
                                     questions.length
                                   )}
                                 </AccordionTrigger>
-                                <AccordionContent className="px-2 py-1">
+                                <AccordionContent className="px-2 py-1 max-w-full">
                                   {questions.map(renderQuestion)}
                                 </AccordionContent>
                               </AccordionItem>
@@ -501,21 +520,28 @@ export function QuestionSelector({
                       </Accordion>
 
                       {/* Group by Section Title */}
-                      <Accordion type="multiple" className="space-y-2">
+                      <Accordion
+                        type="multiple"
+                        className="space-y-2 max-w-full"
+                      >
                         {Object.entries(groups.sectionTitles)
                           .sort(([a], [b]) => a.localeCompare(b))
                           .map(([key, questions]) => {
                             const itemValue = `${chapterId}-sectionTitles-${key}`;
                             return (
-                              <AccordionItem value={itemValue} key={key}>
-                                <AccordionTrigger className="text-sm py-2 px-2 rounded-lg hover:bg-accent/50">
+                              <AccordionItem
+                                value={itemValue}
+                                key={key}
+                                className="max-w-full"
+                              >
+                                <AccordionTrigger className="text-sm py-2 px-2 rounded-lg hover:bg-accent/50 max-w-full">
                                   {getGroupTitle(
                                     key,
                                     "sectionTitles",
                                     questions.length
                                   )}
                                 </AccordionTrigger>
-                                <AccordionContent className="px-2 py-1">
+                                <AccordionContent className="px-2 py-1 max-w-full">
                                   {questions.map(renderQuestion)}
                                 </AccordionContent>
                               </AccordionItem>
@@ -538,37 +564,11 @@ export function QuestionSelector({
           </p>
         )}
       </div>
-
       {filteredQuestions.length === 0 && searchTerm && (
         <div className="text-center p-4 border border-dashed rounded-md">
           <p className="text-sm text-muted-foreground">
             No questions match your search.
           </p>
-        </div>
-      )}
-
-      {selectedQuestions.length > 0 && (
-        <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-md">
-          <h3 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2 flex items-center">
-            <CheckSquare className="mr-2 h-4 w-4" />
-            Selected Questions ({selectedQuestions.length})
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {[1, 2, 3, 4, 5].map((mark) => {
-              const count = selectedQuestions.filter(
-                (q) => q.marks === mark
-              ).length;
-              if (count === 0) return null;
-              return (
-                <Badge
-                  key={mark}
-                  className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
-                >
-                  {mark} mark: {count} (Total: {mark * count})
-                </Badge>
-              );
-            })}
-          </div>
         </div>
       )}
     </div>

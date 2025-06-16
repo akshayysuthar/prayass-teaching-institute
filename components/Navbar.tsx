@@ -26,29 +26,29 @@ export function Navbar() {
     user?.emailAddresses[0]?.emailAddress &&
     siteConfig.adminEmail.includes(user.emailAddresses[0].emailAddress);
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
-      <div className="container flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
+      <div className="container flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild className="md:hidden">
               <Button
                 variant="ghost"
-                className="px-0 text-foreground hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="px-2 text-foreground hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
               >
-                <Menu className="h-6 w-6" />
+                <Menu className="h-10 w-10 " />
                 <span className="sr-only">Toggle Menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="pr-0">
               <SheetTitle> </SheetTitle>
-              <div className="flex items-center gap-2 mb-8">
+              <div className="flex items-center gap-2 mt-4 mb-8">
                 <Image
                   src={siteConfig.mainLogo || "/placeholder.svg"}
                   alt="Logo"
                   width={32}
                   height={32}
                 />
-                <span className="font-bold text-xl text-primary">
+                <span className="font-bold text-lg text-primary">
                   {siteConfig.name}
                 </span>
               </div>

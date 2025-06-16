@@ -20,6 +20,10 @@ interface ExamPreviewProps {
   onGeneratePdf: (format: "exam" | "examWithAnswer" | "material") => void;
   isSectionWise: boolean;
   showAnswers?: boolean;
+  selectedFormat: "exam" | "examWithAnswer" | "material" | null;
+  setSelectedFormat: (
+    format: "exam" | "examWithAnswer" | "material" | null
+  ) => void;
 }
 
 export function ExamPreview({
@@ -27,10 +31,12 @@ export function ExamPreview({
   examStructure,
   onGeneratePdf,
   // isSectionWise,
-  showAnswers = false,
+
+  selectedFormat,
+  setSelectedFormat,
 }: ExamPreviewProps) {
-  const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
-  const [showSections, setShowSections] = useState(true);
+  const [showSections, setShowSections] = useState(false);
+  const [showAnswers, setShowAnswers] = useState(false);
 
   const groupedQuestions = useMemo(() => {
     const grouped: Record<number, Question[]> = {};
@@ -69,11 +75,11 @@ export function ExamPreview({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col items-center sm:flex-row justify-between  sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
           Exam Preview
         </h2>
-        <Badge variant="outline" className="text-base py-1 px-3">
+        <Badge variant="outline" className=" text-base py-1 px-3">
           Total Marks: {totalSelectedMarks}
         </Badge>
       </div>
@@ -83,7 +89,11 @@ export function ExamPreview({
           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
             Select PDF Format
           </h3>
-          <Select onValueChange={(value) => setSelectedFormat(value)}>
+          <Select
+            onValueChange={(value) =>
+              setSelectedFormat(value as "exam" | "examWithAnswer" | "material")
+            }
+          >
             <SelectTrigger className="w-full sm:w-[200px] h-12 text-base">
               <SelectValue placeholder="Choose format" />
             </SelectTrigger>
@@ -102,7 +112,7 @@ export function ExamPreview({
         </div>
       ) : (
         <>
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+          <div className="flex flex-row gap-4 sm:gap-6">
             <div className="flex items-center gap-3">
               <Switch
                 id="show-sections"
@@ -110,7 +120,17 @@ export function ExamPreview({
                 onCheckedChange={setShowSections}
               />
               <Label htmlFor="show-sections" className="text-sm font-medium">
-                Show Sections
+                Show Questions
+              </Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch
+                id="show-sections"
+                checked={showAnswers}
+                onCheckedChange={setShowAnswers}
+              />
+              <Label htmlFor="show-answer" className="text-sm font-medium">
+                Show Answers
               </Label>
             </div>
           </div>
@@ -195,6 +215,14 @@ export function ExamPreview({
             >
               Generate PDF
             </Button>
+            {/* <DownloadPDFButton
+              onClick={() => {
+                setDownloading(true);
+                // TODO: implement actual download logic here
+                setTimeout(() => setDownloading(false), 1200);
+              }}
+              loading={downloading}
+            /> */}
             <Button
               variant="outline"
               onClick={() => setSelectedFormat(null)}

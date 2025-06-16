@@ -14,6 +14,8 @@ import { DynamicParagraph } from "./DynamicParagraph";
 import { siteConfig } from "@/config/site";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
+import { Download } from "lucide-react";
+import { Card, CardContent } from "./ui/card";
 
 // Register fonts
 const registerFonts = () => {
@@ -541,19 +543,25 @@ export function PdfDownload(props: PdfDownloadPropsExtended) {
 
   return (
     <div className="space-y-4">
-      <PDFViewer width="100%" height="60vh" className="w-full h-full">
-        <MyDocument {...props} />
-      </PDFViewer>
-      <div className="flex justify-between">
-        <PDFDownloadLink
-          document={<MyDocument {...props} />}
-          fileName={`exam_${props.format}_${
-            props.teacherName
-          }_${new Date().toLocaleDateString()}.pdf`}
-        >
-          <Button className="min-h-12">Download PDF</Button>
-        </PDFDownloadLink>
-      </div>
+      <Card className="shadow-md border-none">
+        <CardContent className="p-4 sm:p-6">
+          <PDFDownloadLink
+            document={<MyDocument {...props} />}
+            fileName={`exam_${props.format}_${
+              props.teacherName
+            }_${new Date().toLocaleDateString()}.pdf`}
+          >
+            <Button className="h-12 w-full text-base flex items-center gap-2">
+              <Download className="h-5 w-5" />
+              Download PDF
+            </Button>
+          </PDFDownloadLink>
+
+          <PDFViewer width="100%" height="100vh" className="w-full h-full">
+            <MyDocument {...props} />
+          </PDFViewer>
+        </CardContent>
+      </Card>
     </div>
   );
 }

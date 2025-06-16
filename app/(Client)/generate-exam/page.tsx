@@ -20,10 +20,15 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
-  ChevronLeft,
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"; // adjust path if needed
+
+import {
   ChevronRight,
   AlertCircle,
-  Trash2,
   FileText,
   BookOpen,
   CheckCircle,
@@ -31,7 +36,6 @@ import {
   User,
   Building,
   X,
-  // RotateCcw,
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { useUser } from "@clerk/nextjs";
@@ -40,7 +44,9 @@ import { ClassSelector } from "@/components/ClassSelector";
 import { ExamPreview } from "@/components/ExamPreview";
 import { PdfDownload } from "@/components/PdfDownload";
 
+// Main Exam Generation Page
 export default function GenerateExamPage() {
+  // --- State Management ---
   const searchParams = useSearchParams();
   const contentIdParam = searchParams.get("contentId");
 
@@ -76,14 +82,13 @@ export default function GenerateExamPage() {
     totalMarks: 100,
     sections: [],
   });
-  const [chapterNo, setChapterNo] = useState<string>("");
-  const [showAnswers, setShowAnswers] = useState(false);
+  const [chapterNo, setChapterNo] = useState<string>("1");
 
   const { user } = useUser();
   const { toast } = useToast();
 
-  console.log(selectedChapters);
-
+  // --- Data Fetching ---
+  // Fetch all available contents
   const fetchContents = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -91,6 +96,7 @@ export default function GenerateExamPage() {
       if (error) throw error;
       setContents(data || []);
 
+      // If contentId is present in URL, auto-select it
       if (contentIdParam && data) {
         const contentId = Number.parseInt(contentIdParam);
         const content = data.find((c) => c.id === contentId);
@@ -113,6 +119,7 @@ export default function GenerateExamPage() {
     }
   }, [toast, contentIdParam]);
 
+  // Fetch subjects for a given content
   const fetchSubjects = useCallback(
     async (contentId: number) => {
       try {
@@ -133,6 +140,7 @@ export default function GenerateExamPage() {
     [toast]
   );
 
+  // Fetch questions for a given content
   const fetchQuestions = useCallback(
     async (contentId: number) => {
       setIsLoading(true);
@@ -143,6 +151,7 @@ export default function GenerateExamPage() {
           .eq("content_id", contentId);
         if (error) throw error;
 
+        // Ensure all fields are present for each question
         const processedQuestions = data.map((q) => ({
           ...q,
           question: q.question || "",
@@ -171,10 +180,13 @@ export default function GenerateExamPage() {
     [toast]
   );
 
+  // --- Effects ---
+  // Initial fetch
   useEffect(() => {
     fetchContents();
   }, [fetchContents]);
 
+  // Persist selected questions and content to localStorage
   useEffect(() => {
     localStorage.setItem(
       "selectedQuestions",
@@ -185,10 +197,12 @@ export default function GenerateExamPage() {
     }
   }, [selectedQuestions, selectedContent]);
 
+  // Update exam structure and total marks when questions change
   useEffect(() => {
     if (selectedQuestions.length > 0) {
       const sections = [];
 
+      // Section A: MCQ/Short Answer (1 mark)
       const mcqsAndOneMarks = selectedQuestions.filter(
         (q) => q.type === "MCQ" || q.marks === 1
       );
@@ -203,6 +217,7 @@ export default function GenerateExamPage() {
         });
       }
 
+      // Section B: Short Answer (2 marks)
       const twoMarksQuestions = selectedQuestions.filter((q) => q.marks === 2);
       if (twoMarksQuestions.length > 0) {
         sections.push({
@@ -215,6 +230,7 @@ export default function GenerateExamPage() {
         });
       }
 
+      // Section C: Medium Answer (3 marks)
       const threeMarksQuestions = selectedQuestions.filter(
         (q) => q.marks === 3
       );
@@ -229,6 +245,7 @@ export default function GenerateExamPage() {
         });
       }
 
+      // Section D: Long Answer (4 marks)
       const fourMarksQuestions = selectedQuestions.filter((q) => q.marks === 4);
       if (fourMarksQuestions.length > 0) {
         sections.push({
@@ -241,6 +258,7 @@ export default function GenerateExamPage() {
         });
       }
 
+      // Section E: Long Answer (5 marks)
       const fiveMarksQuestions = selectedQuestions.filter((q) => q.marks === 5);
       if (fiveMarksQuestions.length > 0) {
         sections.push({
@@ -271,9 +289,12 @@ export default function GenerateExamPage() {
         totalMarks: 0,
         sections: [],
       });
+      setTotalPaperMarks(0);
     }
   }, [selectedQuestions, selectedContent]);
 
+  // --- Handlers ---
+  // Handle content selection
   const handleContentSelect = useCallback(
     (content: Content) => {
       if (content.id !== selectedContent?.id) {
@@ -292,14 +313,17 @@ export default function GenerateExamPage() {
     [selectedContent, fetchSubjects, fetchQuestions, toast]
   );
 
+  // Handle question selection
   const handleQuestionSelect = useCallback((questions: Question[]) => {
     setSelectedQuestions(questions);
   }, []);
 
+  // Handle chapter selection
   const handleChapterSelect = useCallback((chapters: SelectedChapter[]) => {
     setSelectedChapters(chapters);
   }, []);
 
+  // Clear all selected questions
   const handleClearQuestions = useCallback(() => {
     setSelectedQuestions([]);
     localStorage.removeItem("selectedQuestions");
@@ -309,6 +333,7 @@ export default function GenerateExamPage() {
     });
   }, [toast]);
 
+  // Reset the entire form
   const handleResetForm = useCallback(() => {
     setSelectedQuestions([]);
     setSelectedChapters([]);
@@ -326,6 +351,7 @@ export default function GenerateExamPage() {
     });
   }, [toast]);
 
+  // Generate PDF (exam, answer, or material)
   const handleGeneratePdf = useCallback(
     (format: "exam" | "examWithAnswer" | "material") => {
       if (!chapterNo.trim()) {
@@ -346,39 +372,45 @@ export default function GenerateExamPage() {
     [chapterNo, toast]
   );
 
-  const handleQuickGeneratePdf = useCallback(() => {
-    handleGeneratePdf("exam");
-  }, [handleGeneratePdf]);
+  // // Quick generate exam PDF (used by mobile bottom nav)
+  // const handleQuickGeneratePdf = useCallback(() => {
+  //   setPdfFormat("exam");
+  //   handleGeneratePdf("exam");
+  // }, [handleGeneratePdf]);
 
-  const toggleAnswers = useCallback(() => {
-    setShowAnswers((prev) => {
-      const newState = !prev;
-      toast({
-        title: newState ? "Answers Shown" : "Answers Hidden",
-        description: newState
-          ? "Answers are now visible in the preview."
-          : "Answers are now hidden in the preview.",
-      });
-      return newState;
-    });
-  }, [toast]);
+  // // Toggle showing answers in preview
+  // const toggleAnswers = useCallback(() => {
+  //   setShowAnswers((prev) => {
+  //     const newState = !prev;
+  //     toast({
+  //       title: newState ? "Answers Shown" : "Answers Hidden",
+  //       description: newState
+  //         ? "Answers are now visible in the preview."
+  //         : "Answers are now hidden in the preview.",
+  //     });
+  //     return newState;
+  //   });
+  // }, [toast]);
 
+  // Step navigation with validation
   const setStep = useCallback(
     (step: number) => {
       if (step < 1 || step > 3) return;
       setCurrentStep(step);
-      toast({
-        title: "Step Changed",
-        description: `Moved to step ${step}: ${
-          step === 1 ? "Content" : step === 2 ? "Questions" : "Preview"
-        }.`,
-      });
+      // toast({
+      //   title: "Step Changed",
+      //   description: `Moved to step ${step}: ${
+      //     step === 1 ? "Content" : step === 2 ? "Questions" : "Preview"
+      //   }.`,
+      // });
     },
     [toast]
   );
 
-  const progress = (currentStep / 3) * 100;
+  console.log({ selectedChapters });
 
+  // --- UI Step Components ---
+  // Step 1: Content Selection
   const contentSelectionStep = (
     <div className="space-y-6 p-4">
       <h2 className="text-2xl font-semibold text-blue-600 dark:text-blue-400 flex items-center">
@@ -392,42 +424,21 @@ export default function GenerateExamPage() {
       <Button
         onClick={() => setStep(2)}
         className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800"
+        disabled={!selectedContent}
       >
         Next <ChevronRight className="ml-2 h-5 w-5" />
       </Button>
     </div>
   );
 
+  // Step 2: Question Selection
   const questionSelectionStep = (
     <div className="space-y-6 pb-20 flex flex-col justify-center max-w-sm lg:max-w-3xl box-border">
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <Button
-          onClick={() => setStep(1)}
-          variant="outline"
-          className="w-full sm:w-auto h-12 text-base border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950/50"
-        >
-          <ChevronLeft className="mr-2 h-5 w-5" /> Previous
-        </Button>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Button
-            onClick={handleClearQuestions}
-            variant="outline"
-            className="w-full sm:w-auto h-12 text-base border-red-600 text-red-600 hover:bg-red-50 dark:border-red-400 dark:text-red-400 dark:hover:bg-red-950/50"
-          >
-            <Trash2 className="mr-2 h-5 w-5" /> Clear Questions
-          </Button>
-          <Button
-            onClick={() => setStep(3)}
-            className="w-full sm:w-auto h-12 text-base bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800"
-          >
-            Next <ChevronRight className="ml-2 h-5 w-5" />
-          </Button>
-        </div>
-      </div>
       <h2 className="text-2xl font-semibold text-blue-600 dark:text-blue-400 flex items-center">
         <FileText className="mr-2 h-6 w-6" /> 2. Select Questions
       </h2>
 
+      {/* Subjects List */}
       {selectedContent && subjects.length > 0 && (
         <Card className="shadow-md border-none">
           <CardContent className="p-4 sm:p-6">
@@ -461,6 +472,17 @@ export default function GenerateExamPage() {
         </Card>
       )}
 
+      {/* Question Selector */}
+      <div className="w-full ">
+        <QuestionSelector
+          questions={questions}
+          onSelectQuestions={handleQuestionSelect}
+          onSelectChapters={handleChapterSelect}
+          selectedQuestions={selectedQuestions}
+        />
+      </div>
+
+      {/* Selected Questions Summary */}
       {selectedQuestions.length > 0 && (
         <Card className="shadow-md mb-4 border-none">
           <CardContent className="p-4 sm:p-6">
@@ -518,41 +540,17 @@ export default function GenerateExamPage() {
           </CardContent>
         </Card>
       )}
-
-      <div className="w-full overflow-x-auto">
-        <QuestionSelector
-          questions={questions}
-          onSelectQuestions={handleQuestionSelect}
-          onSelectChapters={handleChapterSelect}
-          selectedQuestions={selectedQuestions}
-        />
-      </div>
     </div>
   );
 
+  // Step 3: Preview and Generate
   const previewAndGenerateStep = (
     <div className="space-y-6 p-1 pb-20 md:pb-4">
       <h2 className="text-2xl font-semibold text-blue-600 dark:text-blue-400 flex items-center">
         <FileText className="mr-2 h-6 w-6" /> 3. Preview and Generate
       </h2>
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Button
-          onClick={() => setStep(2)}
-          variant="outline"
-          className="w-full sm:w-auto h-12 text-base border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950/50"
-        >
-          <ChevronLeft className="mr-2 h-5 w-5" /> Previous
-        </Button>
-        <Button
-          onClick={toggleAnswers}
-          variant="outline"
-          className="w-full sm:w-auto h-12 text-base border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950/50"
-        >
-          <BookOpen className="mr-2 h-5 w-5" />{" "}
-          {showAnswers ? "Hide Answers" : "Show Answers"}
-        </Button>
-      </div>
 
+      {/* Show warning if no questions selected */}
       {examStructure.sections.length === 0 ? (
         <div className="border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg flex items-start gap-3 bg-yellow-50 dark:bg-yellow-900/30">
           <AlertCircle className="h-5 w-5 text-yellow-500 dark:text-yellow-400 mt-0.5" />
@@ -567,132 +565,140 @@ export default function GenerateExamPage() {
         </div>
       ) : (
         <div className="flex flex-col lg:flex-row gap-6">
-          <div className="lg:w-1/3 space-y-4">
-            <Card className="shadow-md border-none">
-              <CardContent className="p-4 sm:p-6 space-y-4">
-                <h3 className="text-lg font-medium text-blue-600 dark:text-blue-400">
-                  Exam Details
-                </h3>
-                <div>
-                  <Label
-                    htmlFor="chapterNo"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center"
-                  >
-                    <BookOpen className="mr-2 h-4 w-4" /> Chapter Number
-                    (Required)
-                  </Label>
-                  <Input
-                    id="chapterNo"
-                    value={chapterNo}
-                    onChange={(e) => setChapterNo(e.target.value)}
-                    placeholder="Enter chapter number"
-                    className="h-12 text-base border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label
-                    htmlFor="studentName"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center"
-                  >
-                    <User className="mr-2 h-4 w-4" /> Student Name (Optional)
-                  </Label>
-                  <Input
-                    id="studentName"
-                    value={studentName}
-                    onChange={(e) => setStudentName(e.target.value)}
-                    placeholder="Enter student name"
-                    className="h-12 text-base border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
-                  />
-                </div>
-                <div>
-                  <Label
-                    htmlFor="schoolName"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center"
-                  >
-                    <Building className="mr-2 h-4 w-4" /> School Name (Optional)
-                  </Label>
-                  <Input
-                    id="schoolName"
-                    value={schoolName}
-                    onChange={(e) => setSchoolName(e.target.value)}
-                    placeholder="Enter school name"
-                    className="h-12 text-base border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
-                  />
-                </div>
-                <div>
-                  <Label
-                    htmlFor="testTitle"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center"
-                  >
-                    <FileText className="mr-2 h-4 w-4" /> Test Title
-                  </Label>
-                  <Input
-                    id="testTitle"
-                    value={testTitle}
-                    onChange={(e) => setTestTitle(e.target.value)}
-                    placeholder="Unit Test"
-                    className="h-12 text-base border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
-                  />
-                </div>
-                <div>
-                  <Label
-                    htmlFor="examTime"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center"
-                  >
-                    <Clock className="mr-2 h-4 w-4" /> Exam Time
-                  </Label>
-                  <Input
-                    id="examTime"
-                    value={examTime}
-                    onChange={(e) => setExamTime(e.target.value)}
-                    placeholder="1 hour"
-                    className="h-12 text-base border-blue-300 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:focus:border-blue-600"
-                  />
-                </div>
+          {/* Exam Details Form */}
+          <div className="lg:w-1/3">
+            <Card className="shadow-md border-none bg-white dark:bg-gray-800">
+              <CardContent className="p-6">
+                <Accordion type="single" collapsible defaultValue="examDetails">
+                  <AccordionItem value="examDetails" className="border-none">
+                    <AccordionTrigger className="text-lg font-semibold text-blue-600 dark:text-blue-400 px-0 hover:no-underline hover:text-blue-700 dark:hover:text-blue-300">
+                      <div className="flex items-center">
+                        <FileText className="mr-2 h-5 w-5" />
+                        Exam Details
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-6">
+                      <div className="space-y-5">
+                        <div>
+                          <Label
+                            htmlFor="chapterNo"
+                            className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center mb-2"
+                          >
+                            <BookOpen className="mr-2 h-4 w-4" /> Chapter Number
+                            <span className="text-red-500 ml-1">*</span>
+                          </Label>
+                          <Input
+                            id="chapterNo"
+                            value={chapterNo}
+                            onChange={(e) => setChapterNo(e.target.value)}
+                            placeholder="Enter chapter number"
+                            className="h-10 text-base border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label
+                            htmlFor="studentName"
+                            className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center mb-2"
+                          >
+                            <User className="mr-2 h-4 w-4" /> Student Name
+                            (Optional)
+                          </Label>
+                          <Input
+                            id="studentName"
+                            value={studentName}
+                            onChange={(e) => setStudentName(e.target.value)}
+                            placeholder="Enter student name"
+                            className="h-10 text-base border-gray-200 dark:border-gray-700"
+                          />
+                        </div>
+                        <div>
+                          <Label
+                            htmlFor="schoolName"
+                            className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center mb-2"
+                          >
+                            <Building className="mr-2 h-4 w-4" /> School Name
+                            (Optional)
+                          </Label>
+                          <Input
+                            id="schoolName"
+                            value={schoolName}
+                            onChange={(e) => setSchoolName(e.target.value)}
+                            placeholder="Enter school name"
+                            className="h-10 text-base border-gray-200 dark:border-gray-700"
+                          />
+                        </div>
+                        <div>
+                          <Label
+                            htmlFor="testTitle"
+                            className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center mb-2"
+                          >
+                            <FileText className="mr-2 h-4 w-4" /> Test Title
+                          </Label>
+                          <Input
+                            id="testTitle"
+                            value={testTitle}
+                            onChange={(e) => setTestTitle(e.target.value)}
+                            placeholder="Unit Test"
+                            className="h-10 text-base border-gray-200 dark:border-gray-700"
+                          />
+                        </div>
+                        <div>
+                          <Label
+                            htmlFor="examTime"
+                            className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center mb-2"
+                          >
+                            <Clock className="mr-2 h-4 w-4" /> Exam Time
+                          </Label>
+                          <Input
+                            id="examTime"
+                            value={examTime}
+                            onChange={(e) => setExamTime(e.target.value)}
+                            placeholder="1 hour"
+                            className="h-10 text-base border-gray-200 dark:border-gray-700"
+                          />
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </CardContent>
             </Card>
           </div>
 
+          {/* Divider for desktop */}
+          <div className="hidden lg:block w-px bg-gray-200 dark:bg-gray-700" />
+
+          {/* Exam Preview */}
           <div className="lg:w-2/3">
-            <Card className="shadow-md border-none">
-              <CardContent className="p-4 sm:p-6">
+            <Card className="shadow-md border-none bg-white dark:bg-gray-800">
+              <CardContent className="p-6">
                 <ExamPreview
                   selectedQuestions={selectedQuestions}
                   examStructure={examStructure}
-                  onGeneratePdf={handleGeneratePdf}
+                  onGeneratePdf={(format) => {
+                    handleGeneratePdf(format);
+                  }}
                   isSectionWise={true}
-                  showAnswers={showAnswers}
+                  selectedFormat={pdfFormat}
+                  setSelectedFormat={(format) => {
+                    setPdfFormat(format);
+                  }}
                 />
-                <div className="mt-4 flex flex-col sm:flex-row gap-4 justify-end">
-                  <Button
-                    onClick={() => handleGeneratePdf("exam")}
-                    className="h-12 text-base bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-800"
-                    disabled={!chapterNo.trim()}
-                  >
-                    Generate Exam Paper
-                  </Button>
-                  <Button
-                    onClick={() => handleGeneratePdf("examWithAnswer")}
-                    className="h-12 text-base bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800"
-                    disabled={!chapterNo.trim()}
-                  >
-                    Generate with Answers
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </div>
         </div>
       )}
 
+      {/* PDF Download Modal */}
       {showPdfDownload && (
         <PdfDownload
           format={pdfFormat!}
           selectedQuestions={selectedQuestions}
           examStructure={examStructure}
           instituteName={siteConfig.name}
-          standard={selectedContent?.class.toString() || ""}
+          standard={selectedContent?.class?.toString() || ""}
           schoolName={schoolName}
           studentName={studentName}
           subject={selectedContent?.name || ""}
@@ -707,11 +713,17 @@ export default function GenerateExamPage() {
     </div>
   );
 
-  if (isLoading && !contents.length)
-    return <Loading title="Loading exam generation..." />;
+  // --- Main Render ---
+  if (isLoading) {
+    return <Loading title="Loading..." />;
+  }
+
+  // Progress bar value
+  const progress = (currentStep / 3) * 100;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8 bg-white dark:bg-gray-900">
+      {/* Header */}
       <header className="mb-6">
         <h1 className="text-3xl font-bold mb-4 text-blue-600 dark:text-blue-400 flex items-center">
           <FileText className="mr-3 h-8 w-8" /> Generate Exam Paper
@@ -750,12 +762,15 @@ export default function GenerateExamPage() {
           </span>
         </nav>
       </header>
+
+      {/* Main Step Content */}
       <main className="space-y-6">
         {currentStep === 1 && contentSelectionStep}
         {currentStep === 2 && questionSelectionStep}
         {currentStep === 3 && previewAndGenerateStep}
       </main>
 
+      {/* Mobile Bottom Navigation */}
       <MobileBottomNav
         currentStep={currentStep}
         totalSteps={3}
@@ -764,11 +779,26 @@ export default function GenerateExamPage() {
         onPrevious={() => setStep(Math.max(1, currentStep - 1))}
         onNext={() => setStep(Math.min(3, currentStep + 1))}
         onClearQuestions={handleClearQuestions}
-        onGeneratePdf={currentStep === 3 ? handleQuickGeneratePdf : undefined}
+        onGeneratePdf={
+          currentStep === 3 && chapterNo.trim() !== ""
+            ? (format = "exam") => {
+                setPdfFormat(format as "exam" | "examWithAnswer" | "material");
+                setShowPdfDownload(true);
+                toast({
+                  title: "PDF Generation Started",
+                  description: `Generating ${format} PDF...`,
+                });
+              }
+            : undefined
+        }
         onResetForm={handleResetForm}
-        onToggleAnswers={toggleAnswers}
-        canGoNext={true}
+        canGoNext={
+          (currentStep === 1 && !!selectedContent) ||
+          (currentStep === 2 && selectedQuestions.length > 0) ||
+          currentStep === 3
+        }
         canGeneratePdf={currentStep === 3 && chapterNo.trim() !== ""}
+        subject={selectedContent?.name || ""}
       />
     </div>
   );
