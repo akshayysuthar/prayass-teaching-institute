@@ -780,9 +780,9 @@ export default function GenerateExamPage() {
         onNext={() => setStep(Math.min(3, currentStep + 1))}
         onClearQuestions={handleClearQuestions}
         onGeneratePdf={
-          currentStep === 3 && chapterNo.trim() !== ""
-            ? (format = "exam") => {
-                setPdfFormat(format as "exam" | "examWithAnswer" | "material");
+          currentStep === 3
+            ? (format) => {
+                setPdfFormat(format);
                 setShowPdfDownload(true);
                 toast({
                   title: "PDF Generation Started",

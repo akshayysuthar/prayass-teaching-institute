@@ -20,7 +20,7 @@ interface MobileBottomNavProps {
   onPrevious: () => void;
   onNext: () => void;
   onClearQuestions: () => void;
-  onGeneratePdf?: () => void;
+  onGeneratePdf?: (format: "exam" | "examWithAnswer" | "material") => void;
   onDownloadPdf?: () => void;
   onResetForm?: () => void;
   onToggleAnswers?: () => void;
@@ -153,7 +153,7 @@ export function MobileBottomNav({
             <Button
               variant="default"
               size="sm"
-              onClick={onGeneratePdf}
+              onClick={() => onGeneratePdf("examWithAnswer")}
               className="h-12 text-base bg-blue-600 hover:bg-blue-700"
               disabled={!canGeneratePdf}
               title="Generate PDF"
