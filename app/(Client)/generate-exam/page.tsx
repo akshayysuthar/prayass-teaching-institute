@@ -87,6 +87,8 @@ export default function GenerateExamPage() {
   const { user } = useUser();
   const { toast } = useToast();
 
+  console.log(selectedQuestions);
+
   // --- Data Fetching ---
   // Fetch all available contents
   const fetchContents = useCallback(async () => {

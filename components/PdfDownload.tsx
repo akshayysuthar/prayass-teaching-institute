@@ -123,11 +123,12 @@ const createStyles = (subject: string) => {
       fontSize: 14,
       fontWeight: "bold",
       textAlign: "center",
-      marginTop: 5,
+      marginTop: 10,
       marginBottom: 10,
-      backgroundColor: "#f0f0f0",
-      padding: 5,
+      textDecoration: "underline",
+      color: "#000",
     },
+
     question: {
       fontSize: 12,
       marginBottom: 2,
@@ -206,68 +207,146 @@ const formatChapters = (questions: Question[], chapters: string) => {
     : chapterNos.join(", ");
 };
 
-const groupQuestionsBySection = (
+// const groupQuestionsBySection = (
+//   questions: Question[],
+//   examStructure: ExamStructure,
+//   isSectionWise: boolean
+// ) => {
+//   if (!isSectionWise)
+//     return [{ name: "", questionType: "All Questions", questions }];
+
+//   const questionsByMarks: Record<number, Question[]> = {};
+//   questions.forEach((q) => {
+//     if (!questionsByMarks[q.marks]) questionsByMarks[q.marks] = [];
+//     questionsByMarks[q.marks].push(q);
+//   });
+
+//   const grouped: `Array`<{
+//     name: string;
+//     questionType: string;
+//     questions: Question[];
+//   }> = [];
+
+//   const mcqsAndOneMarks = questions.filter(
+//     (q) => q.type === "MCQ" || q.marks === 1
+//   );
+//   if (mcqsAndOneMarks.length > 0) {
+//     grouped.push({
+//       name: "A",
+//       questionType: "MCQ/Short Answer",
+//       questions: mcqsAndOneMarks,
+//     });
+//   }
+
+//   if (questionsByMarks[2] && questionsByMarks[2].length > 0) {
+//     grouped.push({
+//       name: "B",
+//       questionType: "Short Answer",
+//       questions: questionsByMarks[2],
+//     });
+//   }
+
+//   if (questionsByMarks[3] && questionsByMarks[3].length > 0) {
+//     grouped.push({
+//       name: "C",
+//       questionType: "Medium Answer",
+//       questions: questionsByMarks[3],
+//     });
+//   }
+
+//   if (questionsByMarks[4] && questionsByMarks[4].length > 0) {
+//     grouped.push({
+//       name: "D",
+//       questionType: "Long Answer",
+//       questions: questionsByMarks[4],
+//     });
+//   }
+
+//   if (questionsByMarks[5] && questionsByMarks[5].length > 0) {
+//     grouped.push({
+//       name: "E",
+//       questionType: "Long Answer",
+//       questions: questionsByMarks[5],
+//     });
+//   }
+
+//   return grouped;
+// };
+
+const groupQuestionsWithSubSections = (
   questions: Question[],
   examStructure: ExamStructure,
   isSectionWise: boolean
 ) => {
-  if (!isSectionWise)
-    return [{ name: "", questionType: "All Questions", questions }];
-
-  const questionsByMarks: Record<number, Question[]> = {};
-  questions.forEach((q) => {
-    if (!questionsByMarks[q.marks]) questionsByMarks[q.marks] = [];
-    questionsByMarks[q.marks].push(q);
-  });
+  if (!isSectionWise) {
+    return [
+      {
+        name: "",
+        questionType: "All Questions",
+        subGroups: [
+          {
+            sectionTitle: "All",
+            questions,
+          },
+        ],
+      },
+    ];
+  }
 
   const grouped: Array<{
     name: string;
     questionType: string;
-    questions: Question[];
+    subGroups: Array<{
+      sectionTitle: string;
+      questions: Question[];
+    }>;
   }> = [];
 
-  const mcqsAndOneMarks = questions.filter(
-    (q) => q.type === "MCQ" || q.marks === 1
-  );
-  if (mcqsAndOneMarks.length > 0) {
-    grouped.push({
-      name: "A",
-      questionType: "MCQ/Short Answer",
-      questions: mcqsAndOneMarks,
-    });
-  }
+  const marksMap: Record<number, string> = {
+    1: "A",
+    2: "B",
+    3: "C",
+    4: "D",
+    5: "E",
+  };
 
-  if (questionsByMarks[2] && questionsByMarks[2].length > 0) {
-    grouped.push({
-      name: "B",
-      questionType: "Short Answer",
-      questions: questionsByMarks[2],
-    });
-  }
+  const questionsByMarks: Record<number, Question[]> = {};
+  questions.forEach((q) => {
+    if (!questionsByMarks[q.marks]) {
+      questionsByMarks[q.marks] = [];
+    }
+    questionsByMarks[q.marks].push(q);
+  });
 
-  if (questionsByMarks[3] && questionsByMarks[3].length > 0) {
-    grouped.push({
-      name: "C",
-      questionType: "Medium Answer",
-      questions: questionsByMarks[3],
-    });
-  }
+  Object.entries(questionsByMarks).forEach(([marks, qList]) => {
+    const sectionName = marksMap[+marks] || "";
+    const sectionLabel =
+      +marks === 1
+        ? "MCQ/Short Answer"
+        : +marks === 2
+        ? "Short Answer"
+        : +marks === 3
+        ? "Medium Answer"
+        : +marks >= 4
+        ? "Long Answer"
+        : "Others";
 
-  if (questionsByMarks[4] && questionsByMarks[4].length > 0) {
-    grouped.push({
-      name: "D",
-      questionType: "Long Answer",
-      questions: questionsByMarks[4],
+    const subGrouped: Record<string, Question[]> = {};
+    qList.forEach((q) => {
+      const key = q.sectionTitle?.trim() || q.section_title?.trim() || "Other";
+      if (!subGrouped[key]) subGrouped[key] = [];
+      subGrouped[key].push(q);
     });
-  }
 
-  if (questionsByMarks[5] && questionsByMarks[5].length > 0) {
     grouped.push({
-      name: "E",
-      questionType: "Long Answer",
-      questions: questionsByMarks[5],
+      name: sectionName,
+      questionType: sectionLabel,
+      subGroups: Object.entries(subGrouped).map(([sectionTitle, qs]) => ({
+        sectionTitle,
+        questions: qs,
+      })),
     });
-  }
+  });
 
   return grouped;
 };
@@ -287,7 +366,7 @@ const MyDocument = ({
   examTime = "1 hour",
 }: PdfDownloadPropsExtended) => {
   const styles = createStyles(subject);
-  const groupedSections = groupQuestionsBySection(
+  const groupedSections = groupQuestionsWithSubSections(
     selectedQuestions,
     examStructure,
     isSectionWise
@@ -319,7 +398,6 @@ const MyDocument = ({
       {studentName && (
         <View style={styles.row}>
           <Text style={styles.leftColumn}>Student: {studentName}</Text>
-          <Text style={styles.rightColumn}></Text>
         </View>
       )}
     </View>
@@ -337,7 +415,7 @@ const MyDocument = ({
             <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
               <Text style={styles.questionNumber}>{questionIndex + 1}. </Text>
               <DynamicParagraph
-                content={question.question}
+                content={question.question_gu || question.question}
                 images={question.question_images || []}
                 isPdf={true}
                 fontFamily={fontFamily}
@@ -361,33 +439,6 @@ const MyDocument = ({
     );
   };
 
-  const renderQuestionsPage = () => (
-    <Page size="A4" style={styles.page}>
-      <Text style={styles.watermark}>{siteConfig.name}</Text>
-      <View style={styles.section}>
-        {renderHeader()}
-        {groupedSections.map((section, sectionIndex) => (
-          <View key={section.name || sectionIndex}>
-            {isSectionWise && (
-              <Text style={styles.sectionHeader}>
-                Section {section.name} ({section.questionType})
-              </Text>
-            )}
-            {section.questions.map((question, questionIndex) =>
-              renderQuestion(question, sectionIndex, questionIndex)
-            )}
-          </View>
-        ))}
-      </View>
-      <Text style={styles.footer}>All The Best!</Text>
-      <Text
-        style={styles.pageNumber}
-        render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
-        fixed
-      />
-    </Page>
-  );
-
   const renderAnswerKeyPage = () => (
     <Page size="A4" style={styles.page}>
       <Text style={styles.watermark}>{siteConfig.name}</Text>
@@ -398,36 +449,95 @@ const MyDocument = ({
         </Text>
         {groupedSections.map((section, sectionIndex) => (
           <View key={section.name || sectionIndex}>
-            {isSectionWise && (
-              <Text style={styles.sectionHeader}>
-                Section {section.name} ({section.questionType})
-              </Text>
-            )}
-            {section.questions.map((question, questionIndex) => {
-              return (
-                <View key={question.id} style={styles.question}>
-                  <Text style={styles.questionNumber}>
-                    {questionIndex + 1}.{" "}
-                  </Text>
-                  <Text style={{ fontFamily }}>{question.question}</Text>
-                  <Text>Answer:</Text>
-                  <DynamicParagraph
-                    content={
-                      typeof question.answer === "string"
-                        ? question.answer
-                        : JSON.stringify(question.answer)
-                    }
-                    images={question.answer_images || []}
-                    isPdf={true}
-                    isAnswerKey={true}
-                    fontFamily={fontFamily}
-                  />
-                </View>
-              );
-            })}
+            <Text style={styles.sectionHeader}>
+              Section {section.name} ({section.questionType})
+            </Text>
+            {section.subGroups.map((sub, subIndex) => (
+              <View key={sub.sectionTitle + subIndex}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "bold",
+                    paddingVertical: 3,
+                    paddingHorizontal: 6,
+                    backgroundColor: "#e0e0e0",
+                    fontFamily: "NotoSansGujarati",
+                    textAlign: "left",
+                    marginBottom: 4,
+                  }}
+                >
+                  {sub.sectionTitle}
+                </Text>
+                {sub.questions.map((question, questionIndex) => (
+                  <View key={question.id} style={styles.question}>
+                    <Text style={styles.questionNumber}>
+                      {questionIndex + 1}.{" "}
+                    </Text>
+
+                    <Text>Answer:</Text>
+                    <DynamicParagraph
+                      content={
+                        typeof question.answer_gu === "string"
+                          ? question.answer_gu
+                          : typeof question.answer === "string"
+                          ? question.answer
+                          : JSON.stringify(question.answer)
+                      }
+                      images={question.answer_images || []}
+                      isPdf={true}
+                      isAnswerKey={true}
+                      fontFamily={fontFamily}
+                    />
+                  </View>
+                ))}
+              </View>
+            ))}
           </View>
         ))}
       </View>
+      <Text
+        style={styles.pageNumber}
+        render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
+        fixed
+      />
+    </Page>
+  );
+
+  const renderQuestionsPage = () => (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.watermark}>{siteConfig.name}</Text>
+      <View style={styles.section}>
+        {renderHeader()}
+        {groupedSections.map((section, sectionIndex) => (
+          <View key={section.name || sectionIndex}>
+            <Text style={styles.sectionHeader}>
+              Section {section.name} ({section.questionType})
+            </Text>
+            {section.subGroups.map((sub, subIndex) => (
+              <View key={sub.sectionTitle + subIndex}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "bold",
+                    paddingVertical: 3,
+                    paddingHorizontal: 6,
+                    backgroundColor: "#e0e0e0",
+                    fontFamily: "NotoSansGujarati",
+                    textAlign: "left",
+                    marginBottom: 4,
+                  }}
+                >
+                  {sub.sectionTitle}
+                </Text>
+                {sub.questions.map((question, questionIndex) =>
+                  renderQuestion(question, sectionIndex, questionIndex)
+                )}
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+      <Text style={styles.footer}>All The Best!</Text>
       <Text
         style={styles.pageNumber}
         render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
@@ -443,65 +553,79 @@ const MyDocument = ({
         {renderHeader()}
         {groupedSections.map((section, sectionIndex) => (
           <View key={section.name || sectionIndex}>
-            {isSectionWise && (
-              <Text style={styles.sectionHeader}>
-                Section {section.name} ({section.questionType})
-              </Text>
-            )}
-            {section.questions.map((question, questionIndex) => {
-              return (
-                <View key={question.id} style={styles.question}>
-                  <View style={styles.questionRow}>
-                    <View style={styles.questionContent}>
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "flex-start",
-                        }}
-                      >
-                        <Text style={styles.questionNumber}>
-                          {questionIndex + 1}.{" "}
-                        </Text>
+            <Text style={styles.sectionHeader}>
+              Section {section.name} ({section.questionType})
+            </Text>
+            {section.subGroups.map((sub, subIndex) => (
+              <View key={sub.sectionTitle + subIndex}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "bold",
+                    paddingVertical: 3,
+                    paddingHorizontal: 6,
+                    backgroundColor: "#e0e0e0",
+                    fontFamily: "NotoSansGujarati",
+                    textAlign: "left",
+                    marginBottom: 4,
+                  }}
+                >
+                  {sub.sectionTitle}
+                </Text>
+                {sub.questions.map((question, questionIndex) => (
+                  <View key={question.id} style={styles.question}>
+                    <View style={styles.questionRow}>
+                      <View style={styles.questionContent}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "flex-start",
+                          }}
+                        >
+                          <Text style={styles.questionNumber}>
+                            {questionIndex + 1}.{" "}
+                          </Text>
+                          <DynamicParagraph
+                            content={question.question_gu || question.question}
+                            images={question.question_images || []}
+                            isPdf={true}
+                            fontFamily={fontFamily}
+                          />
+                        </View>
+                        {question.type === "MCQ" && question.options && (
+                          <View style={styles.optionsRow}>
+                            {Object.entries(question.options).map(
+                              ([key, value]) => (
+                                <View key={key} style={styles.option}>
+                                  <Text style={styles.optionText}>
+                                    {key}) {value}
+                                  </Text>
+                                </View>
+                              )
+                            )}
+                          </View>
+                        )}
+                        <Text>Answer:</Text>
                         <DynamicParagraph
-                          content={question.question}
-                          images={question.question_images || []}
+                          content={
+                            typeof question.answer_gu === "string"
+                              ? question.answer_gu
+                              : typeof question.answer === "string"
+                              ? question.answer
+                              : JSON.stringify(question.answer)
+                          }
+                          images={question.answer_images || []}
                           isPdf={true}
+                          isAnswerKey={true}
                           fontFamily={fontFamily}
                         />
                       </View>
-                      {question.type === "MCQ" && question.options && (
-                        <View style={styles.optionsRow}>
-                          {Object.entries(question.options).map(
-                            ([key, value]) => (
-                              <View key={key} style={styles.option}>
-                                <Text style={styles.optionText}>
-                                  {key}) {value}
-                                </Text>
-                              </View>
-                            )
-                          )}
-                        </View>
-                      )}
-                      <Text>Answer:</Text>
-                      <DynamicParagraph
-                        content={
-                          typeof question.answer === "string"
-                            ? question.answer
-                            : JSON.stringify(question.answer)
-                        }
-                        images={question.answer_images || []}
-                        isPdf={true}
-                        isAnswerKey={true}
-                        fontFamily={fontFamily}
-                      />
+                      <Text style={styles.marks}>({question.marks} marks)</Text>
                     </View>
-                    <Text
-                      style={styles.marks}
-                    >{`(${question.marks} marks)`}</Text>
                   </View>
-                </View>
-              );
-            })}
+                ))}
+              </View>
+            ))}
           </View>
         ))}
       </View>
