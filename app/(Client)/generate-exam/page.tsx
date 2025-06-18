@@ -87,7 +87,7 @@ export default function GenerateExamPage() {
   const { user } = useUser();
   const { toast } = useToast();
 
-  console.log(selectedQuestions);
+  console.log(selectedChapters.length);
 
   // --- Data Fetching ---
   // Fetch all available contents
@@ -408,8 +408,6 @@ export default function GenerateExamPage() {
     },
     [toast]
   );
-
-  console.log({ selectedChapters });
 
   // --- UI Step Components ---
   // Step 1: Content Selection
