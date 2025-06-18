@@ -7,15 +7,15 @@ import {
   View,
   StyleSheet,
   PDFViewer,
-  PDFDownloadLink,
   Font,
+  pdf,
 } from "@react-pdf/renderer";
 import type { PdfDownloadProps, Question, ExamStructure } from "@/types";
 import { DynamicParagraph } from "./DynamicParagraph";
 import { siteConfig } from "@/config/site";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
-import { Download } from "lucide-react";
+// import { Download } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 
 // Register fonts
@@ -423,7 +423,7 @@ const MyDocument = ({
     renderHeader,
   }: {
     groupedSections: GroupedSection[];
-    styles: any;
+    styles: ReturnType<typeof createStyles>;
     fontFamily: string;
     renderHeader: () => JSX.Element;
   }) => {
@@ -528,7 +528,7 @@ const MyDocument = ({
   // --- Improved answer key rendering ---
   interface RenderImprovedAnswerKeyProps {
     groupedSections: GroupedSection[];
-    styles: Record<string, any>;
+    styles: ReturnType<typeof createStyles>;
     fontFamily: string;
   }
 
@@ -637,20 +637,20 @@ export function PdfDownload(props: PdfDownloadPropsExtended) {
     }
   }, [props.selectedQuestions, toast]);
 
-  // Error boundary for PDF rendering
-  const SafeDocument = React.useCallback(() => {
-    try {
-      return <MyDocument {...props} />;
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error && err.message.includes("memory")
-          ? "PDF generation failed due to memory limits. Try reducing the number of questions or splitting the paper."
-          : "PDF generation failed: " +
-              (err instanceof Error ? err.message : "Unknown error.")
-      );
-      return null;
-    }
-  }, [props]);
+  // // Error boundary for PDF rendering
+  // const SafeDocument = React.useCallback(() => {
+  //   try {
+  //     return <MyDocument {...props} />;
+  //   } catch (err: unknown) {
+  //     setError(
+  //       err instanceof Error && err.message.includes("memory")
+  //         ? "PDF generation failed due to memory limits. Try reducing the number of questions or splitting the paper."
+  //         : "PDF generation failed: " +
+  //             (err instanceof Error ? err.message : "Unknown error.")
+  //     );
+  //     return null;
+  //   }
+  // }, [props]);
 
   // Set loading to false after a short delay when PDF is being generated
   useEffect(() => {
@@ -659,6 +659,34 @@ export function PdfDownload(props: PdfDownloadPropsExtended) {
       return () => clearTimeout(timeout);
     }
   }, [loading]);
+
+  // Manual PDF download handler
+  const handleManualDownload = async () => {
+    setLoading(true);
+    try {
+      const blob = await pdf(<MyDocument {...props} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `exam_${props.format}_${
+        props.teacherName
+      }_${new Date().toLocaleDateString()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.log(err);
+      setError(err instanceof Error ? err.message : String(err));
+      toast({
+        title: "Download Failed",
+        description: "Could not generate or download the PDF.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -678,21 +706,18 @@ export function PdfDownload(props: PdfDownloadPropsExtended) {
       )}
       <Card className="shadow-md border-none">
         <CardContent className="p-4 sm:p-6">
-          <PDFDownloadLink
-            document={<SafeDocument />}
-            fileName={`exam_${props.format}_$${
-              props.teacherName
-            }_${new Date().toLocaleDateString()}.pdf`}
-            onClick={() => setLoading(true)}
-          >
-            <Button className="h-12 w-full text-base flex items-center gap-2">
-              <Download className="h-5 w-5" />
-              Download PDF
+          <div className="flex flex-col gap-4">
+            <Button
+              className="h-12 w-full text-base flex items-center gap-2"
+              onClick={handleManualDownload}
+              disabled={loading}
+            >
+              {loading ? "Generating..." : "Download PDF"}
             </Button>
-          </PDFDownloadLink>
-          <PDFViewer width="100%" height="100vh" className="w-full h-full">
-            <SafeDocument />
-          </PDFViewer>
+            <PDFViewer width="100%" height="100vh" className="w-full h-full">
+              <MyDocument {...props} />
+            </PDFViewer>
+          </div>
         </CardContent>
       </Card>
     </div>
