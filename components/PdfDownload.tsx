@@ -276,6 +276,7 @@ const createStyles = (subject: string) => {
       fontSize: 12,
       fontWeight: "bold",
       textAlign: "left",
+      fontFamily: "NotoSansGujarati",
     },
     subGroupHeaderMarks: {
       fontSize: 11,
@@ -440,10 +441,10 @@ const MyDocument = ({
                 <View style={styles.sectionHeaderRow}>
                   <Text style={styles.sectionHeaderTitle}>
                     Section {section.name}{" "}
-                    {section.questionType ? `- ${section.questionType}` : ""}
+                    {/* {section.questionType ? `- ${section.questionType}` : ""} */}
                   </Text>
                   <Text style={styles.sectionHeaderMarks}>
-                    Total: {section.totalMarks} marks
+                    {section.totalMarks} marks
                   </Text>
                 </View>
                 {section.subGroups.map((sub: SubGroup, subIdx: number) => (
@@ -457,7 +458,7 @@ const MyDocument = ({
                           : ""}
                       </Text>
                       <Text style={styles.subGroupHeaderMarks}>
-                        Total: {sub.totalMarks} marks
+                        {sub.totalMarks} marks
                       </Text>
                     </View>
                     {sub.questions.map((q: Question) => {
