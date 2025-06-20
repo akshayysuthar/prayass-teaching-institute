@@ -19,7 +19,7 @@ import { useEffect } from "react";
 // import { Download } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 
-// Register fonts
+// Register custom fonts for PDF rendering (Gujarati and English)
 const registerFonts = () => {
   try {
     Font.register({ family: "NotoSans", src: "/fonts/NotoSans-Regular.ttf" });
@@ -50,6 +50,7 @@ interface PdfDownloadPropsExtended extends PdfDownloadProps {
   testTitle?: string;
   examTime?: string;
   subject: string;
+  medium?: string;
 }
 
 // Types for groupedSections and subGroups
@@ -58,6 +59,7 @@ interface SubGroup {
   questions: Question[];
   perQuestionMarks?: number;
   totalMarks: number;
+  instruction?: string; // ✅ optional
 }
 
 interface GroupedSection {
@@ -67,7 +69,7 @@ interface GroupedSection {
   totalMarks: number;
 }
 
-// Helper: Normalize section titles for MCQ grouping
+// Normalize section titles for MCQ grouping (returns a canonical string)
 function normalizeSectionTitle(title: string): string {
   if (!title) return "Other";
   const t = title.trim().toLowerCase();
@@ -77,7 +79,7 @@ function normalizeSectionTitle(title: string): string {
   return title.trim();
 }
 
-// Improved grouping: merge MCQ subgroups with similar section titles
+// Group questions by marks and section, merging MCQ subgroups with similar titles
 function groupQuestionsWithMergedMCQ(
   questions: Question[],
   examStructure: ExamStructure,
@@ -161,7 +163,7 @@ function groupQuestionsWithMergedMCQ(
   return grouped;
 }
 
-// Helper to get font family for a subject
+// Get the correct font family for a subject (Gujarati/English)
 const getFontFamily = (subject: string) => {
   if (!subject) return "NotoSans";
   return subject.toLowerCase().includes("gujarati")
@@ -169,7 +171,7 @@ const getFontFamily = (subject: string) => {
     : "NotoSans";
 };
 
-// Create styles for PDF
+// Create all styles for the PDF document
 const createStyles = (subject: string) => {
   const fontFamily = getFontFamily(subject);
 
@@ -177,13 +179,19 @@ const createStyles = (subject: string) => {
     page: {
       flexDirection: "column",
       backgroundColor: "#FFFFFF",
-      padding: 5,
+      padding: 2, // Enough inner space
+      // margin: 8, // Create outer whitespace
       fontFamily: "NotoSans",
-      position: "relative",
+      // borderWidth: 1,
+      // borderColor: "#000000",
+      width: "auto", // Important: let content stay inside page
+      height: "auto", // Prevent overflow to next page
+      boxSizing: "border-box", // Safe in custom layouts
     },
+
     section: {
-      margin: 10,
-      padding: 10,
+      margin: 3,
+      padding: 3,
       flexGrow: 1,
     },
     watermark: {
@@ -195,6 +203,7 @@ const createStyles = (subject: string) => {
       fontSize: 40,
       color: "#000",
       zIndex: -1,
+      fontWeight: "bold",
     },
     headerContainer: {
       marginBottom: 5,
@@ -240,8 +249,9 @@ const createStyles = (subject: string) => {
       fontSize: 14,
       fontWeight: "bold",
       textAlign: "center",
-      marginTop: 10,
-      marginBottom: 10,
+      alignItems: "center",
+      marginTop: 5,
+      marginBottom: 5,
       textDecoration: "underline",
       color: "#000",
     },
@@ -252,6 +262,7 @@ const createStyles = (subject: string) => {
       marginTop: 10,
       marginBottom: 10,
       width: "100%",
+      position: "relative",
     },
     sectionHeaderTitle: {
       flex: 1,
@@ -262,6 +273,8 @@ const createStyles = (subject: string) => {
       color: "#000",
     },
     sectionHeaderMarks: {
+      position: "absolute",
+      right: 0,
       fontSize: 12,
       fontWeight: "bold",
       textAlign: "right",
@@ -275,6 +288,7 @@ const createStyles = (subject: string) => {
       marginTop: 8,
       marginBottom: 4,
       width: "100%",
+      position: "relative",
     },
     subGroupHeaderTitle: {
       flex: 1,
@@ -284,6 +298,8 @@ const createStyles = (subject: string) => {
       fontFamily: "NotoSansGujarati",
     },
     subGroupHeaderMarks: {
+      position: "absolute",
+      right: 0,
       fontSize: 11,
       fontWeight: "bold",
       textAlign: "right",
@@ -292,14 +308,14 @@ const createStyles = (subject: string) => {
     },
     question: {
       fontSize: 12,
-      marginBottom: 2,
+      // marginBottom: 1,
       width: "100%",
     },
     questionRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "flex-start",
-      marginBottom: 1,
+      // marginBottom: 0,
     },
     questionContent: {
       flex: 1,
@@ -314,7 +330,7 @@ const createStyles = (subject: string) => {
       fontWeight: "bold",
     },
     questionNumber: {
-      fontWeight: "bold",
+      fontWeight: "normal",
     },
     optionsRow: {
       flexDirection: "row",
@@ -346,6 +362,57 @@ const createStyles = (subject: string) => {
       bottom: 10,
       right: 15,
       color: "grey",
+    },
+
+    // New header styles
+    headerMainContainer: {
+      marginBottom: 10,
+    },
+    headerSiteName: {
+      fontSize: 14,
+      fontWeight: "bold",
+      textAlign: "center",
+    },
+    headerTestTitle: {
+      fontSize: 12,
+      textAlign: "center",
+      marginBottom: 6,
+      textDecoration: "underline",
+    },
+    headerThreeColumns: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      borderBottom: "1pt solid #000",
+      paddingBottom: 4,
+      marginBottom: 8,
+      textAlign: "left",
+    },
+    headerColumn: {
+      width: "33%",
+      textAlign: "left",
+    },
+    headerColumnCenter: {
+      width: "34%",
+      textAlign: "left",
+    },
+    headerText: {
+      fontSize: 10,
+      textAlign: "left",
+    },
+    headerRightColumn: {
+      width: "33%",
+      alignItems: "flex-end",
+      textAlign: "left",
+    },
+    headerDateTopRight: {
+      position: "absolute",
+      top: 0,
+      right: 0,
+      fontSize: 10,
+      color: "#555",
+      textAlign: "right",
+      marginTop: 2,
+      marginRight: 4,
     },
   });
 };
@@ -402,10 +469,12 @@ const MyDocument = ({
   studentName,
   subject,
   chapters,
+  medium,
   isSectionWise,
   format,
   testTitle = "Unit Test",
   examTime = "1 hour",
+  teacherName,
 }: PdfDownloadPropsExtended) => {
   // Debugging logs
   console.log("[PDF DEBUG]", {
@@ -423,6 +492,7 @@ const MyDocument = ({
     isSectionWise
   );
 
+  // Format chapter numbers for display in the header
   const formatChapters = (questions: Question[], chapters: string) => {
     if (chapters) return chapters;
     const chapterNos = [
@@ -619,35 +689,47 @@ const MyDocument = ({
     fontFamily: string;
   }
   // Use the fontFamily from createStyles
-
   const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      <Text style={styles.header}>{instituteName || siteConfig.name}</Text>
-      <Text style={styles.subHeader}>{testTitle}</Text>
-      <View style={styles.row}>
-        <Text style={styles.leftColumn}>
-          STD: {standard}
-          {schoolName ? ` - ${schoolName}` : ""}
-        </Text>
-        <Text style={styles.rightColumn}>Subject: {subject}</Text>
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.leftColumn}>
-          Chapter: {formatChapters(selectedQuestions, chapters)}
-        </Text>
-        <Text style={styles.rightColumn}>
-          Total Marks: {selectedQuestions.reduce((sum, q) => sum + q.marks, 0)}
-        </Text>
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.leftColumn}>Date: {getFormattedDate()}</Text>
-        <Text style={styles.rightColumn}>Time: {examTime}</Text>
-      </View>
-      {studentName && (
-        <View style={styles.row}>
-          <Text style={styles.leftColumn}>Student: {studentName}</Text>
+    <View style={styles.headerMainContainer}>
+      {/* 🏫 Site name and title */}
+      <Text style={styles.headerSiteName}>
+        {instituteName || siteConfig.name}
+      </Text>
+      <Text style={styles.headerTestTitle}>
+        {testTitle || "Unit Test"} - {examTime || "Unit Test"}
+      </Text>
+      <Text style={styles.headerTestTitle}>{schoolName || ""}</Text>
+      <Text style={styles.headerDateTopRight}>
+        {getFormattedDate()}
+      </Text>
+
+      {/* 📑 Three column layout */}
+      <View style={styles.headerThreeColumns}>
+        {/* Column 1: Chapters + Marks */}
+        <View style={styles.headerColumn}>
+          <Text style={styles.headerText}>
+            Chapter: {formatChapters(selectedQuestions, chapters)}
+          </Text>
+          <Text style={styles.headerText}>
+            Total Marks:{" "}
+            {selectedQuestions.reduce((sum, q) => sum + q.marks, 0)}
+          </Text>
         </View>
-      )}
+        {/* Column 2: Std + Subject + Medium */}
+        <View style={styles.headerColumnCenter}>
+          <Text style={styles.headerText}>
+            Std: {standard || "-"} | {medium || "-"}
+          </Text>
+          <Text style={styles.headerText}>Subject: {subject}</Text>
+        </View>{" "}
+        {/* Column 3: Teacher + Student */}
+        <View style={styles.headerRightColumn}>
+          <Text style={styles.headerText}>Teacher: {teacherName || "-"}</Text>
+          <Text style={styles.headerText}>
+            Student: {studentName || "_____________"}
+          </Text>
+        </View>
+      </View>
     </View>
   );
 
@@ -674,107 +756,121 @@ const MyDocument = ({
             pageIdx: number
           ) => (
             <Page size="A4" style={styles.page} key={pageIdx}>
-              <Text style={styles.watermark}>{siteConfig.name}</Text>
-              <View style={styles.section}>
-                {renderHeader()}
-                {page.sections
-                  .filter(
-                    (section: GroupedSection) =>
-                      section.subGroups &&
-                      section.subGroups.some(
-                        (sub: SubGroup) => sub.questions.length > 0
-                      )
-                  )
-                  .map((section: GroupedSection, sectionIdx: number) => (
-                    <View key={section.name + sectionIdx}>
-                      {/* Section header row: center title, right marks */}
-                      <View style={styles.sectionHeaderRow}>
-                        <Text style={styles.sectionHeaderTitle}>
-                          Section {section.name}
-                        </Text>
-                        <Text style={styles.sectionHeaderMarks}>
-                          {section.totalMarks} marks
-                        </Text>
-                      </View>
-                      {section.subGroups
-                        .filter((sub: SubGroup) => sub.questions.length > 0)
-                        .map((sub: SubGroup, subIdx: number) => (
-                          <View key={sub.sectionTitle + subIdx}>
-                            {/* Subgroup header row: center title, right marks */}
-                            <View style={styles.subGroupHeaderRow}>
-                              <Text style={styles.subGroupHeaderTitle}>
-                                {sub.sectionTitle}
-                                {sub.perQuestionMarks
-                                  ? ` (${sub.perQuestionMarks} marks each)`
-                                  : ""}
-                              </Text>
-                              <Text style={styles.subGroupHeaderMarks}>
-                                {sub.totalMarks} marks
-                              </Text>
-                            </View>
-                            {sub.questions.map((q: Question) => {
-                              const qEl = (
-                                <View key={q.id} style={styles.question}>
-                                  <View style={styles.questionRow}>
-                                    <View style={styles.questionContent}>
-                                      <View
-                                        style={{
-                                          flexDirection: "row",
-                                          alignItems: "flex-start",
-                                        }}
-                                      >
-                                        <Text style={styles.questionNumber}>
-                                          {globalQuestionNumber}.{" "}
-                                        </Text>
-                                        <DynamicParagraph
-                                          content={q.question_gu || q.question}
-                                          images={q.question_images || []}
-                                          isPdf={true}
-                                          fontFamily={fontFamily}
-                                        />
-                                      </View>
-                                      {q.type === "MCQ" && q.options && (
-                                        <View style={styles.optionsRow}>
-                                          {Object.entries(q.options).map(
-                                            ([key, value]) => (
-                                              <View
-                                                key={key}
-                                                style={styles.option}
-                                              >
-                                                <Text style={styles.optionText}>
-                                                  {key}) {value}
-                                                </Text>
-                                              </View>
-                                            )
-                                          )}
+              <View
+                style={{
+                  flex: 1,
+                  margin: 8,
+                  borderWidth: 1,
+                  borderColor: "#000",
+                  padding: 8,
+                }}
+              >
+                <Text style={styles.watermark}>{siteConfig.name}</Text>
+                <View style={styles.section}>
+                  {renderHeader()}
+                  {page.sections
+                    .filter(
+                      (section: GroupedSection) =>
+                        section.subGroups &&
+                        section.subGroups.some(
+                          (sub: SubGroup) => sub.questions.length > 0
+                        )
+                    )
+                    .map((section: GroupedSection, sectionIdx: number) => (
+                      <View key={section.name + sectionIdx}>
+                        {/* Section header row: center title, right marks */}
+                        <View style={styles.sectionHeaderRow}>
+                          <Text style={styles.sectionHeaderTitle}>
+                            Section {section.name}
+                          </Text>
+                          <Text style={styles.sectionHeaderMarks}>
+                            {section.totalMarks} marks
+                          </Text>
+                        </View>
+                        {section.subGroups
+                          .filter((sub: SubGroup) => sub.questions.length > 0)
+                          .map((sub: SubGroup, subIdx: number) => (
+                            <View key={sub.sectionTitle + subIdx}>
+                              {/* Subgroup header row: center title, right marks */}
+                              <View style={styles.subGroupHeaderRow}>
+                                <Text style={styles.subGroupHeaderTitle}>
+                                  {sub.sectionTitle}
+                                  {sub.perQuestionMarks
+                                    ? ` (${sub.perQuestionMarks} marks each)`
+                                    : ""}
+                                </Text>
+                                <Text style={styles.subGroupHeaderMarks}>
+                                  {sub.totalMarks} marks
+                                </Text>
+                              </View>
+                              {sub.questions.map((q: Question) => {
+                                const qEl = (
+                                  <View key={q.id} style={styles.question}>
+                                    <View style={styles.questionRow}>
+                                      <View style={styles.questionContent}>
+                                        <View
+                                          style={{
+                                            flexDirection: "row",
+                                            alignItems: "flex-start",
+                                          }}
+                                        >
+                                          <Text style={styles.questionNumber}>
+                                            {globalQuestionNumber}.{" "}
+                                          </Text>
+                                          <DynamicParagraph
+                                            content={
+                                              q.question_gu || q.question
+                                            }
+                                            images={q.question_images || []}
+                                            isPdf={true}
+                                            fontFamily={fontFamily}
+                                          />
                                         </View>
+                                        {q.type === "MCQ" && q.options && (
+                                          <View style={styles.optionsRow}>
+                                            {Object.entries(q.options).map(
+                                              ([key, value]) => (
+                                                <View
+                                                  key={key}
+                                                  style={styles.option}
+                                                >
+                                                  <Text
+                                                    style={styles.optionText}
+                                                  >
+                                                    {key}) {value}
+                                                  </Text>
+                                                </View>
+                                              )
+                                            )}
+                                          </View>
+                                        )}
+                                      </View>
+                                      {/* Only show per-question marks if not all same in group */}
+                                      {!sub.perQuestionMarks && (
+                                        <Text
+                                          style={styles.marks}
+                                        >{`(${q.marks} marks)`}</Text>
                                       )}
                                     </View>
-                                    {/* Only show per-question marks if not all same in group */}
-                                    {!sub.perQuestionMarks && (
-                                      <Text
-                                        style={styles.marks}
-                                      >{`(${q.marks} marks)`}</Text>
-                                    )}
                                   </View>
-                                </View>
-                              );
-                              globalQuestionNumber++;
-                              return qEl;
-                            })}
-                          </View>
-                        ))}
-                    </View>
-                  ))}
+                                );
+                                globalQuestionNumber++;
+                                return qEl;
+                              })}
+                            </View>
+                          ))}
+                      </View>
+                    ))}
+                </View>
+                <Text style={styles.footer}>All The Best!</Text>
+                <Text
+                  style={styles.pageNumber}
+                  render={({ pageNumber, totalPages }) =>
+                    `${pageNumber} / ${totalPages}`
+                  }
+                  fixed
+                />
               </View>
-              <Text style={styles.footer}>All The Best!</Text>
-              <Text
-                style={styles.pageNumber}
-                render={({ pageNumber, totalPages }) =>
-                  `${pageNumber} / ${totalPages}`
-                }
-                fixed
-              />
             </Page>
           )
         )}
@@ -795,44 +891,53 @@ const MyDocument = ({
       <>
         {pages.map((page, pageIdx) => (
           <Page size="A4" style={styles.page} key={pageIdx}>
-            <Text style={styles.watermark}>{siteConfig.name}</Text>
-            <View style={styles.section}>
-              <Text style={styles.header}>Answer Key</Text>
+            <View
+              style={{
+                flex: 1,
+                margin: 8,
+                borderWidth: 1,
+                borderColor: "#000",
+                padding: 8,
+              }}
+            >
+              <Text style={styles.watermark}>{siteConfig.name}</Text>
+              <View style={styles.section}>
+                <Text style={styles.header}>Answer Key</Text>
 
-              {page.subGroups.map(({ sub }) =>
-                sub.questions.map((q: Question, qIdx: number) => (
-                  <View
-                    key={q.id + qIdx}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "flex-start",
-                      marginBottom: 2,
-                    }}
-                  >
-                    <Text
+                {page.subGroups.map(({ sub }) =>
+                  sub.questions.map((q: Question, qIdx: number) => (
+                    <View
+                      key={q.id + qIdx}
                       style={{
-                        fontWeight: "bold",
-                        fontSize: 12,
-                        marginRight: 6,
+                        flexDirection: "row",
+                        alignItems: "flex-start",
+                        marginBottom: 2,
                       }}
                     >
-                      {globalQuestionNumber++}.
-                    </Text>
+                      <Text
+                        style={{
+                          fontWeight: "bold",
+                          fontSize: 12,
+                          marginRight: 6,
+                        }}
+                      >
+                        {globalQuestionNumber++}.
+                      </Text>
 
-                    <DynamicParagraph
-                      content={
-                        typeof q.answer === "string"
-                          ? q.answer
-                          : typeof q.answer_gu === "string"
-                          ? q.answer_gu
-                          : "-"
-                      }
-                      images={q.answer_images || []}
-                      isPdf={true}
-                      isAnswerKey={true}
-                      fontFamily={fontFamily}
-                    />
-                    {/* <View style={{ flex: 1 }}>
+                      <DynamicParagraph
+                        content={
+                          typeof q.answer === "string"
+                            ? q.answer
+                            : typeof q.answer_gu === "string"
+                            ? q.answer_gu
+                            : "-"
+                        }
+                        images={q.answer_images || []}
+                        isPdf={true}
+                        isAnswerKey={true}
+                        fontFamily={fontFamily}
+                      />
+                      {/* <View style={{ flex: 1 }}>
                       <DynamicParagraph
                         content={(() => {
                           if (
@@ -866,17 +971,18 @@ const MyDocument = ({
                         fontFamily={fontFamily}
                       />
                     </View> */}
-                  </View>
-                ))
-              )}
+                    </View>
+                  ))
+                )}
+              </View>
+              <Text
+                style={styles.pageNumber}
+                render={({ pageNumber, totalPages }) =>
+                  `${pageNumber} / ${totalPages}`
+                }
+                fixed
+              />
             </View>
-            <Text
-              style={styles.pageNumber}
-              render={({ pageNumber, totalPages }) =>
-                `${pageNumber} / ${totalPages}`
-              }
-              fixed
-            />
           </Page>
         ))}
       </>
@@ -903,108 +1009,112 @@ const MyDocument = ({
       <>
         {pages.map((page, pageIdx) => (
           <Page size="A4" style={styles.page} key={pageIdx}>
-            <Text style={styles.watermark}>{siteConfig.name}</Text>
-            <View style={styles.section}>
-              {renderHeader()}
-              {page.subGroups.map(({ sub }) =>
-                sub.questions.map((q: Question) => {
-                  // Safely get answer content, ensuring it's always a valid string or '-'
-                  const answerContent = (() => {
-                    if (typeof q.answer_gu === "string" && q.answer_gu.trim()) {
-                      return q.answer_gu;
-                    }
-                    if (typeof q.answer === "string" && q.answer.trim()) {
-                      return q.answer;
-                    }
-                    if (
-                      q.answer_gu &&
-                      typeof q.answer_gu === "object" &&
-                      Object.keys(q.answer_gu).length > 0
-                    ) {
-                      return JSON.stringify(q.answer_gu);
-                    }
-                    if (
-                      q.answer &&
-                      typeof q.answer === "object" &&
-                      Object.keys(q.answer).length > 0
-                    ) {
-                      return JSON.stringify(q.answer);
-                    }
-                    return "-";
-                  })();
-                  const qEl = (
-                    <View
-                      key={q.id}
-                      style={{
-                        borderWidth: 1,
-                        borderColor: "#bbb",
-                        borderRadius: 4,
-                        padding: 6,
-                        marginBottom: 2,
-                      }}
-                    >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "flex-start",
-                          marginBottom: 1,
-                        }}
-                      >
-                        <Text style={{ ...styles.questionNumber }}>
-                          {globalQuestionNumber++}.{" "}
-                        </Text>
-                        <SafeDynamicParagraph
-                          content={q.question_gu || q.question}
-                          images={q.question_images || []}
-                          isPdf={true}
-                          fontFamily={fontFamily}
-                        />
-                      </View>
-                      {q.type === "MCQ" && q.options && (
+            <View
+              style={{
+                flex: 1,
+                margin: 8,
+                borderWidth: 1,
+                borderColor: "#000",
+                padding: 8,
+              }}
+            >
+              <Text style={styles.watermark}>{siteConfig.name}</Text>
+              <View style={styles.section}>
+                {renderHeader()}
+                {page.subGroups.map(({ sub }) =>
+                  sub.questions.map((q: Question) => {
+                    // Safely get answer content, ensuring it's always a valid string or '-'
+                    const answerContent = (() => {
+                      if (
+                        typeof q.answer_gu === "string" &&
+                        q.answer_gu.trim()
+                      ) {
+                        return q.answer_gu;
+                      }
+                      if (typeof q.answer === "string" && q.answer.trim()) {
+                        return q.answer;
+                      }
+                      if (
+                        q.answer_gu &&
+                        typeof q.answer_gu === "object" &&
+                        Object.keys(q.answer_gu).length > 0
+                      ) {
+                        return JSON.stringify(q.answer_gu);
+                      }
+                      if (
+                        q.answer &&
+                        typeof q.answer === "object" &&
+                        Object.keys(q.answer).length > 0
+                      ) {
+                        return JSON.stringify(q.answer);
+                      }
+                      return "-";
+                    })();
+                    const qEl = (
+                      <View key={q.id}>
                         <View
                           style={{
-                            ...styles.optionsRow,
-                            marginTop: 1,
+                            flexDirection: "row",
+                            alignItems: "flex-start",
                             marginBottom: 1,
                           }}
                         >
-                          {Object.entries(q.options).map(([key, value]) => (
-                            <View key={key} style={styles.option}>
-                              <Text style={{ ...styles.optionText }}>
-                                {key}) {value}
-                              </Text>
-                            </View>
-                          ))}
+                          <Text style={{ ...styles.questionNumber }}>
+                            {globalQuestionNumber++}.{" "}
+                          </Text>
+                          <SafeDynamicParagraph
+                            content={q.question_gu || q.question}
+                            images={q.question_images || []}
+                            isPdf={true}
+                            fontFamily={fontFamily}
+                          />
                         </View>
-                      )}
-                      {/* Answer */}
-                      <View style={{ marginTop: 1, marginLeft: 18 }}>
-                        <Text style={{ fontWeight: "bold", fontSize: 11 }}>
-                          Answer:
-                        </Text>
-                        <SafeDynamicParagraph
-                          content={answerContent}
-                          images={q.answer_images || []}
-                          isPdf={true}
-                          isAnswerKey={true}
-                          fontFamily={fontFamily}
-                        />
+                        {q.type === "MCQ" && q.options && (
+                          <View
+                            style={{
+                              ...styles.optionsRow,
+                              marginTop: 1,
+                              marginBottom: 1,
+                            }}
+                          >
+                            {Object.entries(q.options).map(([key, value]) => (
+                              <View key={key} style={styles.option}>
+                                <Text style={{ ...styles.optionText }}>
+                                  {key}) {value}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        )}
+                        {/* Answer */}
+                        <View style={{ marginTop: 1, marginLeft: 18 }}>
+                          <Text style={{ fontWeight: "bold", fontSize: 11 }}>
+                            Answer:
+                          </Text>
+                          <SafeDynamicParagraph
+                            content={answerContent}
+                            images={q.answer_images || []}
+                            isPdf={true}
+                            isAnswerKey={true}
+                            fontFamily={fontFamily}
+                          />
+                        </View>
                       </View>
-                    </View>
-                  );
-                  return answerContent && answerContent.trim() !== ""
-                    ? qEl
-                    : null;
-                })
-              )}
+                    );
+                    return answerContent && answerContent.trim() !== ""
+                      ? qEl
+                      : null;
+                  })
+                )}
+              </View>
+              <Text
+                style={styles.pageNumber}
+                render={({ pageNumber, totalPages }) =>
+                  `${pageNumber} / ${totalPages}`
+                }
+                fixed
+              />
             </View>
-            <Text
-              style={styles.pageNumber}
-              render={({ pageNumber, totalPages }) =>
-                `${pageNumber} / ${totalPages}`
-              }
-              fixed
-            />
           </Page>
         ))}
       </>

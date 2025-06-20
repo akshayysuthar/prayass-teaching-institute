@@ -708,6 +708,7 @@ export default function GenerateExamPage() {
           isSectionWise={true}
           testTitle={testTitle}
           examTime={examTime}
+          medium={selectedContent?.medium}
         />
       )}
     </div>
