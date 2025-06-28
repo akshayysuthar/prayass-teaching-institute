@@ -106,13 +106,6 @@ export const siteConfig: SiteConfig = {
       // adminOnly: true,
       disabled: "",
     },
-    {
-      title: "Bilingual Questions",
-      href: "/bilingual-questions",
-      icon: Book,
-      // adminOnly: true,
-      disabled: "",
-    },
   ],
   footerLinks: [
     { title: "Privacy Policy", href: "/privacy" },
