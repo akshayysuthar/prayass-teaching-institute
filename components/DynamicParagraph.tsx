@@ -20,17 +20,18 @@ const styles = StyleSheet.create({
   imageContainer: {
     marginTop: 4,
     marginBottom: 4,
+    display: "flex",
+    alignItems: "stretch",
+    justifyContent: "space-evenly",
   },
   image: {
-    width: 200,
-    height: "auto",
-    maxHeight: 150,
+    width: 250,
+    maxHeight: 160,
     objectFit: "contain",
   },
   largeImage: {
     width: 400,
-    height: "auto",
-    maxHeight: 250,
+    maxHeight: 300,
     objectFit: "contain",
   },
   placeholder: {
@@ -45,10 +46,11 @@ export const DynamicParagraph: React.FC<DynamicParagraphProps> = ({
   isAnswerKey = false,
   fontFamily = "NotoSans",
 }) => {
-  // If content is null, undefined, empty string, or empty object, show a placeholder
-  if (!content || 
-      (typeof content === 'object' && Object.keys(content).length === 0) || 
-      (typeof content === "string" && content.trim() === "")) {
+  if (
+    !content ||
+    (typeof content === "object" && Object.keys(content).length === 0) ||
+    (typeof content === "string" && content.trim() === "")
+  ) {
     return (
       <View style={styles.container}>
         <Text style={styles.placeholder}>-</Text>
@@ -56,29 +58,43 @@ export const DynamicParagraph: React.FC<DynamicParagraphProps> = ({
     );
   }
 
-  // If content is an object, stringify it
-  const textContent = typeof content === 'object' ? JSON.stringify(content) : content;
+  const textContent =
+    typeof content === "object" ? JSON.stringify(content) : content;
 
-  // Check if there's an image reference in the text
-  const imgMatch = textContent.match(/\[img(\d+)\]/);
-  const imageIndex = imgMatch ? parseInt(imgMatch[1], 10) - 1 : -1;
+  // Split content into parts: text and placeholders
+  const parts = textContent.split(/(\[img\d+\])/g).filter(Boolean);
 
   return (
     <View style={styles.container}>
-      {/* Always render text without the image tag */}
-      <Text style={[styles.text, { fontFamily }]}>
-        {textContent.replace(/\[img\d+\]/g, '').trim() || '-'}
-      </Text>
+      {parts.map((part, index) => {
+        const imgMatch = part.match(/^\[img(\d+)\]$/);
+        if (imgMatch) {
+          const imageIndex = parseInt(imgMatch[1], 10) - 1;
+          const imageSrc = images[imageIndex];
 
-      {/* Render image if referenced and exists */}
-      {imageIndex >= 0 && images[imageIndex] && (
-        <View style={styles.imageContainer}>
-          <Image 
-            style={isAnswerKey ? styles.largeImage : styles.image} 
-            src={images[imageIndex]} 
-          />
-        </View>
-      )}
+          if (!imageSrc) return null;
+
+          // Determine if image is at end or stand-alone
+          const isLast = index === parts.length - 1;
+          const isOnly = parts.length === 1;
+          const useLargeImage = isLast || isOnly || isAnswerKey;
+
+          return (
+            <View key={`img-${index}`} style={styles.imageContainer}>
+              <Image
+                src={imageSrc}
+                style={useLargeImage ? styles.largeImage : styles.image}
+              />
+            </View>
+          );
+        } else {
+          return (
+            <Text key={`text-${index}`} style={[styles.text, { fontFamily }]}>
+              {part.trim()}
+            </Text>
+          );
+        }
+      })}
     </View>
   );
 };

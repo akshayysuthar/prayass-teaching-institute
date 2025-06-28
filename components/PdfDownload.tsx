@@ -123,7 +123,7 @@ function groupQuestionsWithMergedMCQ(
     const sectionName = marksMap[+marks] || "";
     const sectionLabel =
       +marks === 1
-        ? "MCQ/Short Answer"
+        ? "MCQs/Short Answer"
         : +marks === 2
         ? "Short Answer"
         : +marks === 3
@@ -223,12 +223,12 @@ const createStyles = (subject: string) => {
       fontSize: 18,
       fontWeight: "bold",
       textAlign: "center",
-      marginBottom: 5,
+      marginBottom: 2,
     },
     subHeader: {
       fontSize: 14,
       textAlign: "center",
-      marginBottom: 5,
+      marginBottom: 2,
       textDecoration: "underline",
     },
     date: {
@@ -250,8 +250,8 @@ const createStyles = (subject: string) => {
       fontWeight: "bold",
       textAlign: "center",
       alignItems: "center",
-      marginTop: 5,
-      marginBottom: 5,
+      marginTop: 2,
+      marginBottom: 2,
       textDecoration: "underline",
       color: "#000",
     },
@@ -259,8 +259,8 @@ const createStyles = (subject: string) => {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      marginTop: 10,
-      marginBottom: 10,
+      // marginTop: 4,
+      marginBottom: 5,
       width: "100%",
       position: "relative",
     },
@@ -321,6 +321,7 @@ const createStyles = (subject: string) => {
       flex: 1,
       marginLeft: 10,
       marginRight: 8,
+      marginTop : 5,
       fontFamily,
     },
     marks: {

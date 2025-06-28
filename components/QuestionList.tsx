@@ -1,146 +1,172 @@
-import { useState } from "react";
-import type { Question, Content, Subject } from "@/types";
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { QuestionDetails } from "./QuestionDetails";
+import { Badge } from "@/components/ui/badge";
+import { Edit, Trash2 } from "lucide-react";
 import Image from "next/image";
+import type { Question } from "@/types";
 
 interface QuestionListProps {
   questions: Question[];
-  onQuestionUpdated: () => void;
-  onLoadMore: () => void;
-  hasMore: boolean;
-  isAdmin: boolean;
-  contents: Content[];
-  subjects: Subject[];
+  isLoading: boolean;
+  onEditQuestion: (question: Question) => void;
+  onDeleteQuestion: (questionId: string) => void;
 }
 
 export function QuestionList({
   questions,
-  onQuestionUpdated,
-  onLoadMore,
-  hasMore,
-  isAdmin,
-  contents,
-  subjects,
+  isLoading,
+  onEditQuestion,
+  onDeleteQuestion,
 }: QuestionListProps) {
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(
-    null
-  );
-
-  const renderContent = (content: string, images: string[] | null) => {
-    if (!content) return null;
-    const parts = content.split(/(\[img\d+\])/g);
-    return parts.map((part, index) => {
-      const imgMatch = part.match(/\[img(\d+)\]/);
-      if (imgMatch && images && images[Number.parseInt(imgMatch[1]) - 1]) {
-        return (
-          <Image
-            key={index}
-            src={images[Number.parseInt(imgMatch[1]) - 1] || "/placeholder.svg"}
-            alt={`Image ${imgMatch[1]}`}
-            width={100}
-            height={100}
-            className="inline-block mr-2"
-          />
-        );
-      }
-      return <span key={index}>{part}</span>;
-    });
-  };
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center py-8">Loading questions...</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {questions.map((question) => (
-        <Card key={question.id} className="overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-lg">Question {question.id}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div>
-                <strong>Content:</strong> {question.content_name} - Class{" "}
-                {question.contents?.class} - {question.contents?.board} -{" "}
-                {question.contents?.medium}
-              </div>
-              <div>
-                <strong>Subject:</strong> {question.subject_name}
-              </div>
-              <div>
-                <strong>Chapter:</strong> {question.chapter_no}.{" "}
-                {question.chapter_name}
-              </div>
-              <div>
-                <strong>Question (English):</strong>{" "}
-                {renderContent(question.question, question.question_images)}
-              </div>
-              {question.question_gu && (
-                <div>
-                  <strong>Question (Gujarati):</strong>{" "}
-                  {renderContent(
-                    question.question_gu,
-                    question.question_images_gu
+    <Card>
+      <CardHeader>
+        <CardTitle>Existing Questions ({questions.length})</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {questions.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No questions found. Add your first question above.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {questions.map((question) => (
+              <div
+                key={question.id}
+                className="border rounded-lg p-4 space-y-3"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="outline">
+                        {question.type || "General"}
+                      </Badge>
+                      <Badge variant="secondary">{question.marks} marks</Badge>
+                      {question.img_size && (
+                        <Badge variant="outline">
+                          Image: {question.img_size}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div>
+                        <p className="font-medium">Question:</p>
+                        <p className="text-gray-700">{question.question}</p>
+                        {question.question_gu && (
+                          <p className="text-gray-600 text-sm mt-1">
+                            ગુજરાતી: {question.question_gu}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <p className="font-medium">Answer:</p>
+                        <p className="text-gray-700">
+                          {typeof question.answer === "string"
+                            ? question.answer
+                            : JSON.stringify(question.answer)}
+                        </p>
+                        {question.answer_gu && (
+                          <p className="text-gray-600 text-sm mt-1">
+                            ગુજરાતી:{" "}
+                            {typeof question.answer_gu === "string"
+                              ? question.answer_gu
+                              : JSON.stringify(question.answer_gu)}
+                          </p>
+                        )}
+                      </div>
+
+                      {question.section_title && (
+                        <div>
+                          <p className="font-medium">Section Title:</p>
+                          <p className="text-gray-700">
+                            {question.section_title}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Display Images */}
+                    {(question.question_images || question.answer_images) && (
+                      <div className="mt-3">
+                        <p className="font-medium mb-2">Images:</p>
+                        <div className="grid grid-cols-4 gap-2">
+                          {question.question_images &&
+                            Array.isArray(question.question_images) &&
+                            question.question_images.map((img, idx) => (
+                              <Image
+                                key={`q-${idx}`}
+                                src={img || "/placeholder.svg"}
+                                alt={`Question image ${idx + 1}`}
+                                width={100}
+                                height={75}
+                                className="object-cover rounded border"
+                              />
+                            ))}
+                          {question.answer_images &&
+                            Array.isArray(question.answer_images) &&
+                            question.answer_images.map((img, idx) => (
+                              <Image
+                                key={`a-${idx}`}
+                                src={img || "/placeholder.svg"}
+                                alt={`Answer image ${idx + 1}`}
+                                width={100}
+                                height={75}
+                                className="object-cover rounded border"
+                              />
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 ml-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEditQuestion(question)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => onDeleteQuestion(question.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="text-xs text-gray-500 border-t pt-2">
+                  Created: {new Date(question.created_at).toLocaleDateString()}{" "}
+                  by {question.created_by}
+                  {question.last_updated && (
+                    <span>
+                      {" "}
+                      | Updated:{" "}
+                      {new Date(question.last_updated).toLocaleDateString()}
+                    </span>
                   )}
                 </div>
-              )}
-              <div>
-                <strong>Answer (English):</strong>{" "}
-                {renderContent(
-                  question.answer as string,
-                  question.answer_images
-                )}
               </div>
-              {question.answer_gu && (
-                <div>
-                  <strong>Answer (Gujarati):</strong>{" "}
-                  {renderContent(
-                    question.answer_gu as string,
-                    question.answer_images_gu
-                  )}
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <strong>Type:</strong> {question.type}
-                </div>
-                <div>
-                  <strong>Marks:</strong> {question.marks}
-                </div>
-                <div>
-                  <strong>Reviewed:</strong>{" "}
-                  {question.is_reviewed ? "Yes" : "No"}
-                </div>
-                <div>
-                  <strong>Created By:</strong> {question.created_by}
-                </div>
-              </div>
-              <Button onClick={() => setSelectedQuestion(question)}>
-                Edit Question
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-
-      {hasMore && (
-        <div className="mt-4 text-center">
-          <Button onClick={onLoadMore}>View More</Button>
-        </div>
-      )}
-
-      {selectedQuestion && (
-        <QuestionDetails
-          question={selectedQuestion}
-          onClose={() => setSelectedQuestion(null)}
-          onSuccess={() => {
-            setSelectedQuestion(null);
-            onQuestionUpdated();
-          }}
-          isAdmin={isAdmin}
-          contents={contents}
-          subjects={subjects}
-        />
-      )}
-    </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
