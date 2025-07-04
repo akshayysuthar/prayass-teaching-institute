@@ -74,7 +74,7 @@ export function AddQuestionForm() {
   const { user } = useUser();
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
 
-  console.log(gujaratiToggles);
+  console.log( "gujaratiToggles is" + gujaratiToggles);
 
   useEffect(() => {
     if (user) {
