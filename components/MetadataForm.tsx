@@ -3,7 +3,7 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+// import { Input } from "@/components/ui/input";
 import { supabase } from "@/utils/supabase/client";
 import {
   Popover,
@@ -41,8 +41,8 @@ interface MetadataFormProps {
 export function MetadataForm({
   metadata,
   handleMetadataChange,
-  sectionTitleSuggestions = [],
-  typeSuggestions = [],
+  // sectionTitleSuggestions = [],
+  // typeSuggestions = [],
   selectedClass,
   setSelectedClass,
 }: MetadataFormProps) {
@@ -59,12 +59,12 @@ export function MetadataForm({
   >([]);
   const [openContent, setOpenContent] = useState(false);
   const [openSubject, setOpenSubject] = useState(false);
-  const [openSectionTitle, setOpenSectionTitle] = useState(false);
-  const [openType, setOpenType] = useState(false);
+
+  const [selectedMedium, setSelectedMedium] = useState<string>("");
 
   useEffect(() => {
     fetchContents();
-  }, [selectedClass]);
+  }, [selectedClass, selectedMedium]);
 
   useEffect(() => {
     if (metadata.content_id) {
@@ -78,6 +78,9 @@ export function MetadataForm({
     let query = supabase.from("contents").select("*");
     if (selectedClass) {
       query = query.eq("class", selectedClass);
+    }
+    if (selectedMedium) {
+      query = query.eq("medium", selectedMedium);
     }
     const { data, error } = await query;
     if (error) {
@@ -110,16 +113,17 @@ export function MetadataForm({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div className="space-y-2">
-        {/* <Label htmlFor="content_id" className="text-foreground">
-          Content
-        </Label>
-        <Label htmlFor="content_id" className="text-foreground">
-          {selectedClass ? "Subject" : "Content"}
-        </Label> */}
-        {/* 
-        <Label htmlFor="subject_id" className="text-foreground">
-          {selectedClass ? "Chapter" : "Subject/Chapter"}
-        </Label> */}
+        <div className="flex flex-wrap gap-2 mb-2 items-center">
+          {["English", "Gujarati", "Both"].map((medium) => (
+            <Button
+              key={medium || "all"}
+              variant={selectedMedium === medium ? "default" : "outline"}
+              onClick={() => setSelectedMedium(medium)}
+            >
+              {medium ? medium : "All Mediums"}
+            </Button>
+          ))}
+        </div>
         <div className="flex flex-wrap gap-2 mb-6">
           {["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"].map((cls) => (
             <Button
@@ -131,6 +135,9 @@ export function MetadataForm({
             </Button>
           ))}
         </div>
+        <Label htmlFor="content_id" className="text-foreground">
+          Subject
+        </Label>
 
         <Popover open={openContent} onOpenChange={setOpenContent}>
           <PopoverTrigger asChild>
@@ -186,6 +193,17 @@ export function MetadataForm({
         <Label htmlFor="subject_id" className="text-foreground">
           Chapter
         </Label>
+        <Button
+          variant="outline"
+          size="icon"
+          className="ml-2"
+          onClick={() =>
+            metadata.content_id && fetchSubjects(metadata.content_id)
+          }
+          title="Refresh Subject List"
+        >
+          &#x21bb;
+        </Button>
         <Popover open={openSubject} onOpenChange={setOpenSubject}>
           <PopoverTrigger asChild>
             <Button
@@ -246,122 +264,6 @@ export function MetadataForm({
             </Command>
           </PopoverContent>
         </Popover>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="sectionTitle" className="text-foreground">
-          Section Title
-        </Label>
-        <Popover open={openSectionTitle} onOpenChange={setOpenSectionTitle}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={openSectionTitle}
-              className="w-full justify-between text-foreground border-input hover:bg-muted"
-            >
-              {metadata.sectionTitle || "Select section title..."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-full p-0">
-            <Command>
-              <CommandInput placeholder="Search or enter section title..." />
-              <CommandList>
-                <CommandEmpty>
-                  No section title found. Type to create one.
-                </CommandEmpty>
-                <CommandGroup className="max-h-60 overflow-y-auto">
-                  {sectionTitleSuggestions.map((title) => (
-                    <CommandItem
-                      key={title}
-                      value={title}
-                      onSelect={(value) => {
-                        handleSelectChange("sectionTitle", value);
-                        setOpenSectionTitle(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          metadata.sectionTitle === title
-                            ? "opacity-100"
-                            : "opacity-0"
-                        )}
-                      />
-                      {title}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        <Input
-          id="sectionTitle"
-          name="sectionTitle"
-          value={metadata.sectionTitle}
-          onChange={handleMetadataChange}
-          placeholder="Or type a new section title"
-          className="mt-2 text-foreground border-input"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="type" className="text-foreground">
-          Question Type
-        </Label>
-        <Popover open={openType} onOpenChange={setOpenType}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={openType}
-              className="w-full justify-between text-foreground border-input hover:bg-muted"
-            >
-              {metadata.type || "Select question type..."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-full p-0">
-            <Command>
-              <CommandInput placeholder="Search or enter type..." />
-              <CommandList>
-                <CommandEmpty>
-                  No question type found. Type to create one.
-                </CommandEmpty>
-                <CommandGroup className="max-h-60 overflow-y-auto">
-                  {typeSuggestions.map((type) => (
-                    <CommandItem
-                      key={type}
-                      value={type}
-                      onSelect={(value) => {
-                        handleSelectChange("type", value);
-                        setOpenType(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          metadata.type === type ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {type}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        <Input
-          id="type"
-          name="type"
-          value={metadata.type}
-          onChange={handleMetadataChange}
-          placeholder="Or type a new question type"
-          className="mt-2 text-foreground border-input"
-        />
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import type { Question, Content } from "@/types";
+import type { Content } from "@/types";
 import { supabase } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MetadataForm } from "./MetadataForm";
@@ -12,9 +12,39 @@ import { useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
+type ImageSizeType = "inline" | "small" | "medium" | "large";
+
+interface ImageSizes {
+  question: ImageSizeType[];
+  answer: ImageSizeType[];
+}
+
+interface ImageWithSize {
+  url: string;
+  size: ImageSizeType;
+}
+
+interface QuestionType {
+  question: string;
+  question_gu: string;
+  question_images: ImageWithSize[];
+  question_images_gu: ImageWithSize[];
+  answer: string;
+  answer_gu: string;
+  answer_images: ImageWithSize[];
+  answer_images_gu: ImageWithSize[];
+  marks: number;
+  created_by: string;
+  img_size?: string;
+  sectionTitle: string;
+  type: string;
+}
+
+// type QuestionField = keyof QuestionType;
+
 export function AddQuestionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [questions, setQuestions] = useState<Partial<Question>[]>([
+  const [questions, setQuestions] = useState<Partial<QuestionType>[]>([
     {
       question: "",
       question_gu: "",
@@ -26,6 +56,8 @@ export function AddQuestionForm() {
       answer_images_gu: [],
       marks: 1,
       created_by: "",
+      sectionTitle: "",
+      type: "",
     },
   ]);
   const [gujaratiToggles, setGujaratiToggles] = useState<boolean[]>([false]);
@@ -38,10 +70,6 @@ export function AddQuestionForm() {
   const [selectedContentMedium, setSelectedContentMedium] =
     useState<string>("");
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
-  const [sectionTitleSuggestions, setSectionTitleSuggestions] = useState<
-    string[]
-  >([]);
-  const [typeSuggestions, setTypeSuggestions] = useState<string[]>([]);
   const { toast } = useToast();
   const { user } = useUser();
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
@@ -134,9 +162,6 @@ export function AddQuestionForm() {
         types.add("Short Answer");
         types.add("Long Answer");
       }
-
-      setSectionTitleSuggestions(Array.from(sectionTitles));
-      setTypeSuggestions(Array.from(types));
     } catch (error) {
       console.error("Error fetching suggestions by subject:", error);
     }
@@ -152,6 +177,24 @@ export function AddQuestionForm() {
     }));
   };
 
+  const getFieldValue = (
+    question: Partial<QuestionType>,
+    field: keyof QuestionType
+  ) => {
+    return question[field];
+  };
+
+  const setFieldValue = (
+    question: Partial<QuestionType>,
+    field: keyof QuestionType,
+    value: QuestionType[keyof QuestionType]
+  ): Partial<QuestionType> => {
+    return {
+      ...question,
+      [field]: value,
+    };
+  };
+
   const handleQuestionChange = (
     index: number,
     e: React.ChangeEvent<
@@ -161,10 +204,11 @@ export function AddQuestionForm() {
     const { name, value } = e.target;
     setQuestions((prev) => {
       const newQuestions = [...prev];
-      newQuestions[index] = {
-        ...newQuestions[index],
-        [name]: name === "marks" ? Number.parseInt(value, 10) : value,
-      };
+      newQuestions[index] = setFieldValue(
+        newQuestions[index],
+        name as keyof QuestionType,
+        name === "marks" ? Number.parseInt(value, 10) : value
+      );
       return newQuestions;
     });
   };
@@ -175,7 +219,7 @@ export function AddQuestionForm() {
     type: "question" | "answer",
     language: "en" | "gu"
   ) => {
-    const uploadedUrls: string[] = [];
+    const uploadedImages: ImageWithSize[] = [];
     for (const file of files) {
       const fileExt = file.name.split(".").pop();
       const fileName = `${Math.random()}.${fileExt}`;
@@ -192,22 +236,49 @@ export function AddQuestionForm() {
         const {
           data: { publicUrl },
         } = supabase.storage.from("question-images").getPublicUrl(data.path);
-        uploadedUrls.push(publicUrl);
+        uploadedImages.push({ url: publicUrl, size: "inline" });
       }
     }
 
     setQuestions((prev) => {
       const newQuestions = [...prev];
-      const fieldName = `${type}_images${language === "gu" ? "_gu" : ""}`;
-      const currentImages = newQuestions[index][fieldName] || [];
-      const newImages = [...currentImages, ...uploadedUrls];
-      newQuestions[index] = {
-        ...newQuestions[index],
-        [fieldName]: newImages,
-        [`${type}${language === "gu" ? "_gu" : ""}`]: `${
-          newQuestions[index][`${type}${language === "gu" ? "_gu" : ""}`] || ""
-        } [img${newImages.length}]`,
+      const imageFieldMap: Record<
+        "question" | "answer",
+        { en: keyof QuestionType; gu: keyof QuestionType }
+      > = {
+        question: { en: "question_images", gu: "question_images_gu" },
+        answer: { en: "answer_images", gu: "answer_images_gu" },
       };
+      const textFieldMap: Record<
+        "question" | "answer",
+        { en: keyof QuestionType; gu: keyof QuestionType }
+      > = {
+        question: { en: "question", gu: "question_gu" },
+        answer: { en: "answer", gu: "answer_gu" },
+      };
+      const uploadFieldName = imageFieldMap[type][language];
+      const uploadTextFieldName = textFieldMap[type][language];
+      const currentImages =
+        (getFieldValue(
+          newQuestions[index],
+          uploadFieldName
+        ) as ImageWithSize[]) || [];
+      const newImages = [...currentImages, ...uploadedImages];
+
+      let updatedQuestion = setFieldValue(
+        newQuestions[index],
+        uploadFieldName,
+        newImages
+      );
+      updatedQuestion = setFieldValue(
+        updatedQuestion,
+        uploadTextFieldName,
+        `${getFieldValue(updatedQuestion, uploadTextFieldName) || ""} [img${
+          newImages.length
+        }]`
+      );
+
+      newQuestions[index] = updatedQuestion;
       return newQuestions;
     });
   };
@@ -220,20 +291,43 @@ export function AddQuestionForm() {
   ) => {
     setQuestions((prev) => {
       const newQuestions = [...prev];
-      const fieldName = `${type}_images${language === "gu" ? "_gu" : ""}`;
-      const images = newQuestions[questionIndex][fieldName] as string[];
-      images.splice(imageIndex, 1);
-      newQuestions[questionIndex] = {
-        ...newQuestions[questionIndex],
-        [fieldName]: images,
-        [`${type}${language === "gu" ? "_gu" : ""}`]: (
-          newQuestions[questionIndex][
-            `${type}${language === "gu" ? "_gu" : ""}`
-          ] as string
-        )
-          .replace(`[img${imageIndex + 1}]`, "")
-          .trim(),
+      const imageFieldMap: Record<
+        "question" | "answer",
+        { en: keyof QuestionType; gu: keyof QuestionType }
+      > = {
+        question: { en: "question_images", gu: "question_images_gu" },
+        answer: { en: "answer_images", gu: "answer_images_gu" },
       };
+      const textFieldMap: Record<
+        "question" | "answer",
+        { en: keyof QuestionType; gu: keyof QuestionType }
+      > = {
+        question: { en: "question", gu: "question_gu" },
+        answer: { en: "answer", gu: "answer_gu" },
+      };
+      const removeFieldName = imageFieldMap[type][language];
+      const removeTextFieldName = textFieldMap[type][language];
+      const images =
+        (getFieldValue(
+          newQuestions[questionIndex],
+          removeFieldName
+        ) as ImageWithSize[]) || [];
+      images.splice(imageIndex, 1);
+
+      let updatedQuestion = setFieldValue(
+        newQuestions[questionIndex],
+        removeFieldName,
+        images
+      );
+      updatedQuestion = setFieldValue(
+        updatedQuestion,
+        removeTextFieldName,
+        ((getFieldValue(updatedQuestion, removeTextFieldName) as string) || "")
+          .replace(`[img${imageIndex + 1}]`, "")
+          .trim()
+      );
+
+      newQuestions[questionIndex] = updatedQuestion;
       return newQuestions;
     });
   };
@@ -258,14 +352,15 @@ export function AddQuestionForm() {
   const handleUpdateMarks = (index: number, increment: boolean) => {
     setQuestions((prev) => {
       const newQuestions = [...prev];
-      const currentMarks = newQuestions[index].marks || 1;
+      const currentMarks = getFieldValue(newQuestions[index], "marks") || 1;
       const newMarks = increment
-        ? Math.min(5, currentMarks + 1)
-        : Math.max(1, currentMarks - 1);
-      newQuestions[index] = {
-        ...newQuestions[index],
-        marks: newMarks,
-      };
+        ? Math.min(5, (currentMarks as number) + 1)
+        : Math.max(1, (currentMarks as number) - 1);
+      newQuestions[index] = setFieldValue(
+        newQuestions[index],
+        "marks",
+        newMarks
+      );
       return newQuestions;
     });
   };
@@ -278,16 +373,30 @@ export function AddQuestionForm() {
     });
   };
 
-  const checkRequiredFields = (question: Partial<Question>, index: number) => {
-    const requiredFields = ["question", "answer"];
+  const checkRequiredFields = (
+    question: Partial<{
+      question: string;
+      question_gu: string;
+      question_images: ImageWithSize[];
+      question_images_gu: ImageWithSize[];
+      answer: string;
+      answer_gu: string;
+      answer_images: ImageWithSize[];
+      answer_images_gu: ImageWithSize[];
+      marks: number;
+      created_by: string;
+    }>,
+    index: number
+  ) => {
+    const requiredFields: Array<keyof QuestionType> = ["question", "answer"];
     if (gujaratiToggles[index]) {
       // requiredFields.push("question_gu", "answer_gu");
     }
 
     return requiredFields.reduce((acc, field) => {
-      acc[field] = !question[field];
+      acc[field] = !getFieldValue(question, field);
       return acc;
-    }, {} as Record<string, boolean>);
+    }, {} as Record<keyof QuestionType, boolean>);
   };
 
   const handleSaveQuestions = async () => {
@@ -326,18 +435,32 @@ export function AddQuestionForm() {
 
     setIsSubmitting(true);
     try {
-      const questionsToSave = questions.map((question) => ({
-        ...metadata,
-        ...question,
-        created_by: user.fullName,
-        content_id: metadata.content_id
-          ? Number.parseInt(metadata.content_id, 10)
-          : null,
-        subject_id: metadata.subject_id
-          ? Number.parseInt(metadata.subject_id, 10)
-          : null,
-        marks: question.marks || 1,
-      }));
+      const questionsToSave = questions.map((question) => {
+        // Collect sizes in the required format
+        const imageSizes: [ImageSizes] = [
+          {
+            question: (question.question_images || []).map((img) => img.size),
+            answer: (question.answer_images || []).map((img) => img.size),
+          },
+        ];
+
+        return {
+          ...metadata,
+          ...question,
+          created_by: user?.fullName ?? "User Not Login",
+          content_id: metadata.content_id
+            ? Number.parseInt(metadata.content_id, 10)
+            : null,
+          subject_id: metadata.subject_id
+            ? Number.parseInt(metadata.subject_id, 10)
+            : null,
+          marks: question.marks || 1,
+          question_images:
+            question.question_images?.map((img) => img.url) || [],
+          answer_images: question.answer_images?.map((img) => img.url) || [],
+          img_size: JSON.stringify(imageSizes),
+        };
+      });
 
       const { error } = await supabase
         .from("questions")
@@ -380,6 +503,8 @@ export function AddQuestionForm() {
         answer_images_gu: [],
         marks: 1,
         created_by: user?.fullName ?? "User Not Login",
+        sectionTitle: "",
+        type: "",
       },
     ]);
     setGujaratiToggles((prev) => [
@@ -405,11 +530,70 @@ export function AddQuestionForm() {
         answer_images: [],
         answer_images_gu: [],
         marks: 1,
+        created_by: "",
+        sectionTitle: "",
+        type: "",
       },
     ]);
     setGujaratiToggles([
       selectedContentMedium === "Gujarati" || selectedContentMedium === "Both",
     ]);
+    setMetadata({
+      content_id: "",
+      subject_id: "",
+      sectionTitle: "",
+      type: "",
+    });
+  };
+
+  // Type guard to check if a string is a key of QuestionType
+  // function isQuestionTypeKey(key: string): key is keyof QuestionType {
+  //   return [
+  //     "question",
+  //     "question_gu",
+  //     "question_images",
+  //     "question_images_gu",
+  //     "answer",
+  //     "answer_gu",
+  //     "answer_images",
+  //     "answer_images_gu",
+  //     "marks",
+  //     "created_by",
+  //     "img_size",
+  //     "sectionTitle",
+  //     "type",
+  //   ].includes(key);
+  // }
+
+  const handleImageSizeChange = (
+    index: number,
+    type: "question" | "answer",
+    imageIndex: number,
+    newSize: "inline" | "small" | "medium" | "large"
+  ) => {
+    setQuestions((prev) => {
+      const newQuestions = [...prev];
+      const imageFieldMap: Record<"question" | "answer", keyof QuestionType> = {
+        question: "question_images",
+        answer: "answer_images",
+      };
+      const fieldName = imageFieldMap[type];
+      const images = [
+        ...((getFieldValue(
+          newQuestions[index],
+          fieldName
+        ) as ImageWithSize[]) || []),
+      ];
+      if (images[imageIndex]) {
+        images[imageIndex] = { ...images[imageIndex], size: newSize };
+        newQuestions[index] = setFieldValue(
+          newQuestions[index],
+          fieldName,
+          images
+        );
+      }
+      return newQuestions;
+    });
   };
 
   if (!user) {
@@ -426,7 +610,7 @@ export function AddQuestionForm() {
             Add New Questions
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-2">
           <div className="border p-4 rounded-md bg-muted/50">
             <h3 className="text-lg font-semibold text-foreground/80 mb-4">
               Metadata
@@ -434,9 +618,7 @@ export function AddQuestionForm() {
             <MetadataForm
               metadata={metadata}
               handleMetadataChange={handleMetadataChange}
-              sectionTitleSuggestions={sectionTitleSuggestions}
-              typeSuggestions={typeSuggestions}
-              selectedClass={selectedClass} // New prop for filter for class
+              selectedClass={selectedClass}
               setSelectedClass={setSelectedClass}
             />
           </div>
@@ -503,28 +685,66 @@ export function AddQuestionForm() {
               }
               onToggleGujarati={(show) => handleToggleGujarati(index, show)}
               isSubmitting={isSubmitting}
-              questionType={metadata.type}
+              questionType={question.type || ""}
               removeQuestion={() => removeQuestion(index)}
               selectedContentMedium={selectedContentMedium}
               emptyFields={checkRequiredFields(question, index)}
+              handleImageSizeChange={(type, imageIndex, newSize) =>
+                handleImageSizeChange(index, type, imageIndex, newSize)
+              }
+              copySectionTitle={
+                index > 0
+                  ? () => {
+                      setQuestions((prev) => {
+                        const newQuestions = [...prev];
+                        newQuestions[index].sectionTitle =
+                          newQuestions[index - 1].sectionTitle || "";
+                        return newQuestions;
+                      });
+                    }
+                  : undefined
+              }
+              copyType={
+                index > 0
+                  ? () => {
+                      setQuestions((prev) => {
+                        const newQuestions = [...prev];
+                        newQuestions[index].type =
+                          newQuestions[index - 1].type || "";
+                        return newQuestions;
+                      });
+                    }
+                  : undefined
+              }
+              questionNumber={index + 1}
+              fixQuestionAndAnswer={() => {
+                setQuestions((prev) => {
+                  const newQuestions = [...prev];
+                  const q = newQuestions[index].question || "";
+                  // Regex: split at first line/para starting with 'Answer:' (case-insensitive, optional whitespace)
+                  const match = q.match(/([\s\S]*?)(?:\n|\r|^)\s*Answer\s*:(.*)/i);
+                  if (match) {
+                    // Remove extra internal whitespace for both fields
+                    const clean = (str: string) => str.replace(/\s+/g, ' ').trim();
+                    const before = clean(match[1]);
+                    const after = clean(match[2] + (q.split(match[0])[1] || ""));
+                    newQuestions[index].question = before;
+                    newQuestions[index].answer = after;
+                  }
+                  return newQuestions;
+                });
+              }}
             />
           ))}
 
           <div className="sticky bottom-0 bg-background py-4 border-t">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex lg:flex-col sm:flex-row gap-4">
               <Button
                 onClick={addNewQuestion}
                 variant="outline"
                 className="w-full sm:w-auto"
               >
                 Add Another Question
-              </Button>
-              <Button
-                onClick={resetFormState}
-                variant="destructive"
-                className="w-full sm:w-auto"
-              >
-                Clear All
               </Button>
               <Button
                 onClick={handleSaveQuestions}

@@ -9,14 +9,11 @@ export default function AddQuestionPage() {
   const router = useRouter();
 
   return (
-    <div className="container mx-auto ">
-      <h1 className="text-2xl font-bold my-4 text-foreground">
-        Add New Question
-      </h1>
+    <div className="mx-auto ">
       {isSignedIn ? (
         <AddQuestionForm />
       ) : (
-        <div className=" text-center space-y-4 border rounded-lg bg-background">
+        <div className=" text-center space-y-2 border rounded-lg bg-background">
           <p className="text-foreground text-lg">
             Please sign in to access the question form.
           </p>

@@ -9,11 +9,28 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Trash2, Plus, Minus, X } from "lucide-react";
 import Image from "next/image";
-import type { Question } from "@/types";
+// import type { Question } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 
+interface ImageWithSize {
+  url: string;
+  size: "inline" | "small" | "medium" | "large";
+}
+
 interface QuestionFormProps {
-  currentQuestion: Partial<Question>;
+  currentQuestion: Partial<{
+    question: string;
+    question_gu: string;
+    question_images: ImageWithSize[];
+    question_images_gu: ImageWithSize[];
+    answer: string;
+    answer_gu: string;
+    answer_images: ImageWithSize[];
+    answer_images_gu: ImageWithSize[];
+    marks: number;
+    sectionTitle: string;
+    type: string;
+  }>;
   handleQuestionChange: (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -41,7 +58,24 @@ interface QuestionFormProps {
   removeQuestion: () => void;
   selectedContentMedium: string;
   emptyFields: Record<string, boolean>;
+  handleImageSizeChange: (
+    type: "question" | "answer",
+    imageIndex: number,
+    newSize: "inline" | "small" | "medium" | "large"
+  ) => void;
+  copySectionTitle?: () => void;
+  copyType?: () => void;
+  questionNumber: number;
+  fixQuestionAndAnswer?: () => void;
 }
+
+// Add image size options
+const IMAGE_SIZE_OPTIONS = [
+  { value: "inline", label: "Inline" },
+  { value: "small", label: "Small" },
+  { value: "medium", label: "Medium" },
+  { value: "large", label: "Large" },
+];
 
 export function QuestionForm({
   currentQuestion,
@@ -56,6 +90,11 @@ export function QuestionForm({
   removeQuestion,
   selectedContentMedium,
   emptyFields,
+  handleImageSizeChange,
+  copySectionTitle,
+  copyType,
+  questionNumber,
+  fixQuestionAndAnswer,
 }: QuestionFormProps) {
   const [showGujarati, setShowGujarati] = useState(
     selectedContentMedium === "Gujarati" || selectedContentMedium === "Both"
@@ -80,9 +119,10 @@ export function QuestionForm({
 
   return (
     <Card className="bg-background border shadow-sm">
-      <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-foreground">Question</h3>
+      <CardContent className="p-1 sm:p-4 space-y-2 sm:space-y-6">
+        {/* Question Number */}
+        <div className="flex items-center justify-between mb-1">
+          <span className="font-semibold text-base sm:text-lg text-foreground">Question {questionNumber}</span>
           <Button
             variant="ghost"
             size="sm"
@@ -93,6 +133,77 @@ export function QuestionForm({
             <Trash2 className="h-4 w-4 mr-1" /> Remove
           </Button>
         </div>
+        {/* Section Title and Type Inputs */}
+        <div className="flex flex-col sm:flex-row gap-1 sm:gap-4 items-center w-full">
+          <div className="flex-1 w-full">
+            <Label htmlFor="sectionTitle" className="text-foreground text-xs sm:text-sm">
+              Section Title
+            </Label>
+            <div className="flex flex-row gap-1 items-center w-full">
+              <Input
+                id="sectionTitle"
+                name="sectionTitle"
+                value={currentQuestion.sectionTitle || ""}
+                onChange={handleQuestionChange}
+                placeholder="Section Title"
+                className="w-full text-foreground border-input py-1 px-2 sm:py-2 sm:px-3 text-xs sm:text-sm"
+                disabled={isSubmitting}
+              />
+              {copySectionTitle && (
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={copySectionTitle}
+                  className="h-7 w-7 sm:h-8 sm:w-8"
+                  title="Copy from previous"
+                >
+                  &#x2398;
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="flex-1 w-full">
+            <Label htmlFor="type" className="text-foreground text-xs sm:text-sm">
+              Question Type
+            </Label>
+            <div className="flex flex-row gap-1 items-center w-full">
+              <Input
+                id="type"
+                name="type"
+                value={currentQuestion.type || ""}
+                onChange={handleQuestionChange}
+                placeholder="Question Type"
+                className="w-full text-foreground border-input py-1 px-2 sm:py-2 sm:px-3 text-xs sm:text-sm"
+                disabled={isSubmitting}
+              />
+              {copyType && (
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={copyType}
+                  className="h-7 w-7 sm:h-8 sm:w-8"
+                  title="Copy from previous"
+                >
+                  &#x2398;
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+        {/* <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-foreground">Question</h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={removeQuestion}
+            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+            disabled={isSubmitting}
+          >
+            <Trash2 className="h-4 w-4 mr-1" /> Remove
+          </Button>
+        </div> */}
 
         {/* English Fields */}
         <div className="space-y-4">
@@ -105,23 +216,38 @@ export function QuestionForm({
             >
               Question {emptyFields.question && "*Required"}
             </Label>
-            <Textarea
-              id="question"
-              name="question"
-              value={currentQuestion.question || ""}
-              onChange={handleQuestionChange}
-              onPaste={(e) => handlePasteImage(e, "question", "en")}
-              className={`mt-1 text-foreground ${
-                emptyFields.question ? "border-red-500" : ""
-              }`}
-              rows={3}
-              disabled={isSubmitting}
-              placeholder={
-                questionType === "MCQ"
-                  ? "Enter question with options (A) Option 1 (B) Option 2..."
-                  : "Enter question"
-              }
-            />
+            <div className="flex flex-row gap-1 items-center w-full">
+              <Textarea
+                id="question"
+                name="question"
+                value={currentQuestion.question || ""}
+                onChange={handleQuestionChange}
+                onPaste={(e) => handlePasteImage(e, "question", "en")}
+                className={`mt-1 text-foreground ${
+                  emptyFields.question ? "border-red-500" : ""
+                }`}
+                rows={3}
+                disabled={isSubmitting}
+                placeholder={
+                  questionType === "MCQ"
+                    ? "Enter question with options (A) Option 1 (B) Option 2..."
+                    : "Enter question"
+                }
+              />
+              {fixQuestionAndAnswer && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={fixQuestionAndAnswer}
+                  className="h-7 w-20 sm:h-8 sm:w-24 text-xs"
+                  title="Move answer to answer field"
+                  disabled={isSubmitting}
+                >
+                  Fix it
+                </Button>
+              )}
+            </div>
             <div className="mt-2">
               <Label htmlFor="question-image" className="text-foreground">
                 Upload Image
@@ -139,15 +265,40 @@ export function QuestionForm({
             {Array.isArray(currentQuestion.question_images) &&
               currentQuestion.question_images.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {currentQuestion.question_images.map((url, index) => (
-                    <div key={index} className="relative">
+                  {currentQuestion.question_images.map((img, index) => (
+                    <div
+                      key={index}
+                      className="relative flex flex-col items-center"
+                    >
                       <Image
-                        src={url || "/placeholder.svg"}
+                        src={img.url || "/placeholder.svg"}
                         alt={`Question image ${index + 1}`}
                         width={100}
                         height={100}
                         className="object-cover rounded-md"
                       />
+                      <select
+                        className="mt-1 text-xs border rounded"
+                        value={img.size}
+                        onChange={(e) =>
+                          handleImageSizeChange(
+                            "question",
+                            index,
+                            e.target.value as
+                              | "inline"
+                              | "small"
+                              | "medium"
+                              | "large"
+                          )
+                        }
+                        disabled={isSubmitting}
+                      >
+                        {IMAGE_SIZE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
                       <button
                         type="button"
                         onClick={() =>
@@ -206,15 +357,40 @@ export function QuestionForm({
             {Array.isArray(currentQuestion.answer_images) &&
               currentQuestion.answer_images.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {currentQuestion.answer_images.map((url, index) => (
-                    <div key={index} className="relative">
+                  {currentQuestion.answer_images.map((img, index) => (
+                    <div
+                      key={index}
+                      className="relative flex flex-col items-center"
+                    >
                       <Image
-                        src={url || "/placeholder.svg"}
+                        src={img.url || "/placeholder.svg"}
                         alt={`Answer image ${index + 1}`}
                         width={100}
                         height={100}
                         className="object-cover rounded-md"
                       />
+                      <select
+                        className="mt-1 text-xs border rounded"
+                        value={img.size}
+                        onChange={(e) =>
+                          handleImageSizeChange(
+                            "question",
+                            index,
+                            e.target.value as
+                              | "inline"
+                              | "small"
+                              | "medium"
+                              | "large"
+                          )
+                        }
+                        disabled={isSubmitting}
+                      >
+                        {IMAGE_SIZE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
                       <button
                         type="button"
                         onClick={() => handleImageRemove(index, "answer", "en")}
@@ -295,15 +471,40 @@ export function QuestionForm({
                     currentQuestion.question_images_gu.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {currentQuestion.question_images_gu.map(
-                          (url, index) => (
-                            <div key={index} className="relative">
+                          (img, index) => (
+                            <div
+                              key={index}
+                              className="relative flex flex-col items-center"
+                            >
                               <Image
-                                src={url || "/placeholder.svg"}
+                                src={img.url || "/placeholder.svg"}
                                 alt={`Question image (Gujarati) ${index + 1}`}
                                 width={100}
                                 height={100}
                                 className="object-cover rounded-md"
                               />
+                              <select
+                                className="mt-1 text-xs border rounded"
+                                value={img.size}
+                                onChange={(e) =>
+                                  handleImageSizeChange(
+                                    "question",
+                                    index,
+                                    e.target.value as
+                                      | "inline"
+                                      | "small"
+                                      | "medium"
+                                      | "large"
+                                  )
+                                }
+                                disabled={isSubmitting}
+                              >
+                                {IMAGE_SIZE_OPTIONS.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
                               <button
                                 type="button"
                                 onClick={() =>
@@ -366,15 +567,40 @@ export function QuestionForm({
                   {Array.isArray(currentQuestion.answer_images_gu) &&
                     currentQuestion.answer_images_gu.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {currentQuestion.answer_images_gu.map((url, index) => (
-                          <div key={index} className="relative">
+                        {currentQuestion.answer_images_gu.map((img, index) => (
+                          <div
+                            key={index}
+                            className="relative flex flex-col items-center"
+                          >
                             <Image
-                              src={url || "/placeholder.svg"}
+                              src={img.url || "/placeholder.svg"}
                               alt={`Answer image (Gujarati) ${index + 1}`}
                               width={100}
                               height={100}
                               className="object-cover rounded-md"
                             />
+                            <select
+                              className="mt-1 text-xs border rounded"
+                              value={img.size}
+                              onChange={(e) =>
+                                handleImageSizeChange(
+                                  "answer",
+                                  index,
+                                  e.target.value as
+                                    | "inline"
+                                    | "small"
+                                    | "medium"
+                                    | "large"
+                                )
+                              }
+                              disabled={isSubmitting}
+                            >
+                              {IMAGE_SIZE_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
                             <button
                               type="button"
                               onClick={() =>
