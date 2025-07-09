@@ -402,13 +402,13 @@ const createStyles = () => {
       textAlign: "left",
     },
 
-    // right side text 
+    // right side text
     headerText: {
       fontSize: 10,
       textAlign: "center",
     },
 
-    // left side text 
+    // left side text
     headerTextL: {
       fontSize: 10,
       textAlign: "left",
@@ -418,7 +418,8 @@ const createStyles = () => {
     headerTextLC: {
       fontSize: 10,
       textAlign: "left",
-      marginLeft: 15,
+      marginLeft: 40,
+      justifyContent : "center"
     },
     headerRightColumn: {
       width: "33%",
@@ -492,7 +493,7 @@ const MyDocument = ({
   examStructure,
   instituteName,
   standard,
-  schoolName,
+  // schoolName,
   studentName,
   subject,
   chapters,
@@ -747,7 +748,7 @@ const MyDocument = ({
             Std: {standard || "-"} | Subject: {subject}
           </Text>
           {/* <Text style={styles.headerText}></Text> */}
-          <Text style={styles.headerTextLC}> Medium : {medium || "-"} </Text>
+          <Text style={styles.headerTextLC}>Medium : {medium || "-"} </Text>
         </View>
         {/* Column 3: Teacher + Student */}
         <View style={styles.headerRightColumn}>
