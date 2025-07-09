@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
@@ -48,6 +49,14 @@ import { useRef } from "react";
 
 // Main Exam Generation Page
 export default function GenerateExamPage() {
+  return (
+    <Suspense fallback={<Loading title="Loading page..." />}>
+      <GenerateExamPageInner />
+    </Suspense>
+  );
+}
+
+function GenerateExamPageInner() {
   // --- State Management ---
   const searchParams = useSearchParams();
   const contentIdParam = searchParams.get("contentId");
