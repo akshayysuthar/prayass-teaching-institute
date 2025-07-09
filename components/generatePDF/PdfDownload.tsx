@@ -195,7 +195,7 @@ const createStyles = () => {
     },
 
     section: {
-      margin: 3,
+      margin: 2,
       padding: 3,
       flexGrow: 1,
     },
@@ -291,7 +291,7 @@ const createStyles = () => {
       alignItems: "center",
       justifyContent: "center",
       marginTop: 8,
-      marginBottom: 4,
+      marginBottom: 2,
       width: "100%",
       position: "relative",
     },
@@ -326,7 +326,7 @@ const createStyles = () => {
       flex: 1,
       marginLeft: 10,
       marginRight: 8,
-      marginTop: 5,
+      marginTop: 1,
       fontFamily: fontFamily,
     },
     marks: {
@@ -401,9 +401,24 @@ const createStyles = () => {
       width: "34%",
       textAlign: "left",
     },
+
+    // right side text 
     headerText: {
       fontSize: 10,
+      textAlign: "center",
+    },
+
+    // left side text 
+    headerTextL: {
+      fontSize: 10,
       textAlign: "left",
+    },
+
+    // center text
+    headerTextLC: {
+      fontSize: 10,
+      textAlign: "left",
+      marginLeft: 15,
     },
     headerRightColumn: {
       width: "33%",
@@ -415,14 +430,14 @@ const createStyles = () => {
       top: 0,
       right: 0,
       fontSize: 10,
-      color: "#555",
+      color: "#fff",
       textAlign: "right",
       marginTop: 2,
       marginRight: 4,
     },
     questionText: {
       fontSize: 11,
-      marginBottom: 4,
+      marginBottom: 1,
       fontFamily: fontFamily,
     },
   });
@@ -711,27 +726,28 @@ const MyDocument = ({
       {/* <Text style={styles.headerTestTitle}>
         {testTitle || "Unit Test"} - {examTime || "Unit Test"}
       </Text> */}
-      <Text style={styles.headerTestTitle}>{schoolName || ""}</Text>
+      {/* <Text style={styles.headerTestTitle}>{schoolName || ""}</Text> */}
       <Text style={styles.headerDateTopRight}>{getFormattedDate()}</Text>
 
       {/* 📑 Three column layout */}
       <View style={styles.headerThreeColumns}>
         {/* Column 1: Chapters + Marks */}
         <View style={styles.headerColumn}>
-          <Text style={styles.headerText}>
+          <Text style={styles.headerTextL}>
             Chapter: {formatChapters(selectedQuestions, chapters)}
           </Text>
-          <Text style={styles.headerText}>
+          <Text style={styles.headerTextL}>
             Marks:
             {selectedQuestions.reduce((sum, q) => sum + q.marks, 0)}
           </Text>
         </View>
         {/* Column 2: Std + Subject + Medium */}
         <View style={styles.headerColumnCenter}>
-          <Text style={styles.headerText}>
-            Std: {standard || "-"} | {medium || "-"}
+          <Text style={styles.headerTextLC}>
+            Std: {standard || "-"} | Subject: {subject}
           </Text>
-          <Text style={styles.headerText}>Subject: {subject}</Text>
+          {/* <Text style={styles.headerText}></Text> */}
+          <Text style={styles.headerTextLC}> Medium : {medium || "-"} </Text>
         </View>
         {/* Column 3: Teacher + Student */}
         <View style={styles.headerRightColumn}>
@@ -934,7 +950,8 @@ const MyDocument = ({
                     if (typeof q.answer === "string" && q.answer.trim()) {
                       answerContent = q.answer;
                     } else if (
-                      typeof q.answer_gu === "string" && q.answer_gu.trim()
+                      typeof q.answer_gu === "string" &&
+                      q.answer_gu.trim()
                     ) {
                       answerContent = q.answer_gu;
                     } else if (
@@ -974,7 +991,9 @@ const MyDocument = ({
                         <DynamicParagraph
                           content={answerContent}
                           images={
-                            Array.isArray(q.answer_images) ? q.answer_images : []
+                            Array.isArray(q.answer_images)
+                              ? q.answer_images
+                              : []
                           }
                           isPdf={true}
                           isAnswerKey={true}

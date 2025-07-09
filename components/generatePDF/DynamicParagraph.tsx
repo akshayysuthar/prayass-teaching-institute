@@ -13,11 +13,11 @@ interface DynamicParagraphProps {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 8,
+    marginBottom: 1,
   },
   text: {
     fontSize: 11,
-    marginBottom: 4,
+    marginBottom: 1,
   },
   imageContainer: {
     marginTop: 4,
