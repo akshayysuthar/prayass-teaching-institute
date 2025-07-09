@@ -7,6 +7,7 @@ import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/utils/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Loading } from "@/components/Loading";
 
 type Content = {
   id: number;
@@ -133,7 +134,8 @@ export default function Home() {
   //   }
   // };
   const groupedByStandardAndMedium = filteredContents.reduce((acc, item) => {
-    const key = `Class: ${item.class} • [ ${item.medium.trim()} Medium ]`;
+    const displayMedium = item.medium.trim().toLowerCase() === 'both' ? 'English and Gujarati' : item.medium.trim();
+    const key = `Class: ${item.class} • [ ${displayMedium} Medium ]`;
     if (!acc[key]) acc[key] = [];
     acc[key].push(item);
     return acc;
@@ -147,33 +149,35 @@ export default function Home() {
   };
 
   return (
-    <div className="bg-background min-h-screen text-foreground">
-      {/* Hero Section */}
-      <section className="py-10 bg-blue-600 text-white text-center">
-        <div className="container mx-auto px-2 sm:px-4">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">{siteConfig.name}</h1>
-          <p className="text-base sm:text-lg">{siteConfig.tagline}</p>
-
-          {user ? (
-            <p className="mt-2 text-white">
-              Welcome, {user.fullName || "User"}!
-            </p>
-          ) : (
-            <Button
-              asChild
-              className="mt-4 bg-white text-blue-600 hover:bg-blue-100 dark:bg-gray-900 dark:text-blue-300 dark:hover:bg-gray-800"
-            >
-              <Link href="/sign-in">Sign In</Link>
-            </Button>
-          )}
-        </div>
-      </section>
-
-      {/* Sticky Filter Bar with Buttons */}
-      <div className="sticky top-16 z-20 bg-background shadow-sm border-b border-border py-3">
-        <div className="container mx-auto px-2 sm:px-4 space-y-2">
-          {/* Medium Filter */}
-          {/* <div className="flex flex-wrap items-center gap-2">
+    <div>
+      {isLoading ? (
+        <Loading title="Loading content..." />
+      ) : (
+        <div className="bg-background min-h-screen text-foreground">
+          {/* Hero Section */}
+          <section className="py-10 bg-blue-600 text-white text-center">
+            <div className="container mx-auto px-2 sm:px-4">
+              <h1 className="text-3xl sm:text-4xl font-bold mb-2">{siteConfig.name}</h1>
+              <p className="text-base sm:text-lg">{siteConfig.tagline}</p>
+              {user ? (
+                <p className="mt-2 text-white">
+                  Welcome, {user.fullName || "User"}!
+                </p>
+              ) : (
+                <Button
+                  asChild
+                  className="mt-4 bg-white text-blue-600 hover:bg-blue-100 dark:bg-gray-900 dark:text-blue-300 dark:hover:bg-gray-800"
+                >
+                  <Link href="/sign-in">Sign In</Link>
+                </Button>
+              )}
+            </div>
+          </section>
+          {/* Sticky Filter Bar with Buttons */}
+          <div className="sticky top-16 z-20 bg-background shadow-sm border-b border-border py-3">
+            <div className="container mx-auto px-2 sm:px-4 space-y-2">
+              {/* Medium Filter */}
+              {/* <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold mr-2">Medium:</span>
             {availableFilters.mediums.map((m) => (
               <button
@@ -200,29 +204,29 @@ export default function Home() {
             </button>
           </div> */}
 
-          {/* Standard Filter */}
-          <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 w-full">
-            <span className="text-sm font-semibold mr-2">Standard:</span>
-            <div className="flex flex-wrap gap-2 w-full">
-              {availableFilters.standards.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => handlePreferenceChange("standard", s)}
-                  className={`px-3 py-1 rounded border text-sm transition-colors w-16 sm:w-auto
+              {/* Standard Filter */}
+              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 w-full">
+                <span className="text-sm font-semibold mr-2">Standard:</span>
+                <div className="flex flex-wrap gap-2 w-full">
+                  {availableFilters.standards.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => handlePreferenceChange("standard", s)}
+                      className={`px-3 py-1 rounded border text-sm transition-colors w-16 sm:w-auto
                     ${preferences.standard === s
                       ? "bg-blue-600 text-white border-blue-600"
                       : "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 border-border"}
                   `}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          {/* Semester Filter */}
-          <div className="hidden">
-            {/* <span className="text-sm font-semibold mr-2">Semester:</span>
+              {/* Semester Filter */}
+              <div className="hidden">
+                {/* <span className="text-sm font-semibold mr-2">Semester:</span>
             {availableFilters.semesters.map((s) => (
               <button
                 key={s}
@@ -236,7 +240,7 @@ export default function Home() {
                 {s}
               </button>
             ))} */}
-            {/* <button
+                {/* <button
               onClick={() => handlePreferenceChange("semester", "")}
               className={`px-3 py-1 rounded border text-sm ${
                 preferences.semester === ""
@@ -246,46 +250,50 @@ export default function Home() {
             >
               All
             </button> */}
+              </div>
+            </div>
+          </div>
+
+          {/* Content Grid */}
+          <div className="container mx-auto px-2 sm:px-4 py-6">
+            {Object.keys(groupedByStandardAndMedium).length > 0 ? (
+              Object.entries(groupedByStandardAndMedium).map(
+                ([groupKey, items]) => (
+                  <div key={groupKey} className="mb-8">
+                    <h2 className="text-lg sm:text-xl font-bold mb-3 text-foreground">{groupKey}</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {items.map((content: Content) => (
+                        <div
+                          key={content.id}
+                          className="border rounded shadow-sm p-3 sm:p-4 bg-background dark:bg-gray-900"
+                        >
+                          <p className="font-semibold text-base sm:text-lg mb-1 text-foreground">
+                            {content.name}
+                          </p>
+                          <p className="text-xs text-gray-500 mb-1">
+                            {content.medium.trim().toLowerCase() === 'both med' ? 'English and Gujarati Medium' : `${content.medium} Medium`}
+                          </p>
+                          <Button
+                            asChild
+                            className="mt-3 w-full bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
+                          >
+                            <Link href={`/generate-exam?contentId=${content.id}`}>
+                              Generate Exam
+                            </Link>
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              )
+            ) : (
+              <p className="text-center text-gray-500 dark:text-gray-300">No content found.</p>
+            )}
           </div>
         </div>
-      </div>
-
-      {/* Content Grid */}
-      <div className="container mx-auto px-2 sm:px-4 py-6">
-        {isLoading ? (
-          <p className="text-center text-gray-500 dark:text-gray-300">Loading content...</p>
-        ) : Object.keys(groupedByStandardAndMedium).length > 0 ? (
-          Object.entries(groupedByStandardAndMedium).map(
-            ([groupKey, items]) => (
-              <div key={groupKey} className="mb-8">
-                <h2 className="text-lg sm:text-xl font-bold mb-3 text-foreground">{groupKey}</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {items.map((content) => (
-                    <div
-                      key={content.id}
-                      className="border rounded shadow-sm p-3 sm:p-4 bg-background dark:bg-gray-900"
-                    >
-                      <p className="font-semibold text-base sm:text-lg mb-1 text-foreground">
-                        {content.name}
-                      </p>
-                      <Button
-                        asChild
-                        className="mt-3 w-full bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
-                      >
-                        <Link href={`/generate-exam?contentId=${content.id}`}>
-                          Generate Exam
-                        </Link>
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          )
-        ) : (
-          <p className="text-center text-gray-500 dark:text-gray-300">No content found.</p>
-        )}
-      </div>
+      )}
     </div>
   );
 }
+ 

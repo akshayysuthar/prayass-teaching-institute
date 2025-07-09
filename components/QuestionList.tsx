@@ -28,21 +28,25 @@ export function QuestionList({
     null
   );
 
-  const renderContent = (content: string, images: string[] | null) => {
+  const renderContent = (content: string, images: string[] | null, imgSizes?: string[] | null) => {
     if (!content) return null;
     const parts = content.split(/(\[img\d+\])/g);
     return parts.map((part, index) => {
       const imgMatch = part.match(/\[img(\d+)\]/);
       if (imgMatch && images && images[Number.parseInt(imgMatch[1]) - 1]) {
         return (
-          <Image
-            key={index}
-            src={images[Number.parseInt(imgMatch[1]) - 1] || "/placeholder.svg"}
-            alt={`Image ${imgMatch[1]}`}
-            width={100}
-            height={100}
-            className="inline-block mr-2"
-          />
+          <span key={index} className="inline-block align-middle mr-2">
+            <Image
+              src={images[Number.parseInt(imgMatch[1]) - 1] || "/placeholder.svg"}
+              alt={`Image ${imgMatch[1]}`}
+              width={60}
+              height={60}
+              className="inline-block rounded border"
+            />
+            {imgSizes && imgSizes[Number.parseInt(imgMatch[1]) - 1] && (
+              <span className="block text-xs text-gray-500 text-center">{imgSizes[Number.parseInt(imgMatch[1]) - 1]}</span>
+            )}
+          </span>
         );
       }
       return <span key={index}>{part}</span>;
@@ -52,82 +56,53 @@ export function QuestionList({
   return (
     <div className="space-y-4">
       {questions.map((question) => (
-        <Card key={question.id} className="overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-lg">Question {question.id}</CardTitle>
+        <Card key={question.id} className="overflow-hidden border shadow-sm p-2 sm:p-4 flex flex-col gap-2 w-full">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
+              Q{question.id}
+              <span className="text-xs font-normal text-gray-500">{question.type} • {question.marks} marks</span>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div>
-                <strong>Content:</strong> {question.content_name} - Class{" "}
-                {question.contents?.class} - {question.contents?.board} -{" "}
-                {question.contents?.medium}
-              </div>
-              <div>
-                <strong>Subject:</strong> {question.subject_name}
-              </div>
-              <div>
-                <strong>Chapter:</strong> {question.chapter_no}.{" "}
-                {question.chapter_name}
-              </div>
-              <div>
-                <strong>Question (English):</strong>{" "}
-                {renderContent(question.question, question.question_images)}
-              </div>
+          <CardContent className="flex flex-col gap-2">
+            <div className="text-sm text-gray-700">
+              <span className="font-medium">{question.content_name}</span>
+              {question.chapter_no && (
+                <span> • Ch {question.chapter_no}: {question.chapter_name}</span>
+              )}
+            </div>
+            <div className="text-sm">
+              <span className="font-semibold">Q:</span> {renderContent(question.question, question.question_images, question.img_size ? JSON.parse(question.img_size).question : undefined)}
+            </div>
+            <div className="text-sm">
+              <span className="font-semibold">A:</span> {renderContent(question.answer as string, question.answer_images, question.img_size ? JSON.parse(question.img_size).answer : undefined)}
+            </div>
+            {/* Hide Gujarati fields, not remove */}
+            <div className="hidden">
               {question.question_gu && (
                 <div>
-                  <strong>Question (Gujarati):</strong>{" "}
-                  {renderContent(
-                    question.question_gu,
-                    question.question_images_gu
-                  )}
+                  <strong>Question (Gujarati):</strong> {renderContent(question.question_gu, question.question_images_gu)}
                 </div>
               )}
-              <div>
-                <strong>Answer (English):</strong>{" "}
-                {renderContent(
-                  question.answer as string,
-                  question.answer_images
-                )}
-              </div>
               {question.answer_gu && (
                 <div>
-                  <strong>Answer (Gujarati):</strong>{" "}
-                  {renderContent(
-                    question.answer_gu as string,
-                    question.answer_images_gu
-                  )}
+                  <strong>Answer (Gujarati):</strong> {renderContent(question.answer_gu as string, question.answer_images_gu)}
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <strong>Type:</strong> {question.type}
-                </div>
-                <div>
-                  <strong>Marks:</strong> {question.marks}
-                </div>
-                <div>
-                  <strong>Reviewed:</strong>{" "}
-                  {question.is_reviewed ? "Yes" : "No"}
-                </div>
-                <div>
-                  <strong>Created By:</strong> {question.created_by}
-                </div>
-              </div>
-              <Button onClick={() => setSelectedQuestion(question)}>
-                Edit Question
+            </div>
+            <div className="flex flex-row flex-wrap gap-2 mt-2">
+              <Button size="sm" onClick={() => setSelectedQuestion(question)}>
+                Edit
               </Button>
+              <span className="text-xs text-gray-400 ml-auto">By: {question.created_by}</span>
             </div>
           </CardContent>
         </Card>
       ))}
-
       {hasMore && (
         <div className="mt-4 text-center">
           <Button onClick={onLoadMore}>View More</Button>
         </div>
       )}
-
       {selectedQuestion && (
         <QuestionDetails
           question={selectedQuestion}

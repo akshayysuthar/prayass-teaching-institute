@@ -355,8 +355,8 @@
 //       <CardContent>
 //         <form onSubmit={handleSubmit} className="space-y-6">
 //           {/* Basic Information */}
-//           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-//             <div>
+//           <div className="flex flex-col md:flex-row gap-2 md:gap-4 w-full">
+//             <div className="flex-1 w-full">
 //               <Label htmlFor="type">Question Type</Label>
 //               <Input
 //                 id="type"
@@ -364,10 +364,10 @@
 //                 value={formData.type}
 //                 onChange={handleInputChange}
 //                 placeholder="e.g., MCQ, Short Answer"
+//                 className="w-full"
 //               />
 //             </div>
-
-//             <div>
+//             <div className="flex-1 w-full">
 //               <Label htmlFor="marks">Marks</Label>
 //               <Input
 //                 id="marks"
@@ -378,16 +378,16 @@
 //                 value={formData.marks}
 //                 onChange={handleInputChange}
 //                 required
+//                 className="w-full"
 //               />
 //             </div>
-
-//             <div>
+//             <div className="flex-1 w-full">
 //               <Label htmlFor="img_size">Image Size</Label>
 //               <Select
 //                 value={formData.img_size}
 //                 onValueChange={(value) => handleSelectChange("img_size", value)}
 //               >
-//                 <SelectTrigger>
+//                 <SelectTrigger className="w-full">
 //                   <SelectValue />
 //                 </SelectTrigger>
 //                 <SelectContent>

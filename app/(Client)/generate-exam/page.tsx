@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loading } from "@/components/Loading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { QuestionSelector } from "@/components/QuestionTypeSelector";
+import { QuestionSelector } from "@/components/generatePDF/QuestionTypeSelector";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -40,9 +40,11 @@ import {
 import { siteConfig } from "@/config/site";
 import { useUser } from "@clerk/nextjs";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { ClassSelector } from "@/components/ClassSelector";
-import { ExamPreview } from "@/components/ExamPreview";
-import { PdfDownload } from "@/components/PdfDownload";
+import { ClassSelector } from "@/components/generatePDF/ClassSelector";
+import { ExamPreview } from "@/components/generatePDF/ExamPreview";
+import { PdfDownload } from "@/components/generatePDF/PdfDownload";
+
+import { useRef } from "react";
 
 // Main Exam Generation Page
 export default function GenerateExamPage() {
@@ -67,7 +69,10 @@ export default function GenerateExamPage() {
   const [selectedChapters, setSelectedChapters] = useState<SelectedChapter[]>(
     []
   );
-  const [isLoading, setIsLoading] = useState(true);
+  // Removed unused isLoading, setIsLoading
+  const [pageLoading, setPageLoading] = useState(true); // replaces isLoading for initial load
+  const [stepLoading, setStepLoading] = useState(false); // handles step transitions
+
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [studentName, setStudentName] = useState<string>("");
   const [schoolName, setSchoolName] = useState<string>("");
@@ -83,6 +88,9 @@ export default function GenerateExamPage() {
     sections: [],
   });
   const [chapterNo, setChapterNo] = useState<string>("1");
+  const stepContainerRef = useRef<HTMLDivElement>(null);
+  // Remove stepLoading, use only isLoading
+  // const [stepLoading, setStepLoading] = useState(false);
 
   const { user } = useUser();
   const { toast } = useToast();
@@ -92,7 +100,7 @@ export default function GenerateExamPage() {
   // --- Data Fetching ---
   // Fetch all available contents
   const fetchContents = useCallback(async () => {
-    setIsLoading(true);
+    setPageLoading(true);
     try {
       const { data, error } = await supabase.from("contents").select("*");
       if (error) throw error;
@@ -117,7 +125,7 @@ export default function GenerateExamPage() {
       });
       console.error("Error:", error);
     } finally {
-      setIsLoading(false);
+      setPageLoading(false);
     }
   }, [toast, contentIdParam]);
 
@@ -125,6 +133,7 @@ export default function GenerateExamPage() {
   const fetchSubjects = useCallback(
     async (contentId: number) => {
       try {
+        setStepLoading(true);
         const { data, error } = await supabase
           .from("subjects")
           .select("*")
@@ -137,6 +146,8 @@ export default function GenerateExamPage() {
           description: "Failed to load subjects.",
           variant: "destructive",
         });
+      } finally {
+        setStepLoading(false);
       }
     },
     [toast]
@@ -145,7 +156,7 @@ export default function GenerateExamPage() {
   // Fetch questions for a given content
   const fetchQuestions = useCallback(
     async (contentId: number) => {
-      setIsLoading(true);
+      setStepLoading(true);
       try {
         const { data, error } = await supabase
           .from("questions")
@@ -154,16 +165,26 @@ export default function GenerateExamPage() {
         if (error) throw error;
 
         // Ensure all fields are present for each question
-        const processedQuestions = data.map((q) => ({
+        const processedQuestions = (data || []).map((q) => ({
           ...q,
           question: q.question || "",
-          answer: q.answer || {},
-          question_images: q.question_images || null,
-          answer_images: q.answer_images || null,
+          answer: typeof q.answer === "string" ? q.answer : "",
+          question_images: Array.isArray(q.question_images)
+            ? q.question_images
+            : [],
+          answer_images: Array.isArray(q.answer_images) ? q.answer_images : [],
           question_gu: q.question_gu || "",
-          answer_gu: q.answer_gu || {},
-          question_images_gu: q.question_images_gu || null,
-          answer_images_gu: q.answer_images_gu || null,
+          answer_gu: typeof q.answer_gu === "string" ? q.answer_gu : "",
+          question_images_gu: Array.isArray(q.question_images_gu)
+            ? q.question_images_gu
+            : [],
+          answer_images_gu: Array.isArray(q.answer_images_gu)
+            ? q.answer_images_gu
+            : [],
+          options:
+            typeof q.options === "object" && q.options !== null
+              ? q.options
+              : {},
         }));
 
         setQuestions(processedQuestions);
@@ -176,7 +197,7 @@ export default function GenerateExamPage() {
         });
         return [];
       } finally {
-        setIsLoading(false);
+        setStepLoading(false);
       }
     },
     [toast]
@@ -312,7 +333,7 @@ export default function GenerateExamPage() {
         });
       }
     },
-    [selectedContent, fetchSubjects, fetchQuestions, toast]
+    [selectedContent, toast, fetchQuestions, fetchSubjects]
   );
 
   // Handle question selection
@@ -395,19 +416,21 @@ export default function GenerateExamPage() {
   // }, [toast]);
 
   // Step navigation with validation
-  const setStep = useCallback(
-    (step: number) => {
-      if (step < 1 || step > 3) return;
-      setCurrentStep(step);
-      // toast({
-      //   title: "Step Changed",
-      //   description: `Moved to step ${step}: ${
-      //     step === 1 ? "Content" : step === 2 ? "Questions" : "Preview"
-      //   }.`,
-      // });
-    },
-    [toast]
-  );
+  const setStep = useCallback((step: number) => {
+    if (step < 1 || step > 3) return;
+    setStepLoading(true);
+    setCurrentStep(step);
+
+    setTimeout(() => {
+      // Smooth scroll to top of step content
+      if (stepContainerRef.current) {
+        stepContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      setStepLoading(false);
+    }, 100); // slight delay for DOM to update
+  }, []);
 
   // --- UI Step Components ---
   // Step 1: Content Selection
@@ -715,15 +738,18 @@ export default function GenerateExamPage() {
   );
 
   // --- Main Render ---
-  if (isLoading) {
-    return <Loading title="Loading..." />;
+  if (pageLoading) {
+    return <Loading title="Loading page..." />;
   }
 
   // Progress bar value
   const progress = (currentStep / 3) * 100;
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8 bg-white dark:bg-gray-900">
+    <div
+      ref={stepContainerRef}
+      className="container mx-auto p-4 sm:p-6 lg:p-8 bg-white dark:bg-gray-900  scroll-smooth"
+    >
       {/* Header */}
       <header className="mb-6">
         <h1 className="text-3xl font-bold mb-4 text-blue-600 dark:text-blue-400 flex items-center">
@@ -765,10 +791,18 @@ export default function GenerateExamPage() {
       </header>
 
       {/* Main Step Content */}
-      <main className="space-y-6">
-        {currentStep === 1 && contentSelectionStep}
-        {currentStep === 2 && questionSelectionStep}
-        {currentStep === 3 && previewAndGenerateStep}
+      <main
+      //  ref={stepContainerRef}
+       className="space-y-6 mb-32">
+        {stepLoading ? (
+          <Loading title="Loading step..." />
+        ) : (
+          <>
+            {currentStep === 1 && contentSelectionStep}
+            {currentStep === 2 && questionSelectionStep}
+            {currentStep === 3 && previewAndGenerateStep}
+          </>
+        )}
       </main>
 
       {/* Mobile Bottom Navigation */}

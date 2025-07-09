@@ -100,7 +100,10 @@ export function QuestionDetails({
     try {
       const { error } = await supabase
         .from("questions")
-        .update(formData)
+        .update({
+          ...formData,
+          // content_id: question.contents?.id || question.content_id,
+        })
         .eq("id", question.id);
 
       if (error) throw error;
@@ -258,13 +261,38 @@ export function QuestionDetails({
             />
             <div className="flex flex-wrap gap-2 mt-2">
               {formData.question_images?.map((img, index) => (
-                <div key={index} className="relative">
+                <div key={index} className="relative flex flex-col items-center gap-1">
                   <Image
                     src={img || "/placeholder.svg"}
                     alt={`Question image ${index + 1}`}
                     width={100}
                     height={100}
                   />
+                  <select
+                    className="w-full text-xs border rounded"
+                    value={Array.isArray(formData.img_size) ? formData.img_size[index] : (typeof formData.img_size === 'string' ? formData.img_size : 'medium')}
+                    onChange={e => {
+                      let imgSizes = [];
+                      try {
+                        imgSizes = typeof formData.img_size === 'string' ? (JSON.parse(formData.img_size)?.question || []) : formData.img_size || [];
+                      } catch {
+                        imgSizes = [];
+                      }
+                      imgSizes[index] = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        img_size: JSON.stringify({
+                          ...(typeof prev.img_size === 'string' ? JSON.parse(prev.img_size || '{}') : {}),
+                          question: imgSizes
+                        })
+                      }));
+                    }}
+                  >
+                    <option value="inline">Inline</option>
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                  </select>
                   <button
                     type="button"
                     onClick={() => handleImageRemove("question_images", index)}
@@ -276,38 +304,36 @@ export function QuestionDetails({
               ))}
             </div>
           </div>
-          <div>
-            <Label htmlFor="question_images_gu">
-              Question Images (Gujarati)
-            </Label>
-            <Input
-              id="question_images_gu"
-              name="question_images_gu"
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleImageUpload(e, "question_images_gu")}
-              multiple
-            />
-            <div className="flex flex-wrap gap-2 mt-2">
-              {formData.question_images_gu?.map((img, index) => (
-                <div key={index} className="relative">
-                  <Image
-                    src={img || "/placeholder.svg"}
-                    alt={`Question image (Gujarati) ${index + 1}`}
-                    width={100}
-                    height={100}
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleImageRemove("question_images_gu", index)
-                    }
-                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ))}
+          <div className="hidden">
+            <div>
+              <Label htmlFor="question_images_gu">Question Images (Gujarati)</Label>
+              <Input
+                id="question_images_gu"
+                name="question_images_gu"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, "question_images_gu")}
+                multiple
+              />
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.question_images_gu?.map((img, index) => (
+                  <div key={index} className="relative">
+                    <Image
+                      src={img || "/placeholder.svg"}
+                      alt={`Question image (Gujarati) ${index + 1}`}
+                      width={100}
+                      height={100}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleImageRemove("question_images_gu", index)}
+                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <div>
@@ -322,13 +348,38 @@ export function QuestionDetails({
             />
             <div className="flex flex-wrap gap-2 mt-2">
               {formData.answer_images?.map((img, index) => (
-                <div key={index} className="relative">
+                <div key={index} className="relative flex flex-col items-center gap-1">
                   <Image
                     src={img || "/placeholder.svg"}
                     alt={`Answer image ${index + 1}`}
                     width={100}
                     height={100}
                   />
+                  <select
+                    className="w-full text-xs border rounded"
+                    value={Array.isArray(formData.img_size) ? formData.img_size[index] : (typeof formData.img_size === 'string' ? formData.img_size : 'medium')}
+                    onChange={e => {
+                      let imgSizes = [];
+                      try {
+                        imgSizes = typeof formData.img_size === 'string' ? (JSON.parse(formData.img_size)?.answer || []) : formData.img_size || [];
+                      } catch {
+                        imgSizes = [];
+                      }
+                      imgSizes[index] = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        img_size: JSON.stringify({
+                          ...(typeof prev.img_size === 'string' ? JSON.parse(prev.img_size || '{}') : {}),
+                          answer: imgSizes
+                        })
+                      }));
+                    }}
+                  >
+                    <option value="inline">Inline</option>
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                  </select>
                   <button
                     type="button"
                     onClick={() => handleImageRemove("answer_images", index)}
@@ -340,34 +391,36 @@ export function QuestionDetails({
               ))}
             </div>
           </div>
-          <div>
-            <Label htmlFor="answer_images_gu">Answer Images (Gujarati)</Label>
-            <Input
-              id="answer_images_gu"
-              name="answer_images_gu"
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleImageUpload(e, "answer_images_gu")}
-              multiple
-            />
-            <div className="flex flex-wrap gap-2 mt-2">
-              {formData.answer_images_gu?.map((img, index) => (
-                <div key={index} className="relative">
-                  <Image
-                    src={img || "/placeholder.svg"}
-                    alt={`Answer image (Gujarati) ${index + 1}`}
-                    width={100}
-                    height={100}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleImageRemove("answer_images_gu", index)}
-                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ))}
+          <div className="hidden">
+            <div>
+              <Label htmlFor="answer_images_gu">Answer Images (Gujarati)</Label>
+              <Input
+                id="answer_images_gu"
+                name="answer_images_gu"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, "answer_images_gu")}
+                multiple
+              />
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.answer_images_gu?.map((img, index) => (
+                  <div key={index} className="relative">
+                    <Image
+                      src={img || "/placeholder.svg"}
+                      alt={`Answer image (Gujarati) ${index + 1}`}
+                      width={100}
+                      height={100}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleImageRemove("answer_images_gu", index)}
+                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <div className="flex justify-end space-x-2">

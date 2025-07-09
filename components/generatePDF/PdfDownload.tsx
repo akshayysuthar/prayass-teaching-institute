@@ -17,29 +17,31 @@ import { siteConfig } from "@/config/site";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 // import { Download } from "lucide-react";
-import { Card, CardContent } from "./ui/card";
+import { Card, CardContent } from "../ui/card";
 
-// Register custom fonts for PDF rendering (Gujarati and English)
+// Register only NotoSansGujarati for PDF rendering
 const registerFonts = () => {
   try {
-    Font.register({ family: "NotoSans", src: "/fonts/NotoSans-Regular.ttf" });
     Font.register({
       family: "NotoSans",
-      src: "/fonts/NotoSans-Bold.ttf",
-      fontWeight: "bold",
+      src: "/fonts/NotoSans-Regular.ttf",
     });
+    // Font.register({
+    //   family: "NotoSansGujarati",
+    //   src: "/fonts/NotoSansGujarati-Regular.ttf",
+    // });
     Font.register({
-      family: "NotoSansGujarati",
-      src: "/fonts/NotoSansGujarati-Regular.ttf",
+      family: "AnekGujarati-Regular",
+      src: "/fonts/AnekGujarati-Regular.ttf",
     });
-    Font.register({
-      family: "NotoSansGujarati",
-      src: "/fonts/NotoSansGujarati-Bold.ttf",
-      fontWeight: "bold",
-    });
+    // Font.register({
+    //   family: "NotoSansGujarati",
+    //   src: "/fonts/NotoSansGujarati-Bold.ttf",
+    //   fontWeight: "bold",
+    // });
     return true;
   } catch (error) {
-    console.error("Font registration failed:", error);
+    console.error("Font registration failed :", error);
     return false;
   }
 };
@@ -69,21 +71,19 @@ interface GroupedSection {
   totalMarks: number;
 }
 
-// Normalize section titles for MCQ grouping (returns a canonical string)
-function normalizeSectionTitle(title: string): string {
-  if (!title) return "Other";
-  const t = title.trim().toLowerCase();
-  if (t.includes("mcq") || t.includes("choose the correct answer"))
-    return "MCQs";
-  if (t.includes("one word")) return "One Word";
-  return title.trim();
+// Utility: Detect if subject uses predefined section titles (Maths/Science)
+function usesPredefinedTitles(subject: string) {
+  if (!subject) return false;
+  const s = subject.trim().toLowerCase();
+  return s.includes("math") || s.includes("science");
 }
 
 // Group questions by marks and section, merging MCQ subgroups with similar titles
 function groupQuestionsWithMergedMCQ(
   questions: Question[],
   examStructure: ExamStructure,
-  isSectionWise: boolean
+  isSectionWise: boolean,
+  subject: string
 ): GroupedSection[] {
   if (!isSectionWise) {
     return [
@@ -106,36 +106,47 @@ function groupQuestionsWithMergedMCQ(
       },
     ];
   }
-  const grouped: GroupedSection[] = [];
+  // Only 6 sections: A-F, distributed by marks (1-6)
   const marksMap: Record<number, string> = {
     1: "A",
     2: "B",
     3: "C",
     4: "D",
     5: "E",
+    6: "F",
   };
+  const sectionLabels: Record<number, string> = {
+    1: "MCQs",
+    2: "Short Answer",
+    3: "Medium Answer",
+    4: "Long Answer",
+    5: "Very Long Answer",
+    6: "Essay/Other",
+  };
+  const grouped: GroupedSection[] = [];
   const questionsByMarks: Record<number, Question[]> = {};
   questions.forEach((q) => {
     if (!questionsByMarks[q.marks]) questionsByMarks[q.marks] = [];
     questionsByMarks[q.marks].push(q);
   });
+  const createdSections = new Set<string>();
   Object.entries(questionsByMarks).forEach(([marks, qList]) => {
-    const sectionName = marksMap[+marks] || "";
-    const sectionLabel =
-      +marks === 1
-        ? "MCQs/Short Answer"
-        : +marks === 2
-        ? "Short Answer"
-        : +marks === 3
-        ? "Medium Answer"
-        : +marks >= 4
-        ? "Long Answer"
-        : "Others";
-    // Merge MCQ subgroups with similar section titles
+    const markNum = +marks;
+    if (markNum < 1 || markNum > 6) return; // Only 1-6 marks allowed
+    const sectionName = marksMap[markNum];
+    if (createdSections.has(sectionName)) return; // Prevent duplicate sections
+    createdSections.add(sectionName);
+    const sectionLabel = sectionLabels[markNum] || "Other";
     const subGrouped: Record<string, Question[]> = {};
     qList.forEach((q) => {
-      const raw = q.sectionTitle?.trim() || q.section_title?.trim() || "Other";
-      const key = +marks === 1 ? normalizeSectionTitle(raw) : raw;
+      let key: string;
+      if (usesPredefinedTitles(subject)) {
+        // Maths/Science: use predefined label for all
+        key = sectionLabel;
+      } else {
+        // Others: use question's sectionTitle
+        key = q.sectionTitle?.trim() || q.section_title?.trim() || sectionLabel;
+      }
       if (!subGrouped[key]) subGrouped[key] = [];
       subGrouped[key].push(q);
     });
@@ -163,25 +174,19 @@ function groupQuestionsWithMergedMCQ(
   return grouped;
 }
 
-// Get the correct font family for a subject (Gujarati/English)
-const getFontFamily = (subject: string) => {
-  if (!subject) return "NotoSans";
-  return subject.toLowerCase().includes("gujarati")
-    ? "NotoSansGujarati"
-    : "NotoSans";
-};
+// Always use NotoSansGujarati as the font family
+const getFontFamily = () => "AnekGujarati-Regular";
 
-// Create all styles for the PDF document
-const createStyles = (subject: string) => {
-  const fontFamily = getFontFamily(subject);
-
+// Create all styles for the PDF document, fallback to NotoSansGujarati
+const createStyles = () => {
+  const fontFamily = "AnekGujarati-Regular";
   return StyleSheet.create({
     page: {
       flexDirection: "column",
       backgroundColor: "#FFFFFF",
       padding: 2, // Enough inner space
       // margin: 8, // Create outer whitespace
-      fontFamily: "NotoSans",
+      fontFamily: fontFamily,
       // borderWidth: 1,
       // borderColor: "#000000",
       width: "auto", // Important: let content stay inside page
@@ -295,7 +300,7 @@ const createStyles = (subject: string) => {
       fontSize: 12,
       fontWeight: "bold",
       textAlign: "left",
-      fontFamily: "NotoSansGujarati",
+      fontFamily: fontFamily,
     },
     subGroupHeaderMarks: {
       position: "absolute",
@@ -321,8 +326,8 @@ const createStyles = (subject: string) => {
       flex: 1,
       marginLeft: 10,
       marginRight: 8,
-      marginTop : 5,
-      fontFamily,
+      marginTop: 5,
+      fontFamily: fontFamily,
     },
     marks: {
       width: 60,
@@ -415,6 +420,11 @@ const createStyles = (subject: string) => {
       marginTop: 2,
       marginRight: 4,
     },
+    questionText: {
+      fontSize: 11,
+      marginBottom: 4,
+      fontFamily: fontFamily,
+    },
   });
 };
 
@@ -422,27 +432,27 @@ const getFormattedDate = () =>
   typeof window !== "undefined" ? new Date().toLocaleDateString() : "";
 
 // --- Utility: Always render a valid element for DynamicParagraph
-const SafeDynamicParagraph = (
-  props: React.ComponentProps<typeof DynamicParagraph>
-) => {
-  const content = props.content;
+// const SafeDynamicParagraph = (
+//   props: React.ComponentProps<typeof DynamicParagraph>
+// ) => {
+//   const content = props.content;
 
-  // Handle empty objects, null, undefined, or non-string content
-  if (
-    !content ||
-    (typeof content === "object" && Object.keys(content).length === 0) ||
-    (typeof content === "string" && content.trim() === "")
-  ) {
-    return <Text style={{ fontSize: 11, color: "#888" }}>-</Text>;
-  }
+//   // Handle empty objects, null, undefined, or non-string content
+//   if (
+//     !content ||
+//     (typeof content === "object" && Object.keys(content).length === 0) ||
+//     (typeof content === "string" && content.trim() === "")
+//   ) {
+//     return <Text style={{ fontSize: 11, color: "#888" }}>-</Text>;
+//   }
 
-  // If content is an object but not empty, stringify it
-  if (typeof content === "object") {
-    return <Text style={{ fontSize: 11 }}>{JSON.stringify(content)}</Text>;
-  }
+//   // If content is an object but not empty, stringify it
+//   if (typeof content === "object") {
+//     return <Text style={{ fontSize: 11 }}>{JSON.stringify(content)}</Text>;
+//   }
 
-  return <DynamicParagraph {...props} />;
-};
+//   return <DynamicParagraph {...props} />;
+// };
 
 // --- Error boundary for PDF rendering ---
 function SafeDocument(
@@ -456,6 +466,7 @@ function SafeDocument(
         err
       // : "PDF generation failed: " + (err?.message || "Unknown error.")
     );
+    // console.log(err);
     return null;
   }
 }
@@ -473,8 +484,8 @@ const MyDocument = ({
   medium,
   isSectionWise,
   format,
-  testTitle = "Unit Test",
-  examTime = "1 hour",
+  // testTitle = "Unit Test",
+  // examTime = "1 hour",
   teacherName,
 }: PdfDownloadPropsExtended) => {
   // Debugging logs
@@ -484,13 +495,14 @@ const MyDocument = ({
     numQuestions: selectedQuestions?.length || 0,
   });
 
-  const styles = createStyles(subject);
-  const fontFamily = getFontFamily(subject);
+  const styles = createStyles();
+  const fontFamily = getFontFamily();
 
   const groupedSections = groupQuestionsWithMergedMCQ(
     selectedQuestions,
     examStructure,
-    isSectionWise
+    isSectionWise,
+    subject // Pass subject as the fourth argument
   );
 
   // Format chapter numbers for display in the header
@@ -510,7 +522,7 @@ const MyDocument = ({
   };
 
   // CHUNK_LIMIT for questions per page
-  const CHUNK_LIMIT = 20;
+  const CHUNK_LIMIT = 999;
 
   // Helper: Chunk groupedSections/subGroups into pages, never splitting a subgroup unless it exceeds CHUNK_LIMIT
   function paginateSections(
@@ -696,13 +708,11 @@ const MyDocument = ({
       <Text style={styles.headerSiteName}>
         {instituteName || siteConfig.name}
       </Text>
-      <Text style={styles.headerTestTitle}>
+      {/* <Text style={styles.headerTestTitle}>
         {testTitle || "Unit Test"} - {examTime || "Unit Test"}
-      </Text>
+      </Text> */}
       <Text style={styles.headerTestTitle}>{schoolName || ""}</Text>
-      <Text style={styles.headerDateTopRight}>
-        {getFormattedDate()}
-      </Text>
+      <Text style={styles.headerDateTopRight}>{getFormattedDate()}</Text>
 
       {/* 📑 Three column layout */}
       <View style={styles.headerThreeColumns}>
@@ -712,7 +722,7 @@ const MyDocument = ({
             Chapter: {formatChapters(selectedQuestions, chapters)}
           </Text>
           <Text style={styles.headerText}>
-            Total Marks:{" "}
+            Marks:
             {selectedQuestions.reduce((sum, q) => sum + q.marks, 0)}
           </Text>
         </View>
@@ -722,7 +732,7 @@ const MyDocument = ({
             Std: {standard || "-"} | {medium || "-"}
           </Text>
           <Text style={styles.headerText}>Subject: {subject}</Text>
-        </View>{" "}
+        </View>
         {/* Column 3: Teacher + Student */}
         <View style={styles.headerRightColumn}>
           <Text style={styles.headerText}>Teacher: {teacherName || "-"}</Text>
@@ -816,35 +826,47 @@ const MyDocument = ({
                                           }}
                                         >
                                           <Text style={styles.questionNumber}>
-                                            {globalQuestionNumber}.{" "}
+                                            {globalQuestionNumber}.
                                           </Text>
                                           <DynamicParagraph
                                             content={
-                                              q.question_gu || q.question
+                                              (q.question_gu &&
+                                                q.question_gu.trim()) ||
+                                              (q.question &&
+                                                q.question.trim()) ||
+                                              "-"
                                             }
-                                            images={q.question_images || []}
+                                            images={
+                                              Array.isArray(q.question_images)
+                                                ? q.question_images
+                                                : []
+                                            }
                                             isPdf={true}
                                             fontFamily={fontFamily}
+                                            questionId={q.id}
+                                            context={`Question-${globalQuestionNumber}`}
                                           />
                                         </View>
-                                        {q.type === "MCQ" && q.options && (
-                                          <View style={styles.optionsRow}>
-                                            {Object.entries(q.options).map(
-                                              ([key, value]) => (
-                                                <View
-                                                  key={key}
-                                                  style={styles.option}
-                                                >
-                                                  <Text
-                                                    style={styles.optionText}
+                                        {/* {q.type === "MCQ" &&
+                                          q.options &&
+                                          Object.keys(q.options).length > 0 && (
+                                            <View style={styles.optionsRow}>
+                                              {Object.entries(q.options).map(
+                                                ([key, value]) => (
+                                                  <View
+                                                    key={key}
+                                                    style={styles.option}
                                                   >
-                                                    {key}) {value}
-                                                  </Text>
-                                                </View>
-                                              )
-                                            )}
-                                          </View>
-                                        )}
+                                                    <Text
+                                                      style={styles.optionText}
+                                                    >
+                                                      {key}) {value}
+                                                    </Text>
+                                                  </View>
+                                                )
+                                              )}
+                                            </View>
+                                          )} */}
                                       </View>
                                       {/* Only show per-question marks if not all same in group */}
                                       {!sub.perQuestionMarks && (
@@ -906,74 +928,63 @@ const MyDocument = ({
                 <Text style={styles.header}>Answer Key</Text>
 
                 {page.subGroups.map(({ sub }) =>
-                  sub.questions.map((q: Question, qIdx: number) => (
-                    <View
-                      key={q.id + qIdx}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "flex-start",
-                        marginBottom: 2,
-                      }}
-                    >
-                      <Text
+                  sub.questions.map((q: Question, qIdx: number) => {
+                    // Fix type error: ensure answer is string
+                    let answerContent = "";
+                    if (typeof q.answer === "string" && q.answer.trim()) {
+                      answerContent = q.answer;
+                    } else if (
+                      typeof q.answer_gu === "string" && q.answer_gu.trim()
+                    ) {
+                      answerContent = q.answer_gu;
+                    } else if (
+                      q.answer &&
+                      typeof q.answer === "object" &&
+                      Object.keys(q.answer).length > 0
+                    ) {
+                      answerContent = JSON.stringify(q.answer);
+                    } else if (
+                      q.answer_gu &&
+                      typeof q.answer_gu === "object" &&
+                      Object.keys(q.answer_gu).length > 0
+                    ) {
+                      answerContent = JSON.stringify(q.answer_gu);
+                    } else {
+                      answerContent = "-";
+                    }
+                    return (
+                      <View
+                        key={q.id + qIdx}
                         style={{
-                          fontWeight: "bold",
-                          fontSize: 12,
-                          marginRight: 6,
+                          flexDirection: "row",
+                          alignItems: "flex-start",
+                          marginBottom: 2,
                         }}
                       >
-                        {globalQuestionNumber++}.
-                      </Text>
+                        <Text
+                          style={{
+                            fontWeight: "bold",
+                            fontSize: 12,
+                            marginRight: 6,
+                          }}
+                        >
+                          {globalQuestionNumber++}.
+                        </Text>
 
-                      <DynamicParagraph
-                        content={
-                          typeof q.answer === "string"
-                            ? q.answer
-                            : typeof q.answer_gu === "string"
-                            ? q.answer_gu
-                            : "-"
-                        }
-                        images={q.answer_images || []}
-                        isPdf={true}
-                        isAnswerKey={true}
-                        fontFamily={fontFamily}
-                      />
-                      {/* <View style={{ flex: 1 }}>
-                      <DynamicParagraph
-                        content={(() => {
-                          if (
-                            typeof q.answer_gu === "string" &&
-                            q.answer_gu.trim()
-                          ) {
-                            return q.answer_gu;
+                        <DynamicParagraph
+                          content={answerContent}
+                          images={
+                            Array.isArray(q.answer_images) ? q.answer_images : []
                           }
-                          if (typeof q.answer === "string" && q.answer.trim()) {
-                            return q.answer;
-                          }
-                          if (
-                            q.answer_gu &&
-                            typeof q.answer_gu === "object" &&
-                            Object.keys(q.answer_gu).length > 0
-                          ) {
-                            return JSON.stringify(q.answer_gu);
-                          }
-                          if (
-                            q.answer &&
-                            typeof q.answer === "object" &&
-                            Object.keys(q.answer).length > 0
-                          ) {
-                            return JSON.stringify(q.answer);
-                          }
-                          return "-";
-                        })()}
-                        images={q.answer_images || []}
-                        isPdf={true}
-                        isAnswerKey={true}
-                        fontFamily={fontFamily}
-                      />
-                    </View> */}
-                    </View>
-                  ))
+                          isPdf={true}
+                          isAnswerKey={true}
+                          fontFamily={fontFamily}
+                          questionId={q.id}
+                          context={`Answer-${globalQuestionNumber}`}
+                        />
+                      </View>
+                    );
+                  })
                 )}
               </View>
               <Text
@@ -1063,38 +1074,61 @@ const MyDocument = ({
                           <Text style={{ ...styles.questionNumber }}>
                             {globalQuestionNumber++}.{" "}
                           </Text>
-                          <SafeDynamicParagraph
+                          <DynamicParagraph
                             content={q.question_gu || q.question}
-                            images={q.question_images || []}
+                            images={
+                              Array.isArray(q.question_images)
+                                ? q.question_images
+                                : []
+                            }
                             isPdf={true}
                             fontFamily={fontFamily}
                           />
+                          <DynamicParagraph
+                            content={answerContent}
+                            images={
+                              Array.isArray(q.answer_images)
+                                ? q.answer_images
+                                : []
+                            }
+                            isPdf={true}
+                            isAnswerKey={true}
+                            fontFamily={fontFamily}
+                            questionId={q.id}
+                            context={`Answer-${globalQuestionNumber}`}
+                          />
                         </View>
-                        {q.type === "MCQ" && q.options && (
-                          <View
-                            style={{
-                              ...styles.optionsRow,
-                              marginTop: 1,
-                              marginBottom: 1,
-                            }}
-                          >
-                            {Object.entries(q.options).map(([key, value]) => (
-                              <View key={key} style={styles.option}>
-                                <Text style={{ ...styles.optionText }}>
-                                  {key}) {value}
-                                </Text>
-                              </View>
-                            ))}
-                          </View>
-                        )}
+                        {q.type === "MCQ" &&
+                          q.options &&
+                          Object.keys(q.options).length > 0 && (
+                            <View
+                              style={{
+                                ...styles.optionsRow,
+                                marginTop: 1,
+                                marginBottom: 1,
+                              }}
+                            >
+                              {Object.entries(q.options).map(([key, value]) => (
+                                <View key={key} style={styles.option}>
+                                  <Text style={{ ...styles.optionText }}>
+                                    {key}) {value}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
                         {/* Answer */}
                         <View style={{ marginTop: 1, marginLeft: 18 }}>
                           <Text style={{ fontWeight: "bold", fontSize: 11 }}>
                             Answer:
                           </Text>
-                          <SafeDynamicParagraph
+                          <DynamicParagraph
                             content={answerContent}
-                            images={q.answer_images || []}
+                            images={
+                              Array.isArray(q.answer_images)
+                                ? q.answer_images
+                                : []
+                            }
                             isPdf={true}
                             isAnswerKey={true}
                             fontFamily={fontFamily}
@@ -1163,7 +1197,8 @@ export function PdfDownload(props: PdfDownloadPropsExtended) {
     if (!registerFonts()) {
       toast({
         title: "Warning",
-        description: "Failed to load fonts. PDF may not render correctly.",
+        description:
+          "Failed to load fonts. PDF will use Gujarati fallback font.",
         variant: "destructive",
       });
     }
@@ -1171,7 +1206,7 @@ export function PdfDownload(props: PdfDownloadPropsExtended) {
 
   // Warn if too many questions
   useEffect(() => {
-    if ((props.selectedQuestions?.length || 0) > 40) {
+    if ((props.selectedQuestions?.length || 0) > 10) {
       toast({
         title: "Large PDF Warning",
         description: `You are generating a very large PDF (${props.selectedQuestions.length} questions). This may take longer and could fail on low-memory devices.`,
@@ -1183,7 +1218,7 @@ export function PdfDownload(props: PdfDownloadPropsExtended) {
   // Set loading to false after a short delay when PDF is being generated
   useEffect(() => {
     if (loading) {
-      const timeout = setTimeout(() => setLoading(false), 2000);
+      const timeout = setTimeout(() => setLoading(false), 5000);
       return () => clearTimeout(timeout);
     }
   }, [loading]);
@@ -1191,22 +1226,42 @@ export function PdfDownload(props: PdfDownloadPropsExtended) {
   // Manual PDF download handler
   const handleManualDownload = async () => {
     setLoading(true);
+    setError(null); // reset
+
     try {
+      // Wait until fonts are loaded (if needed)
+      await new Promise((resolve) => setTimeout(resolve, 300)); // small delay for layout stability
+
+      // Validate all question content
+      const cleanedQuestions = props.selectedQuestions.map((q) => ({
+        ...q,
+        question: typeof q.question === "string" ? q.question : "",
+        question_gu: typeof q.question_gu === "string" ? q.question_gu : "",
+        answer: typeof q.answer === "string" ? q.answer : "",
+        answer_gu: typeof q.answer_gu === "string" ? q.answer_gu : "",
+      }));
+
+      // Proceed with PDF generation
       const blob = await pdf(
-        <SafeDocument {...props} setError={setError} />
+        <SafeDocument
+          {...props}
+          selectedQuestions={cleanedQuestions}
+          setError={setError}
+        />
       ).toBlob();
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `exam_${props.format}_$${
-        props.teacherName
+      a.download = `exam_${props.format}_${
+        props.teacherName || "teacher"
       }_${new Date().toLocaleDateString()}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.log(err);
+      console.error(err);
       setError(err instanceof Error ? err.message : String(err));
       toast({
         title: "Download Failed",

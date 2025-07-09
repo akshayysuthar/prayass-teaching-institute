@@ -2,11 +2,13 @@ import React from "react";
 import { Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 
 interface DynamicParagraphProps {
-  content: string | undefined | null;
+  content: string | null | undefined;
   images?: string[];
   isPdf?: boolean;
   isAnswerKey?: boolean;
   fontFamily?: string;
+  questionId?: string | number;
+  context?: string;
 }
 
 const styles = StyleSheet.create({
@@ -44,16 +46,25 @@ export const DynamicParagraph: React.FC<DynamicParagraphProps> = ({
   content,
   images = [],
   isAnswerKey = false,
-  fontFamily = "NotoSans",
+  fontFamily = "Helvetica", // fallback
+  // questionId = "unknown",
+  // context = "unknown",
 }) => {
+  const safeFontFamily =
+    fontFamily && typeof fontFamily === "string" ? fontFamily : "Helvetica";
+
   if (
-    !content ||
+    content === null ||
+    content === undefined ||
     (typeof content === "object" && Object.keys(content).length === 0) ||
-    (typeof content === "string" && content.trim() === "")
+    (typeof content === "string" && content.trim() === "") ||
+    content === "null"
   ) {
     return (
       <View style={styles.container}>
-        <Text style={styles.placeholder}>-</Text>
+        <Text style={{ ...styles.placeholder, fontFamily: safeFontFamily }}>
+          -
+        </Text>
       </View>
     );
   }
@@ -61,35 +72,54 @@ export const DynamicParagraph: React.FC<DynamicParagraphProps> = ({
   const textContent =
     typeof content === "object" ? JSON.stringify(content) : content;
 
-  // Split content into parts: text and placeholders
+  const validImages = Array.isArray(images)
+    ? images.filter(
+        (img): img is string =>
+          typeof img === "string" &&
+          img.trim() !== "" &&
+          !!(img.match(/^(https?:\/\/|\/|\.\/)/))
+      )
+    : [];
+  const hasValidImages = validImages.length > 0;
+
   const parts = textContent.split(/(\[img\d+\])/g).filter(Boolean);
 
   return (
     <View style={styles.container}>
       {parts.map((part, index) => {
         const imgMatch = part.match(/^\[img(\d+)\]$/);
-        if (imgMatch) {
+        if (imgMatch && hasValidImages) {
           const imageIndex = parseInt(imgMatch[1], 10) - 1;
-          const imageSrc = images[imageIndex];
+          const imageSrc = validImages[imageIndex];
 
-          if (!imageSrc) return null;
-
-          // Determine if image is at end or stand-alone
-          const isLast = index === parts.length - 1;
-          const isOnly = parts.length === 1;
-          const useLargeImage = isLast || isOnly || isAnswerKey;
+          if (!imageSrc || imageIndex >= validImages.length) {
+            return (
+              <Text
+                key={`text-${index}`}
+                style={[
+                  styles.text,
+                  { fontFamily: safeFontFamily, color: "#888" },
+                ]}
+              >
+                [Missing Image]
+              </Text>
+            );
+          }
 
           return (
             <View key={`img-${index}`} style={styles.imageContainer}>
               <Image
                 src={imageSrc}
-                style={useLargeImage ? styles.largeImage : styles.image}
+                style={isAnswerKey ? styles.largeImage : styles.image}
               />
             </View>
           );
         } else {
           return (
-            <Text key={`text-${index}`} style={[styles.text, { fontFamily }]}>
+            <Text
+              key={`text-${index}`}
+              style={[styles.text, { fontFamily: safeFontFamily }]}
+            >
               {part.trim()}
             </Text>
           );

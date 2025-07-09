@@ -1,5 +1,5 @@
 "use client";
-import { AddQuestionForm } from "@/components/AddQuestionForm";
+import { AddQuestionForm } from "@/components/addQuestions/AddQuestionForm";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
