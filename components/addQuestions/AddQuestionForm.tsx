@@ -11,6 +11,14 @@ import { QuestionForm } from "./QuestionForm";
 import { useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 type ImageSizeType = "inline" | "small" | "medium" | "large";
 
@@ -73,8 +81,10 @@ export function AddQuestionForm() {
   const { toast } = useToast();
   const { user } = useUser();
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkInput, setBulkInput] = useState("");
 
-  console.log( "gujaratiToggles is" + gujaratiToggles);
+  console.log("gujaratiToggles is" + gujaratiToggles);
 
   useEffect(() => {
     if (user) {
@@ -596,6 +606,76 @@ export function AddQuestionForm() {
     });
   };
 
+  // Bulk parser for English and Gujarati Q&A
+  function parseBulkQuestions(input: string): Partial<QuestionType>[] {
+    // Support both English and Gujarati formats
+    // English: Question 1. ... Answer: ...
+    // Gujarati: પ્રશ્ન 1. ... ઉત્તરઃ ...
+    const blocks = input
+      .split(/(?=Question\s*\d+\.|પ્રશ્ન\s*\d+\.)/gi)
+      .filter(Boolean);
+    return blocks.map((block) => {
+      // Try English first
+      let match = block.match(
+        /Question\s*\d+\.?[\s\S]*?(?:\n|\r|^)\s*Answer\s*[:：]([\s\S]*)/i
+      );
+      if (match) {
+        const qMatch = block.match(
+          /Question\s*\d+\.?([\s\S]*?)(?:\n|\r|^)\s*Answer\s*[:：]/i
+        );
+        return {
+          question: qMatch ? qMatch[1].replace(/\s+/g, " ").trim() : "",
+          answer: match[1].replace(/\s+/g, " ").trim(),
+          question_gu: "",
+          answer_gu: "",
+          question_images: [],
+          answer_images: [],
+          question_images_gu: [],
+          answer_images_gu: [],
+          marks: 1,
+          created_by: user?.fullName ?? "User Not Login",
+          sectionTitle: metadata.sectionTitle,
+          type: metadata.type,
+        };
+      }
+      // Try Gujarati
+      match = block.match(
+        /પ્રશ્ન\s*\d+\.?([\s\S]*?)(?:\n|\r|^)\s*ઉત્તર[:：](.*)/i
+      );
+      if (match) {
+        return {
+          question: "",
+          answer: "",
+          question_gu: match[1].replace(/\s+/g, " ").trim(),
+          answer_gu: match[2].replace(/\s+/g, " ").trim(),
+          question_images: [],
+          answer_images: [],
+          question_images_gu: [],
+          answer_images_gu: [],
+          marks: 1,
+          created_by: user?.fullName ?? "User Not Login",
+          sectionTitle: metadata.sectionTitle,
+          type: metadata.type,
+        };
+      }
+      // Fallback: treat as question only
+      return {
+        question: block.replace(/\s+/g, " ").trim(),
+        answer: "",
+        question_gu: "",
+        answer_gu: "",
+        question_images: [],
+        answer_images: [],
+        question_images_gu: [],
+        answer_images_gu: [],
+        marks: 1,
+        created_by: user?.fullName ?? "User Not Login",
+        sectionTitle: metadata.sectionTitle,
+        type: metadata.type,
+      };
+    });
+  }
+
   if (!user) {
     return (
       <div className="text-foreground">Please log in to access this form.</div>
@@ -604,6 +684,56 @@ export function AddQuestionForm() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto px-1 sm:px-0">
+      {/* Bulk Paste Button and Dialog */}
+      <Button
+        onClick={() => setBulkDialogOpen(true)}
+        variant="secondary"
+        className="mb-2"
+      >
+        Bulk Paste Questions
+      </Button>
+      <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bulk Paste Questions & Answers</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={bulkInput}
+            onChange={(e) => setBulkInput(e.target.value)}
+            rows={10}
+            placeholder={`Paste questions in this format:\n\nQuestion 1. ...\nAnswer: ...\nQuestion 2. ...\nAnswer: ...\n\nOR\n\nપ્રશ્ન 1. ...\nઉત્તરઃ ...`}
+          />
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                const parsed = parseBulkQuestions(bulkInput);
+                if (parsed.length > 0) {
+                  setQuestions(parsed);
+                  setGujaratiToggles(parsed.map((q) => !!q.question_gu));
+                  setBulkDialogOpen(false);
+                  setBulkInput("");
+                  toast({
+                    title: "Bulk questions added!",
+                    description: `${parsed.length} questions parsed and filled.`,
+                  });
+                } else {
+                  toast({
+                    title: "No questions found",
+                    description: "Please check your input format.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              variant="default"
+            >
+              Parse & Fill
+            </Button>
+            <Button onClick={() => setBulkDialogOpen(false)} variant="outline">
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Card className="bg-background border shadow-sm">
         <CardHeader>
           <CardTitle className="text-2xl text-foreground">
@@ -721,13 +851,18 @@ export function AddQuestionForm() {
                 setQuestions((prev) => {
                   const newQuestions = [...prev];
                   const q = newQuestions[index].question || "";
-                  // Regex: split at first line/para starting with 'Answer:' (case-insensitive, optional whitespace)
-                  const match = q.match(/([\s\S]*?)(?:\n|\r|^)\s*Answer\s*:(.*)/i);
+                  // Regex: split at first line/para starting with answer keywords (case-insensitive, optional whitespace)
+                  const match = q.match(
+                    /([\s\S]*?)(?:\n|\r|^)\s*(?:Answer|Ans|answer|ans|ઉત્તરઃ|ઉત્તર)\s*[:：]?(.*)/i
+                  );
                   if (match) {
                     // Remove extra internal whitespace for both fields
-                    const clean = (str: string) => str.replace(/\s+/g, ' ').trim();
+                    const clean = (str: string) =>
+                      str.replace(/\s+/g, " ").trim();
                     const before = clean(match[1]);
-                    const after = clean(match[2] + (q.split(match[0])[1] || ""));
+                    const after = clean(
+                      match[2] + (q.split(match[0])[1] || "")
+                    );
                     newQuestions[index].question = before;
                     newQuestions[index].answer = after;
                   }
